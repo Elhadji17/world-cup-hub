@@ -1,0 +1,17 @@
+[
+  {
+    "question": "Qui a gagné la Coupe du Monde 2018 ?",
+    "options": ["France", "Brésil", "Allemagne", "Argentine"],
+    "answer": "France"
+  },
+  {
+    "question": "Quel joueur est surnommé La Pulga ?",
+    "options": ["Ronaldo", "Messi", "Neymar", "Mbappé"],
+    "answer": "Messi"
+  },
+  {
+    "question": "Combien de joueurs dans une équipe de football ?",
+    "options": ["9", "10", "11", "12"],
+    "answer": "11"
+  }
+]
