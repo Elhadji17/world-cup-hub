@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 
 function Home() {
   return (
@@ -32,8 +33,14 @@ function Home() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
 
           {/* QUIZ */}
-          <div className="bg-white/90 backdrop-blur-lg text-black rounded-3xl p-8 shadow-xl transform transition duration-300 hover:scale-105 hover:shadow-2xl">
-
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            whileHover={{ scale: 1.05, rotate: 0.5 }}
+            whileTap={{ scale: 0.97 }}
+            className="bg-white/90 backdrop-blur-lg text-black rounded-3xl p-8 shadow-xl"
+          >
             <div className="text-6xl mb-6">🧠</div>
 
             <h3 className="text-3xl font-bold mb-4">
@@ -49,11 +56,17 @@ function Home() {
                 Jouer
               </button>
             </Link>
-          </div>
+          </motion.div>
 
           {/* PRONOSTICS */}
-          <div className="bg-white/90 backdrop-blur-lg text-black rounded-3xl p-8 shadow-xl transform transition duration-300 hover:scale-105 hover:shadow-2xl">
-
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            whileHover={{ scale: 1.05, rotate: -0.5 }}
+            whileTap={{ scale: 0.97 }}
+            className="bg-white/90 backdrop-blur-lg text-black rounded-3xl p-8 shadow-xl"
+          >
             <div className="text-6xl mb-6">🔮</div>
 
             <h3 className="text-3xl font-bold mb-4">
@@ -69,11 +82,17 @@ function Home() {
                 Prédire
               </button>
             </Link>
-          </div>
+          </motion.div>
 
           {/* MATCH CENTER */}
-          <div className="bg-white/90 backdrop-blur-lg text-black rounded-3xl p-8 shadow-xl transform transition duration-300 hover:scale-105 hover:shadow-2xl">
-
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.97 }}
+            className="bg-white/90 backdrop-blur-lg text-black rounded-3xl p-8 shadow-xl"
+          >
             <div className="text-6xl mb-6">📅</div>
 
             <h3 className="text-3xl font-bold mb-4">
@@ -89,7 +108,7 @@ function Home() {
                 Voir
               </button>
             </Link>
-          </div>
+          </motion.div>
 
         </div>
       </section>

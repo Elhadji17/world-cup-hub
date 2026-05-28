@@ -62,9 +62,25 @@ function Predictions() {
 
         {/* RESULT */}
         {choice && (
-          <div className="mt-6 text-lg font-bold">
+        <div className="mt-6">
+
+            <div className="text-lg font-bold mb-4">
             Tu as choisi : {choice}
-          </div>
+            </div>
+
+        <a
+        href={`https://wa.me/?text=${encodeURIComponent(
+            `⚽ Mon pronostic : ${match.teamA} vs ${match.teamB} → ${choice} gagne sur World Cup Hub 🔥`
+        )}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        >
+        <button className="bg-green-500 hover:bg-green-600 transition px-6 py-3 rounded-xl font-bold text-white">
+            Partager sur WhatsApp
+        </button>
+        </a>
+
+        </div>
         )}
 
       </div>

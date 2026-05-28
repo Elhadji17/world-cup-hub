@@ -35,6 +35,17 @@ function Quiz() {
         <p className="text-3xl">
           Score : {score} / {questions.length}
         </p>
+        <a
+        href={`https://wa.me/?text=${encodeURIComponent(
+            `🔥 J'ai obtenu ${score}/${questions.length} sur World Cup Hub ⚽`
+        )}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        >
+        <button className="mt-6 bg-green-500 hover:bg-green-600 transition px-6 py-3 rounded-xl font-bold">
+            Partager sur WhatsApp
+        </button>
+        </a>
 
         <button
           onClick={() => {

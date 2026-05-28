@@ -1,23 +1,78 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
+
 import Home from "./pages/Home";
 import Quiz from "./pages/Quiz";
 import Predictions from "./pages/Predictions";
 import Matches from "./pages/Matches";
 import Navbar from "./components/Navbar";
 
-function App() {
-  return (
-    <BrowserRouter>
-      <Navbar />
+function AnimatedRoutes() {
+  const location = useLocation();
 
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/quiz" element={<Quiz />} />
-        <Route path="/predictions" element={<Predictions />} />
-        <Route path="/matches" element={<Matches />} />
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+
+        <Route
+          path="/"
+          element={
+            <PageWrapper>
+              <Home />
+            </PageWrapper>
+          }
+        />
+
+        <Route
+          path="/quiz"
+          element={
+            <PageWrapper>
+              <Quiz />
+            </PageWrapper>
+          }
+        />
+
+        <Route
+          path="/predictions"
+          element={
+            <PageWrapper>
+              <Predictions />
+            </PageWrapper>
+          }
+        />
+
+        <Route
+          path="/matches"
+          element={
+            <PageWrapper>
+              <Matches />
+            </PageWrapper>
+          }
+        />
+
       </Routes>
-    </BrowserRouter>
+    </AnimatePresence>
   );
 }
 
-export default App;
+function PageWrapper({ children }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.3 }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Navbar />
+      <AnimatedRoutes />
+    </BrowserRouter>
+  );
+}
