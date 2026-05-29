@@ -26,11 +26,11 @@ function Quiz() {
         </h1>
 
         <input
-            type="text"
-            value={playerName}
-            onChange={(e) => setPlayerName(e.target.value)}
-            placeholder="Ton pseudo"
-            className="p-4 rounded-xl text-black w-full max-w-md"
+        type="text"
+        value={playerName}
+        onChange={(e) => setPlayerName(e.target.value)}
+        placeholder="Ton pseudo"
+        className="p-4 rounded-xl text-black w-full max-w-md bg-white"
         />
 
         <button
@@ -46,9 +46,6 @@ function Quiz() {
 
   const question = questions[current];
 
-  function savePlayer() {
-  localStorage.setItem("playerName", playerName);
-  }
 
   function handleAnswer(option) {
 
@@ -104,6 +101,7 @@ function Quiz() {
         </p>
         <p className="mt-4 text-xl text-green-400">
         Meilleur score :
+        {localStorage.getItem("bestScore")}
         <div className="mt-8 w-full max-w-md">
 
         <h2 className="text-2xl font-bold mb-4 text-yellow-400">
@@ -130,7 +128,7 @@ function Quiz() {
         )}
 
         </div>        
-        {localStorage.getItem("bestScore")}
+        
         </p>        
     <a
     href={`https://wa.me/?text=${encodeURIComponent(
