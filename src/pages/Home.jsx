@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 
+
 function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-900 via-black to-blue-900 text-white">
@@ -10,6 +11,11 @@ function Home() {
         <h1 className="text-3xl md:text-5xl font-bold tracking-wide animate-pulse">
           ⚽ World Cup Hub
         </h1>
+        {localStorage.getItem("playerName") && (
+        <p className="text-green-400 mt-4">
+            Bienvenue {localStorage.getItem("playerName")} ⚽
+        </p>
+        )}        
 
         <button className="bg-white text-black px-4 py-2 rounded-xl font-bold transition hover:scale-105 active:scale-95">
           Profil
