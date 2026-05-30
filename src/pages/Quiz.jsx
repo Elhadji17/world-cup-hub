@@ -88,74 +88,75 @@ function Quiz() {
     }
   }
 
-  if (finished) {
+    if (finished) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-black text-white">
+        <div className="min-h-screen flex flex-col items-center justify-center bg-black text-white p-6">
 
         <h1 className="text-5xl font-bold mb-6 text-center">
-        🎉 Bravo {localStorage.getItem("playerName")}
+            🎉 Bravo {localStorage.getItem("playerName")}
         </h1>
 
         <p className="text-3xl">
-          Score : {score} / {questions.length}
+            Score : {score} / {questions.length}
         </p>
+
+        {/* BEST SCORE */}
         <p className="mt-4 text-xl text-green-400">
-        Meilleur score :
-        {localStorage.getItem("bestScore")}
-        <div className="mt-8 w-full max-w-md">
+            Meilleur score : {localStorage.getItem("bestScore")}
+        </p>
 
-        <h2 className="text-2xl font-bold mb-4 text-yellow-400">
+        {/* WHATSAPP */}
+        <a
+            href={`https://wa.me/?text=${encodeURIComponent(
+            `🔥 J'ai obtenu ${score}/${questions.length} sur World Cup Hub ⚽`
+            )}`}
+            target="_blank"
+            rel="noopener noreferrer"
+        >
+            <button className="mt-6 bg-green-500 hover:bg-green-600 transition px-6 py-3 rounded-xl font-bold">
+            Partager sur WhatsApp
+            </button>
+        </a>
+
+        {/* LEADERBOARD */}
+        <div className="mt-10 w-full max-w-md">
+
+            <h2 className="text-2xl font-bold mb-4 text-yellow-400 text-center">
             🏆 Leaderboard
-        </h2>
+            </h2>
 
-        {(JSON.parse(localStorage.getItem("leaderboard")) || []).map(
+            {(JSON.parse(localStorage.getItem("leaderboard")) || []).map(
             (player, index) => (
-
-            <div
+                <div
                 key={index}
                 className="flex justify-between bg-gray-800 p-3 rounded-xl mb-2"
-            >
+                >
                 <span>
-                #{index + 1} {player.name}
+                    #{index + 1} {player.name}
                 </span>
 
-                <span>
-                {player.score}
-                </span>
-            </div>
-
+                <span>{player.score}</span>
+                </div>
             )
-        )}
+            )}
 
-        </div>        
-        
-        </p>        
-    <a
-    href={`https://wa.me/?text=${encodeURIComponent(
-        `🔥 J'ai obtenu ${score}/${questions.length} sur World Cup Hub ⚽`
-    )}`}
-    target="_blank"
-    rel="noopener noreferrer"
-    >
-    <button className="mt-6 bg-green-500 hover:bg-green-600 transition px-6 py-3 rounded-xl font-bold">
-        Partager sur WhatsApp
-    </button>
-    </a>
+        </div>
 
+        {/* REPLAY */}
         <button
-          onClick={() => {
+            onClick={() => {
             setCurrent(0);
             setScore(0);
             setFinished(false);
-          }}
-          className="mt-8 bg-green-600 px-6 py-3 rounded-xl"
+            }}
+            className="mt-8 bg-green-600 px-6 py-3 rounded-xl"
         >
-          Rejouer
+            Rejouer
         </button>
 
-      </div>
+        </div>
     );
-  }
+    }
 
   return (
     <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center p-6">
