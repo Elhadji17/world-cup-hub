@@ -89,100 +89,100 @@ function Quiz() {
   }
 
     if (finished) {
-        const history =
-            JSON.parse(localStorage.getItem("history")) || [];
+    const history =
+        JSON.parse(localStorage.getItem("history")) || [];
 
-        const gamesPlayed = history.length;
+    const gamesPlayed = history.length;
 
-        const average =
-            gamesPlayed === 0
-            ? 0
-            : (
-                history.reduce((acc, game) => acc + game.score, 0) /
-                gamesPlayed
-                ).toFixed(1);
+    const average =
+        gamesPlayed === 0
+        ? 0
+        : (
+            history.reduce((acc, game) => acc + game.score, 0) /
+            gamesPlayed
+            ).toFixed(1);
 
-        return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-black text-white p-6">
+    return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-black text-white p-6">
 
-            <h1 className="text-5xl font-bold mb-6 text-center">
-                🎉 Bravo {localStorage.getItem("playerName")}
-            </h1>
+        <h1 className="text-5xl font-bold mb-6 text-center">
+            🎉 Bravo {localStorage.getItem("playerName")}
+        </h1>
 
-            {/* SCORE */}
-            <p className="text-3xl">
-                Score : {score} / {questions.length}
+        {/* SCORE */}
+        <p className="text-3xl">
+            Score : {score} / {questions.length}
+        </p>
+
+        {/* BEST SCORE */}
+        <p className="mt-4 text-xl text-green-400">
+            Meilleur score : {localStorage.getItem("bestScore")}
+        </p>
+
+        {/* 📊 STATS */}
+        <div className="mt-6 text-center">
+            <h2 className="text-2xl font-bold text-blue-400 mb-3">
+            📊 Tes statistiques
+            </h2>
+
+            <p>Parties jouées : {gamesPlayed}</p>
+            <p>
+            Moyenne : {average} / {questions.length}
             </p>
+        </div>
 
-            {/* BEST SCORE */}
-            <p className="mt-4 text-xl text-green-400">
-                Meilleur score : {localStorage.getItem("bestScore")}
-            </p>
-
-            {/* 📊 STATS */}
-            <div className="mt-6 text-center">
-                <h2 className="text-2xl font-bold text-blue-400 mb-3">
-                📊 Tes statistiques
-                </h2>
-
-                <p>Parties jouées : {gamesPlayed}</p>
-                <p>
-                Moyenne : {average} / {questions.length}
-                </p>
-            </div>
-
-            {/* WHATSAPP */}
-            <a
-                href={`https://wa.me/?text=${encodeURIComponent(
-                `🔥 J'ai obtenu ${score}/${questions.length} sur World Cup Hub ⚽`
-                )}`}
-                target="_blank"
-                rel="noopener noreferrer"
-            >
-                <button className="mt-6 bg-green-500 hover:bg-green-600 transition px-6 py-3 rounded-xl font-bold">
-                Partager sur WhatsApp
-                </button>
-            </a>
-
-            {/* LEADERBOARD */}
-            <div className="mt-10 w-full max-w-md">
-
-                <h2 className="text-2xl font-bold mb-4 text-yellow-400 text-center">
-                🏆 Leaderboard
-                </h2>
-
-                {(JSON.parse(localStorage.getItem("leaderboard")) || []).map(
-                (player, index) => (
-                    <div
-                    key={index}
-                    className="flex justify-between bg-gray-800 p-3 rounded-xl mb-2"
-                    >
-                    <span>
-                        #{index + 1} {player.name}
-                    </span>
-
-                    <span>{player.score}</span>
-                    </div>
-                )
-                )}
-
-            </div>
-
-            {/* REPLAY */}
-            <button
-                onClick={() => {
-                setCurrent(0);
-                setScore(0);
-                setFinished(false);
-                }}
-                className="mt-8 bg-green-600 px-6 py-3 rounded-xl"
-            >
-                Rejouer
+        {/* WHATSAPP */}
+        <a
+            href={`https://wa.me/?text=${encodeURIComponent(
+            `🔥 J'ai obtenu ${score}/${questions.length} sur World Cup Hub ⚽`
+            )}`}
+            target="_blank"
+            rel="noopener noreferrer"
+        >
+            <button className="mt-6 bg-green-500 hover:bg-green-600 transition px-6 py-3 rounded-xl font-bold">
+            Partager sur WhatsApp
             </button>
+        </a>
 
-            </div>
-        );
-        }
+        {/* LEADERBOARD */}
+        <div className="mt-10 w-full max-w-md">
+
+            <h2 className="text-2xl font-bold mb-4 text-yellow-400 text-center">
+            🏆 Leaderboard
+            </h2>
+
+            {(JSON.parse(localStorage.getItem("leaderboard")) || []).map(
+            (player, index) => (
+                <div
+                key={index}
+                className="flex justify-between bg-gray-800 p-3 rounded-xl mb-2"
+                >
+                <span>
+                    #{index + 1} {player.name}
+                </span>
+
+                <span>{player.score}</span>
+                </div>
+            )
+            )}
+
+        </div>
+
+        {/* REPLAY */}
+        <button
+            onClick={() => {
+            setCurrent(0);
+            setScore(0);
+            setFinished(false);
+            }}
+            className="mt-8 bg-green-600 px-6 py-3 rounded-xl"
+        >
+            Rejouer
+        </button>
+
+        </div>
+    );
+    }
 
   return (
     <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center p-6">
