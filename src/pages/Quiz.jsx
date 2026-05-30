@@ -59,30 +59,43 @@ function Quiz() {
       setCurrent(next);
     } else {
         const finalScore =
-        option === question.answer
+            option === question.answer
             ? score + 1
             : score;
 
         const bestScore =
-        localStorage.getItem("bestScore") || 0;
+            localStorage.getItem("bestScore") || 0;
 
         if (finalScore > bestScore) {
-        localStorage.setItem("bestScore", finalScore);
+            localStorage.setItem("bestScore", finalScore);
         }
+
         const leaderboard =
-        JSON.parse(localStorage.getItem("leaderboard")) || [];
+            JSON.parse(localStorage.getItem("leaderboard")) || [];
 
         leaderboard.push({
-        name: localStorage.getItem("playerName"),
-        score: finalScore
+            name: localStorage.getItem("playerName"),
+            score: finalScore
         });
 
         leaderboard.sort((a, b) => b.score - a.score);
 
         localStorage.setItem(
-        "leaderboard",
-        JSON.stringify(leaderboard.slice(0, 10))
-        );        
+            "leaderboard",
+            JSON.stringify(leaderboard.slice(0, 10))
+        );
+
+        // ✅ AJOUT ICI
+        const history =
+            JSON.parse(localStorage.getItem("history")) || [];
+
+        history.push({
+            score: finalScore,
+            total: questions.length,
+            date: Date.now()
+        });
+
+        localStorage.setItem("history", JSON.stringify(history));
 
         setFinished(true);
     }
