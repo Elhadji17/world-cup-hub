@@ -49,6 +49,7 @@ function AnimatedRoutes() {
             </PageWrapper>
           }
         />
+        
 
       </Routes>
     </AnimatePresence>
