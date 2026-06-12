@@ -1,8 +1,16 @@
+// src/pages/Home.jsx
+// Mis à jour : bouton Profil ouvre AuthModal, affiche le vrai user connecté
+
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-
+import { useAuth } from "../hooks/useAuth";
+import AuthModal from "../components/AuthModal";
 
 function Home() {
+  const { user, logout } = useAuth();
+  const [showAuth, setShowAuth] = useState(false);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-900 via-black to-blue-900 text-white">
 
@@ -11,15 +19,30 @@ function Home() {
         <h1 className="text-3xl md:text-5xl font-bold tracking-wide animate-pulse">
           ⚽ World Cup Hub
         </h1>
-        {localStorage.getItem("playerName") && (
-        <p className="text-green-400 mt-4">
-            Bienvenue {localStorage.getItem("playerName")} ⚽
-        </p>
-        )}        
 
-        <button className="bg-white text-black px-4 py-2 rounded-xl font-bold transition hover:scale-105 active:scale-95">
-          Profil
-        </button>
+        {/* Bouton Profil / Connexion */}
+        {user ? (
+          <div className="flex items-center gap-3">
+            <p className="text-green-400 text-sm font-semibold">
+              Bienvenue {user.username} ⚽
+            </p>
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={logout}
+              className="bg-white/10 border border-white/20 text-white px-4 py-2 rounded-xl font-bold transition hover:bg-white/20"
+            >
+              Déconnexion
+            </motion.button>
+          </div>
+        ) : (
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowAuth(true)}
+            className="bg-white text-black px-4 py-2 rounded-xl font-bold transition hover:scale-105 active:scale-95"
+          >
+            Connexion
+          </motion.button>
+        )}
       </header>
 
       {/* HERO */}
@@ -28,7 +51,6 @@ function Home() {
           La Coupe du Monde<br />
           commence bientôt 🔥
         </h2>
-
         <p className="mt-6 text-lg md:text-2xl text-gray-300">
           Quiz • Pronostics • Match Center
         </p>
@@ -48,15 +70,10 @@ function Home() {
             className="bg-white/90 backdrop-blur-lg text-black rounded-3xl p-8 shadow-xl"
           >
             <div className="text-6xl mb-6">🧠</div>
-
-            <h3 className="text-3xl font-bold mb-4">
-              Quiz Challenge
-            </h3>
-
+            <h3 className="text-3xl font-bold mb-4">Quiz Challenge</h3>
             <p className="text-gray-700 mb-6">
               Teste ton niveau football avec des questions Coupe du Monde.
             </p>
-
             <Link to="/quiz">
               <button className="bg-green-600 text-white px-6 py-3 rounded-xl font-bold w-full transition hover:bg-green-700 active:scale-95">
                 Jouer
@@ -74,20 +91,24 @@ function Home() {
             className="bg-white/90 backdrop-blur-lg text-black rounded-3xl p-8 shadow-xl"
           >
             <div className="text-6xl mb-6">🔮</div>
-
-            <h3 className="text-3xl font-bold mb-4">
-              Pronostics
-            </h3>
-
+            <h3 className="text-3xl font-bold mb-4">Pronostics</h3>
             <p className="text-gray-700 mb-6">
               Prédire les scores et les gagnants des matchs.
             </p>
-
-            <Link to="/predictions">
-              <button className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold w-full transition hover:bg-blue-700 active:scale-95">
-                Prédire
+            {user ? (
+              <Link to="/predictions">
+                <button className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold w-full transition hover:bg-blue-700 active:scale-95">
+                  Prédire
+                </button>
+              </Link>
+            ) : (
+              <button
+                onClick={() => setShowAuth(true)}
+                className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold w-full transition hover:bg-blue-700 active:scale-95"
+              >
+                Connexion requise
               </button>
-            </Link>
+            )}
           </motion.div>
 
           {/* MATCH CENTER */}
@@ -100,15 +121,10 @@ function Home() {
             className="bg-white/90 backdrop-blur-lg text-black rounded-3xl p-8 shadow-xl"
           >
             <div className="text-6xl mb-6">📅</div>
-
-            <h3 className="text-3xl font-bold mb-4">
-              Match Center
-            </h3>
-
+            <h3 className="text-3xl font-bold mb-4">Match Center</h3>
             <p className="text-gray-700 mb-6">
               Retrouve les matchs, horaires et résultats.
             </p>
-
             <Link to="/matches">
               <button className="bg-red-600 text-white px-6 py-3 rounded-xl font-bold w-full transition hover:bg-red-700 active:scale-95">
                 Voir
@@ -123,6 +139,9 @@ function Home() {
       <footer className="text-center py-10 text-gray-400 mt-20">
         ⚽ World Cup Hub 2026
       </footer>
+
+      {/* AUTH MODAL */}
+      {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
 
     </div>
   );
