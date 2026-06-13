@@ -15,9 +15,13 @@ function Navbar() {
   return (
     <div className="flex justify-between items-center p-4 bg-black text-white border-b border-gray-700">
 
-      <h1 className="font-bold text-xl">
-        ⚽ World Cup Hub
-      </h1>
+      {/* ── Titre du site transformé en lien vers l'accueil ── */}
+      <Link 
+        to="/" 
+        className="font-bold text-xl hover:text-green-400 transition cursor-pointer select-none"
+      >
+        <h1>⚽ World Cup Hub</h1>
+      </Link>
 
       <div className="flex gap-1 md:gap-4 text-sm md:text-base">
         {LINKS.map(({ to, label, emoji }) => {
