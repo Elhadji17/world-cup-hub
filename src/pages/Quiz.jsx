@@ -1,14 +1,18 @@
-import { useState } from "react";
+
 import questions from "../data/questions.json";
+import { useState, useEffect } from "react";
 
 function Quiz() {
 
-  const [current, setCurrent] = useState(0);
-  const [score, setScore] = useState(0);
-  const [finished, setFinished] = useState(false);
-  const [playerName, setPlayerName] = useState(
-  localStorage.getItem("playerName") || ""
-  );
+    const [current, setCurrent] = useState(0);
+    const [score, setScore] = useState(0);
+    const [finished, setFinished] = useState(false);
+    const [playerName, setPlayerName] = useState(localStorage.getItem("playerName") || "");
+    const [timeLeft, setTimeLeft] = useState(15);
+    const [showResult, setShowResult] = useState(false);
+    const [isCorrect, setIsCorrect] = useState(false);
+    const [selectedAnswer, setSelectedAnswer] = useState(null);
+    
 
     function savePlayer() {
     if (playerName.trim() === "") return;
@@ -45,61 +49,61 @@ function Quiz() {
     }
 
   const question = questions[current];
+  useEffect(() => {
+    if (finished || showResult) return;
+
+    if (timeLeft === 0) {
+        handleTimeout();
+        return;
+    }
+
+    const timer = setTimeout(() => {
+        setTimeLeft((prev) => prev - 1);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [timeLeft, showResult, finished]);
 
 
   function handleAnswer(option) {
 
-    if (option === question.answer) {
-      setScore(score + 1);
+    const correct = option === question.answer;
+
+    setSelectedAnswer(option);
+    setIsCorrect(correct);
+
+    if (correct) {
+        setScore((prev) => prev + 1);
     }
 
+    setShowResult(true);
+
+    setTimeout(() => {
+        goToNextQuestion();
+    }, 2000);
+  }
+
+  function handleTimeout() {
+    setSelectedAnswer(null);
+    setIsCorrect(false);
+    setShowResult(true);
+
+    setTimeout(() => {
+        goToNextQuestion();
+    }, 2000);
+  }
+  function goToNextQuestion() {
     const next = current + 1;
 
     if (next < questions.length) {
-      setCurrent(next);
+        setCurrent(next);
+        setTimeLeft(15);
+        setShowResult(false);
+        setSelectedAnswer(null);
     } else {
-        const finalScore =
-            option === question.answer
-            ? score + 1
-            : score;
-
-        const bestScore =
-            localStorage.getItem("bestScore") || 0;
-
-        if (finalScore > bestScore) {
-            localStorage.setItem("bestScore", finalScore);
-        }
-
-        const leaderboard =
-            JSON.parse(localStorage.getItem("leaderboard")) || [];
-
-        leaderboard.push({
-            name: localStorage.getItem("playerName"),
-            score: finalScore
-        });
-
-        leaderboard.sort((a, b) => b.score - a.score);
-
-        localStorage.setItem(
-            "leaderboard",
-            JSON.stringify(leaderboard.slice(0, 10))
-        );
-
-        // ✅ AJOUT ICI
-        const history =
-            JSON.parse(localStorage.getItem("history")) || [];
-
-        history.push({
-            score: finalScore,
-            total: questions.length,
-            date: Date.now()
-        });
-
-        localStorage.setItem("history", JSON.stringify(history));
-
         setFinished(true);
     }
-  }
+    }
 
     if (finished) {
     const history =
@@ -200,6 +204,49 @@ function Quiz() {
   return (
     <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center p-6">
 
+    {/* Barre de progression */}
+    <div className="w-full max-w-2xl mb-6">
+    <div className="flex justify-between text-sm text-gray-300 mb-2">
+        <span>Question {current + 1}</span>
+        <span>{questions.length}</span>
+    </div>
+
+    <div className="w-full bg-gray-700 rounded-full h-3">
+
+        <div
+        className="bg-green-500 h-3 rounded-full transition-all duration-500"
+        style={{
+            width: `${((current + 1) / questions.length) * 100}%`
+        }}
+        />
+
+    </div>
+
+    {/* Affichage du chronomètre */}
+    <div className="mb-6 text-center">
+
+        <div className="text-4xl font-bold text-yellow-400">
+            ⏱️ {timeLeft}s
+        </div>
+
+        </div>
+
+    {/* Statistiques pendant la partie */}
+    <div className="mb-8 flex gap-6">
+
+        <div className="bg-gray-800 px-4 py-2 rounded-xl">
+            🎯 Score : {score}
+        </div>
+
+        <div className="bg-gray-800 px-4 py-2 rounded-xl">
+            ⚽ {Math.round(
+            (score / Math.max(current, 1)) * 100
+            ) || 0}%
+        </div>
+
+        </div>    
+
+    </div>
       {/* QUESTION */}
       <h2 className="text-3xl mb-10 text-center">
         {question.question}
@@ -220,6 +267,37 @@ function Quiz() {
 
       </div>
 
+      {/* Réponse correcte ou non */}
+      {showResult && (
+
+        <div className="mt-8 text-center">
+
+            {isCorrect ? (
+
+            <div className="text-green-400 text-2xl font-bold">
+                ✅ Bonne réponse !
+            </div>
+
+            ) : (
+
+            <div>
+                <div className="text-red-400 text-2xl font-bold">
+                ❌ Mauvaise réponse
+                </div>
+
+                <div className="mt-2 text-yellow-400">
+                Bonne réponse :
+                {" "}
+                {question.answer}
+                </div>
+            </div>
+
+            )}
+
+        </div>
+
+        )}
+      
       {/* SCORE */}
       <div className="mt-10 text-gray-300">
         Question {current + 1} / {questions.length}
