@@ -4,6 +4,7 @@
 import { useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MATCHES, getUpcomingMatches } from "../data/matches";
+import { useResults } from "../hooks/useResults";
 import { AI_PREDICTIONS } from "../data/aiPredictions";
 import { getMedal, agreesWithAI } from "../utils/scoring";
 import { useBackendPredictions } from "../hooks/useBackendPredictions";
@@ -14,6 +15,7 @@ import { useState } from "react";
 
 export default function Predictions() {
   const { user } = useAuth();
+  const { getResult } = useResults();
   const playerName = user?.username ?? localStorage.getItem("playerName") ?? "Joueur";
 
   const {
@@ -145,6 +147,7 @@ export default function Predictions() {
                 isJoker={hasJoker(match.id)}
                 onSave={savePrediction}
                 onJoker={handleSetJoker}
+                result={getResult(match.id)}
               />
             ))}
           </AnimatePresence>

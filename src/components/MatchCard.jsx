@@ -1,18 +1,21 @@
 // src/components/MatchCard.jsx
-// Carte pronostic — heure locale + blocage après début du match
+// Heure locale par stade + points obtenus + verrouillage
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FLAGS } from "../data/matches";
 import { AI_PREDICTIONS, getConfidenceColor, getConfidenceBg } from "../data/aiPredictions";
 import { agreesWithAI } from "../utils/scoring";
-import { getMatchStatus, isMatchEditable, formatLocalTime, formatLocalDate, timeUntilMatch } from "../utils/dateUtils";
+import {
+  getMatchStatus, isMatchEditable,
+  formatLocalTime, formatLocalDate, timeUntilMatch
+} from "../utils/dateUtils";
 
-export default function MatchCard({ match, prediction, isJoker, onSave, onJoker }) {
-  const ai      = AI_PREDICTIONS[match.id];
-  const status  = getMatchStatus(match.date, match.time);
-  const editable = isMatchEditable(match.date, match.time);
-  const countdown = timeUntilMatch(match.date, match.time);
+export default function MatchCard({ match, prediction, isJoker, onSave, onJoker, result }) {
+  const ai       = AI_PREDICTIONS[match.id];
+  const status   = getMatchStatus(match.date, match.time, match.stadium);
+  const editable = isMatchEditable(match.date, match.time, match.stadium);
+  const countdown = timeUntilMatch(match.date, match.time, match.stadium);
 
   const [scoreA, setScoreA] = useState(prediction?.scoreA ?? "");
   const [scoreB, setScoreB] = useState(prediction?.scoreB ?? "");
@@ -27,6 +30,9 @@ export default function MatchCard({ match, prediction, isJoker, onSave, onJoker 
     ? agreesWithAI(userPred, { scoreA: ai.scoreA, scoreB: ai.scoreB })
     : false;
 
+  // Points obtenus (depuis MongoDB via prop result)
+  const points = prediction?.points ?? null;
+
   function handleSave() {
     if (!hasInput || !editable) return;
     onSave(match.id, { scoreA: Number(scoreA), scoreB: Number(scoreB) });
@@ -34,7 +40,7 @@ export default function MatchCard({ match, prediction, isJoker, onSave, onJoker 
   }
 
   function handleEdit() {
-    if (!editable) return; // bloqué si match commencé
+    if (!editable) return;
     setSaved(false);
   }
 
@@ -49,7 +55,7 @@ export default function MatchCard({ match, prediction, isJoker, onSave, onJoker 
           : status === "live"
             ? "bg-red-900/20 border-red-500/40"
             : status === "finished"
-              ? "bg-white/5 border-white/10 opacity-80"
+              ? "bg-white/5 border-white/10"
               : "bg-white/10 border-white/10"
       }`}
     >
@@ -60,18 +66,32 @@ export default function MatchCard({ match, prediction, isJoker, onSave, onJoker 
         </div>
       )}
 
-      {/* Badge statut match */}
+      {/* Badge LIVE */}
       {status === "live" && (
         <div className="absolute -top-3 right-4 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full animate-pulse">
           🔴 LIVE
         </div>
       )}
 
-      {/* En-tête — heure LOCALE */}
-      <div className="flex justify-between text-xs text-gray-400 mb-3">
-        <span>Groupe {match.group}</span>
+      {/* Badge points obtenus */}
+      {points !== null && points !== undefined && (
+        <div className={`absolute -top-3 right-4 text-xs font-bold px-3 py-1 rounded-full shadow ${
+          points >= 15 ? "bg-green-500 text-white"
+          : points >= 7 ? "bg-blue-500 text-white"
+          : points > 0  ? "bg-orange-500 text-white"
+          : "bg-gray-600 text-gray-300"
+        }`}>
+          {points > 0 ? `+${points} pts` : "0 pt"}
+        </div>
+      )}
+
+      {/* En-tête — heure locale du stade */}
+      <div className="flex justify-between text-xs text-gray-400 mb-3 flex-wrap gap-1">
+        <span className="bg-white/10 px-2 py-0.5 rounded-full">Groupe {match.group}</span>
         <span>
-          🕒 {formatLocalDate(match.date, match.time)} · {formatLocalTime(match.date, match.time)}
+          🕒 {formatLocalDate(match.date, match.time, match.stadium)}
+          {" · "}
+          {formatLocalTime(match.date, match.time, match.stadium)}
           {countdown && <span className="ml-1 text-blue-300">({countdown})</span>}
         </span>
         <span>📍 {match.stadium}</span>
@@ -122,6 +142,20 @@ export default function MatchCard({ match, prediction, isJoker, onSave, onJoker 
         </div>
       </div>
 
+      {/* Score réel si disponible */}
+      {result && (
+        <div className="text-center text-sm font-bold text-green-300 mb-2">
+          ✅ Score final : {result.realScoreA} – {result.realScoreB}
+        </div>
+      )}
+
+      {/* Breakdown des points */}
+      {prediction?.breakdown && (
+        <div className="text-center text-xs text-gray-400 mb-3">
+          {prediction.breakdown}
+        </div>
+      )}
+
       {/* Message blocage */}
       {!editable && (
         <div className={`text-center text-xs mb-3 font-semibold ${
@@ -158,7 +192,7 @@ export default function MatchCard({ match, prediction, isJoker, onSave, onJoker 
             />
           </div>
           <p className="text-gray-400 leading-relaxed">{ai.reasoning}</p>
-          {userPred && (
+          {userPred && editable && (
             <div className={`mt-2 font-semibold ${sameAsAI ? "text-green-400" : "text-orange-400"}`}>
               {sameAsAI ? "✅ Tu es d'accord avec l'IA" : "⚡ Tu défies l'IA !"}
             </div>
@@ -169,7 +203,6 @@ export default function MatchCard({ match, prediction, isJoker, onSave, onJoker 
       {/* Actions */}
       <div className="flex gap-2">
         {!editable ? (
-          // Match commencé — bouton désactivé
           <div className="flex-1 bg-white/5 text-gray-500 font-bold py-2 px-4 rounded-xl text-center text-sm">
             🔒 Verrouillé
           </div>
@@ -190,15 +223,9 @@ export default function MatchCard({ match, prediction, isJoker, onSave, onJoker 
           </button>
         )}
 
-        {/* Bouton joker — désactivé si match commencé */}
         <motion.button
           whileTap={{ scale: editable ? 0.9 : 1 }}
           onClick={() => editable && onJoker(match.id)}
-          title={
-            !editable ? "Match commencé — joker verrouillé"
-            : isJoker ? "Joker actif — cliquer pour retirer"
-            : "Utiliser mon joker ici (×2 points)"
-          }
           className={`px-3 py-2 rounded-xl font-bold text-lg transition ${
             !editable
               ? "bg-white/5 text-gray-600 cursor-not-allowed"
@@ -211,18 +238,16 @@ export default function MatchCard({ match, prediction, isJoker, onSave, onJoker 
         </motion.button>
       </div>
 
-      {/* Partage WhatsApp — seulement si sauvegardé et éditable */}
+      {/* Partage WhatsApp */}
       {saved && editable && (
         <a
           href={`https://wa.me/?text=${encodeURIComponent(
-            `⚽ Mon pronostic sur World Cup Hub 2026 :\n` +
-            `${FLAGS[match.teamA] ?? ""} ${match.teamA} ${scoreA} – ${scoreB} ${match.teamB} ${FLAGS[match.teamB] ?? ""}` +
+            `⚽ Mon pronostic WC 2026 :\n` +
+            `${FLAGS[match.teamA] ?? ""} ${match.teamA} ${scoreA}–${scoreB} ${match.teamB} ${FLAGS[match.teamB] ?? ""}` +
             `${isJoker ? " ⭐ JOKER" : ""}\n` +
-            `Groupe ${match.group} · ${formatLocalDate(match.date, match.time)}\n` +
             `🔥 https://world-cup-hub-kappa.vercel.app/`
           )}`}
-          target="_blank"
-          rel="noopener noreferrer"
+          target="_blank" rel="noopener noreferrer"
           className="mt-3 flex items-center justify-center gap-2 text-xs text-green-400 hover:text-green-300 transition"
         >
           📲 Partager sur WhatsApp
