@@ -8,6 +8,7 @@ import Matches from "./pages/Matches";
 import Navbar from "./components/Navbar";
 import LeaderboardPage from "./pages/Leaderboard";
 import Admin from "./pages/Admin";
+import Share from "./pages/Share";
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -60,6 +61,7 @@ function AnimatedRoutes() {
           }
         />
         <Route path="/admin" element={<PageWrapper><Admin /></PageWrapper>} />
+        <Route path="/share" element={<PageWrapper><Share /></PageWrapper>} />
 
       </Routes>
     </AnimatePresence>

@@ -6,6 +6,7 @@ const LINKS = [
   { to: "/predictions", label: "Pronostics", emoji: "🔮" },
   { to: "/matches",     label: "Matchs",     emoji: "📅" },
   { to: "/leaderboard", label: "Classement", emoji: "🏆" },
+  { to: "/share", label: "Partager", emoji: "📲" },
 ];
 
 function Navbar() {
