@@ -1,17 +1,16 @@
 // src/pages/Matches.jsx
-// Calendrier complet WC 2026 — groupes A→L, statuts, résultats
+// Calendrier complet WC 2026 — affiche les vrais scores depuis le backend
 
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MATCHES, FLAGS, GROUPS } from "../data/matches";
+import { MATCHES, FLAGS } from "../data/matches";
 import { AI_PREDICTIONS } from "../data/aiPredictions";
+import { useResults } from "../hooks/useResults";
 
-// Statut d'un match selon la date actuelle
 function getMatchStatus(dateStr, timeStr) {
   const now       = new Date();
   const matchDate = new Date(`${dateStr}T${timeStr}:00`);
-  const endDate   = new Date(matchDate.getTime() + 2 * 60 * 60 * 1000); // +2h
-
+  const endDate   = new Date(matchDate.getTime() + 2 * 60 * 60 * 1000);
   if (now < matchDate) return "upcoming";
   if (now >= matchDate && now <= endDate) return "live";
   return "finished";
@@ -35,7 +34,7 @@ function StatusBadge({ status }) {
   );
 }
 
-function MatchRow({ match }) {
+function MatchRow({ match, result }) {
   const status = getMatchStatus(match.date, match.time);
   const ai     = AI_PREDICTIONS[match.id];
   const [showAI, setShowAI] = useState(false);
@@ -63,22 +62,23 @@ function MatchRow({ match }) {
         <span>📍 {match.stadium}</span>
       </div>
 
-      {/* Équipes */}
+      {/* Équipes + score */}
       <div className="flex items-center justify-between">
         <div className="flex-1 text-center">
           <div className="text-3xl mb-1">{flagA}</div>
           <div className="text-sm font-bold leading-tight">{match.teamA}</div>
         </div>
 
-        <div className="mx-4 text-center">
-          {status === "finished" ? (
+        <div className="mx-4 text-center min-w-[80px]">
+          {result ? (
+            // ✅ Vrai score depuis MongoDB
             <div className="text-2xl font-bold text-white">
-              ? – ?
+              {result.realScoreA} – {result.realScoreB}
             </div>
           ) : status === "live" ? (
-            <div className="text-2xl font-bold text-red-400 animate-pulse">
-              En cours
-            </div>
+            <div className="text-lg font-bold text-red-400 animate-pulse">En cours</div>
+          ) : status === "finished" ? (
+            <div className="text-sm text-gray-500">Score<br/>en attente</div>
           ) : (
             <div className="text-lg text-gray-500 font-bold">vs</div>
           )}
@@ -90,7 +90,7 @@ function MatchRow({ match }) {
         </div>
       </div>
 
-      {/* Prédiction IA */}
+      {/* Prédiction IA — seulement pour les matchs à venir */}
       {ai && status === "upcoming" && (
         <div className="mt-3 pt-3 border-t border-white/10">
           <button
@@ -129,6 +129,18 @@ function MatchRow({ match }) {
           </AnimatePresence>
         </div>
       )}
+
+      {/* Résultat final — comparaison IA vs réalité */}
+      {result && ai && (
+        <div className="mt-3 pt-3 border-t border-white/10 text-xs text-center">
+          <span className="text-gray-400">IA avait prédit : </span>
+          <span className="text-purple-300 font-bold">{ai.scoreA} – {ai.scoreB}</span>
+          {ai.scoreA === result.realScoreA && ai.scoreB === result.realScoreB
+            ? <span className="ml-2 text-green-400 font-bold">✅ Exact !</span>
+            : <span className="ml-2 text-orange-400">❌ Raté</span>
+          }
+        </div>
+      )}
     </motion.div>
   );
 }
@@ -144,22 +156,22 @@ const FILTER_STATUS = [
 export default function Matches() {
   const [activeGroup,  setActiveGroup]  = useState("TOUS");
   const [activeStatus, setActiveStatus] = useState("all");
+  const { getResult, loading: resultsLoading } = useResults();
 
   const filtered = useMemo(() => {
     return MATCHES.filter(m => {
-      const status    = getMatchStatus(m.date, m.time);
-      const groupOk   = activeGroup === "TOUS" || m.group === activeGroup;
-      const statusOk  = activeStatus === "all"  || status === activeStatus;
+      const status   = getMatchStatus(m.date, m.time);
+      const groupOk  = activeGroup === "TOUS" || m.group === activeGroup;
+      const statusOk = activeStatus === "all"  || status === activeStatus;
       return groupOk && statusOk;
     });
   }, [activeGroup, activeStatus]);
 
-  // Stats rapides
   const stats = useMemo(() => {
     const live     = MATCHES.filter(m => getMatchStatus(m.date, m.time) === "live").length;
     const finished = MATCHES.filter(m => getMatchStatus(m.date, m.time) === "finished").length;
     const upcoming = MATCHES.filter(m => getMatchStatus(m.date, m.time) === "upcoming").length;
-    return { live, finished, upcoming, total: MATCHES.length };
+    return { live, finished, upcoming };
   }, []);
 
   return (
@@ -170,8 +182,10 @@ export default function Matches() {
         <div className="max-w-4xl mx-auto">
           <h1 className="text-2xl font-bold">📅 Match Center</h1>
           <p className="text-xs text-gray-400 mt-0.5">
-            {stats.total} matchs · {stats.live > 0 ? `🔴 ${stats.live} live · ` : ""}
+            {MATCHES.length} matchs ·{" "}
+            {stats.live > 0 ? `🔴 ${stats.live} live · ` : ""}
             {stats.finished} terminés · {stats.upcoming} à venir
+            {resultsLoading && " · ⏳ Chargement scores..."}
           </p>
         </div>
       </div>
@@ -216,19 +230,21 @@ export default function Matches() {
         <div className="grid gap-3">
           <AnimatePresence>
             {filtered.map(match => (
-              <MatchRow key={match.id} match={match} />
+              <MatchRow
+                key={match.id}
+                match={match}
+                result={getResult(match.id)}
+              />
             ))}
           </AnimatePresence>
         </div>
 
-        {/* Aucun match */}
         {filtered.length === 0 && (
           <div className="text-center text-gray-400 py-20">
             <div className="text-5xl mb-4">📭</div>
             <p>Aucun match pour ce filtre.</p>
           </div>
         )}
-
       </div>
     </div>
   );
