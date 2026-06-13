@@ -6,6 +6,7 @@ import Quiz from "./pages/Quiz";
 import Predictions from "./pages/Predictions";
 import Matches from "./pages/Matches";
 import Navbar from "./components/Navbar";
+import LeaderboardPage from "./pages/Leaderboard";
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -49,7 +50,14 @@ function AnimatedRoutes() {
             </PageWrapper>
           }
         />
-        
+        <Route
+          path="/leaderboard"
+          element={
+            <PageWrapper>
+              <LeaderboardPage />
+            </PageWrapper>
+          }
+        />
 
       </Routes>
     </AnimatePresence>

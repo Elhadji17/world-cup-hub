@@ -1,7 +1,16 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
+const LINKS = [
+  { to: "/",            label: "Home",       emoji: "🏠" },
+  { to: "/quiz",        label: "Quiz",       emoji: "🧠" },
+  { to: "/predictions", label: "Pronostics", emoji: "🔮" },
+  { to: "/matches",     label: "Matchs",     emoji: "📅" },
+  { to: "/leaderboard", label: "Classement", emoji: "🏆" },
+];
 
 function Navbar() {
+  const { pathname } = useLocation();
+
   return (
     <div className="flex justify-between items-center p-4 bg-black text-white border-b border-gray-700">
 
@@ -9,24 +18,24 @@ function Navbar() {
         ⚽ World Cup Hub
       </h1>
 
-      <div className="flex gap-4 text-sm md:text-base">
-
-        <Link to="/" className="hover:text-green-400">
-          Home
-        </Link>
-
-        <Link to="/quiz" className="hover:text-green-400">
-          Quiz
-        </Link>
-
-        <Link to="/predictions" className="hover:text-green-400">
-          Pronostics
-        </Link>
-
-        <Link to="/matches" className="hover:text-green-400">
-          Matchs
-        </Link>
-
+      <div className="flex gap-1 md:gap-4 text-sm md:text-base">
+        {LINKS.map(({ to, label, emoji }) => {
+          const active = pathname === to;
+          return (
+            <Link
+              key={to}
+              to={to}
+              className={`px-2 py-1 rounded-lg transition font-medium ${
+                active
+                  ? "text-green-400 bg-green-400/10"
+                  : "hover:text-green-400"
+              }`}
+            >
+              <span className="hidden md:inline">{label}</span>
+              <span className="md:hidden text-lg">{emoji}</span>
+            </Link>
+          );
+        })}
       </div>
 
     </div>
