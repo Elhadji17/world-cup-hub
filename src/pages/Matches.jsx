@@ -1,237 +1,235 @@
-import React, { useState } from "react";
-// Importation des données réelles, des groupes et des drapeaux
-import { GROUPS, MATCHES, FLAGS } from "../data/matches"; 
+// src/pages/Matches.jsx
+// Calendrier complet WC 2026 — groupes A→L, statuts, résultats
 
-function Matches() {
-  // État pour le groupe actuellement sélectionné (Groupe A par défaut)
-  const [activeGroup, setActiveGroup] = useState("A");
+import { useState, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { MATCHES, FLAGS, GROUPS } from "../data/matches";
+import { AI_PREDICTIONS } from "../data/aiPredictions";
 
-  const groupLetters = Object.keys(GROUPS);
+// Statut d'un match selon la date actuelle
+function getMatchStatus(dateStr, timeStr) {
+  const now       = new Date();
+  const matchDate = new Date(`${dateStr}T${timeStr}:00`);
+  const endDate   = new Date(matchDate.getTime() + 2 * 60 * 60 * 1000); // +2h
 
-  // 1. Filtrer les matchs pour le groupe actif
-  const filteredMatches = MATCHES.filter(match => match.group === activeGroup);
+  if (now < matchDate) return "upcoming";
+  if (now >= matchDate && now <= endDate) return "live";
+  return "finished";
+}
 
-  // 2. FONCTION DE CALCUL DU CLASSEMENT DU GROUPE ACTIF
-  const computeStanding = () => {
-    const teamsInGroup = GROUPS[activeGroup] || [];
-    
-    // Initialisation des stats pour chaque équipe du groupe
-    const standings = teamsInGroup.reduce((acc, team) => {
-      acc[team] = { team, mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 };
-      return acc;
-    }, {});
-
-    // Parcours de tous les matchs pour calculer les points si les scores existent
-    MATCHES.forEach(match => {
-      if (match.group !== activeGroup) return;
-      
-      // On vérifie si le match a été joué (si les scores sont définis numériquement)
-      const hasScore = match.scoreA !== undefined && match.scoreB !== undefined;
-      
-      if (hasScore && standings[match.teamA] && standings[match.teamB]) {
-        const sA = Number(match.scoreA);
-        const sB = Number(match.scoreB);
-
-        // Mise à jour des Matchs Joués (MP) et Buts Pour/Contre (GF/GA)
-        standings[match.teamA].mp += 1;
-        standings[match.teamB].mp += 1;
-        standings[match.teamA].gf += sA;
-        standings[match.teamA].ga += sB;
-        standings[match.teamB].gf += sB;
-        standings[match.teamB].ga += sA;
-
-        // Calcul Victoire / Nul / Défaite et attribution des Points
-        if (sA > sB) {
-          standings[match.teamA].w += 1;
-          standings[match.teamA].pts += 3;
-          standings[match.teamB].l += 1;
-        } else if (sA < sB) {
-          standings[match.teamB].w += 1;
-          standings[match.teamB].pts += 3;
-          standings[match.teamA].l += 1;
-        } else {
-          standings[match.teamA].d += 1;
-          standings[match.teamA].pts += 1;
-          standings[match.teamB].d += 1;
-          standings[match.teamB].pts += 1;
-        }
-      }
-    });
-
-    // Conversion en tableau et calcul de la différence de buts (GD)
-    return Object.values(standings).map(t => {
-      t.gd = t.gf - t.ga;
-      return t;
-    }).sort((a, b) => {
-      // Tri par : 1. Points, 2. Différence de buts, 3. Buts marqués
-      if (b.pts !== a.pts) return b.pts - a.pts;
-      if (b.gd !== a.gd) return b.gd - a.gd;
-      return b.gf - a.gf;
-    });
-  };
-
-  const standingsData = computeStanding();
-
-  // Formater les dates
-  const formatDate = (dateString) => {
-    const options = { day: 'numeric', month: 'long' };
-    return new Date(dateString).toLocaleDateString('fr-FR', options);
-  };
-
+function StatusBadge({ status }) {
+  if (status === "live") return (
+    <span className="flex items-center gap-1 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full animate-pulse">
+      🔴 LIVE
+    </span>
+  );
+  if (status === "finished") return (
+    <span className="bg-gray-600 text-gray-300 text-xs font-semibold px-2 py-0.5 rounded-full">
+      Terminé
+    </span>
+  );
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-4 md:p-6">
-
-      {/* TITLE */}
-      <h1 className="text-4xl font-bold mb-2 text-center tracking-tight">
-        📅 Match Center - FIFA World Cup 2026
-      </h1>
-      <p className="text-center text-gray-400 mb-8">Matchs et classements en temps réel</p>
-
-      {/* BARRE HORIZONTALE DES BOUTONS */}
-      <div className="max-w-5xl mx-auto mb-8">
-        <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent snap-x">
-          {groupLetters.map((letter) => (
-            <button
-              key={letter}
-              onClick={() => setActiveGroup(letter)}
-              className={`snap-center px-5 py-3 rounded-xl font-bold text-base transition-all min-w-[75px] flex-shrink-0 ${
-                activeGroup === letter
-                  ? "bg-blue-600 text-white shadow-lg shadow-blue-900/40 scale-105"
-                  : "bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white"
-              }`}
-            >
-              Gr. {letter}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        
-        {/* COLONNE GAUCHE : LE TABLEAU DE CLASSEMENT */}
-        <div className="lg:col-span-5 bg-gray-800 rounded-2xl p-4 md:p-5 shadow-xl border border-gray-700">
-          <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-blue-400">
-            📊 Classement Groupe {activeGroup}
-          </h2>
-          
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead>
-                <tr className="text-gray-400 border-b border-gray-700 text-xs uppercase tracking-wider">
-                  <th className="py-3 px-2 text-center w-8">#</th>
-                  <th className="py-3 px-2">Équipe</th>
-                  <th className="py-3 px-2 text-center">MJ</th>
-                  <th className="py-3 px-1 text-center hidden sm:table-cell">V</th>
-                  <th className="py-3 px-1 text-center hidden sm:table-cell">N</th>
-                  <th className="py-3 px-1 text-center hidden sm:table-cell">D</th>
-                  <th className="py-3 px-2 text-center">Diff</th>
-                  <th className="py-3 px-2 text-center font-bold text-white">Pts</th>
-                </tr>
-              </thead>
-              <tbody>
-                {standingsData.map((row, index) => (
-                  <tr 
-                    key={row.team} 
-                    className={`border-b border-gray-700/50 last:border-0 hover:bg-gray-750 transition-colors ${
-                      index < 2 ? "bg-blue-950/20" : "" // Surligner les 2 premiers qualifiés
-                    }`}
-                  >
-                    <td className="py-3 px-2 text-center font-mono text-gray-400 font-bold">
-                      {index + 1}
-                    </td>
-                    <td className="py-3 px-2 font-semibold flex items-center gap-2 truncate max-w-[140px] sm:max-w-none">
-                      <span>{FLAGS[row.team] || "🏳️"}</span>
-                      <span className="truncate">{row.team}</span>
-                    </td>
-                    <td className="py-3 px-2 text-center font-mono">{row.mp}</td>
-                    <td className="py-3 px-1 text-center font-mono text-gray-400 hidden sm:table-cell">{row.w}</td>
-                    <td className="py-3 px-1 text-center font-mono text-gray-400 hidden sm:table-cell">{row.d}</td>
-                    <td className="py-3 px-1 text-center font-mono text-gray-400 hidden sm:table-cell">{row.l}</td>
-                    <td className={`py-3 px-2 text-center font-mono text-xs font-bold ${
-                      row.gd > 0 ? "text-green-400" : row.gd < 0 ? "text-red-400" : "text-gray-400"
-                    }`}>
-                      {row.gd > 0 ? `+${row.gd}` : row.gd}
-                    </td>
-                    <td className="py-3 px-2 text-center font-mono font-bold text-base text-blue-400">
-                      {row.pts}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="mt-4 text-[11px] text-gray-500 italic">
-            * Les deux premières équipes de chaque groupe accèdent aux 16es de finale.
-          </div>
-        </div>
-
-        {/* COLONNE DROITE : LES MATCHS DU GROUPE */}
-        <div className="lg:col-span-7 grid gap-4">
-          <h2 className="text-xl font-bold mb-1 flex items-center gap-2 text-gray-300">
-            🗓️ Rencontres du groupe
-          </h2>
-          
-          {filteredMatches.map((match) => {
-            const isPlayed = match.scoreA !== undefined && match.scoreB !== undefined;
-            return (
-              <div
-                key={match.id}
-                className="bg-gray-800 p-5 rounded-2xl shadow-md border border-gray-700/70 hover:border-blue-500/50 transition-all"
-              >
-                <div className="flex justify-between items-center mb-3">
-                  <span className="text-[10px] text-gray-500 font-mono tracking-widest uppercase">Match #{match.id}</span>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${
-                    isPlayed 
-                      ? "bg-gray-700 text-gray-300" 
-                      : "bg-blue-950 text-blue-400 border border-blue-900"
-                  }`}>
-                    {isPlayed ? "Terminé" : "À venir"}
-                  </span>
-                </div>
-
-                {/* LOGIQUE D'AFFICHAGE DES ÉQUIPES ET SCORES */}
-                <div className="flex items-center justify-between my-2 max-w-md mx-auto">
-                  {/* Équipe A */}
-                  <div className="flex flex-col sm:flex-row items-center gap-2 w-5/12 text-center sm:text-left">
-                    <span className="text-2xl sm:text-xl">{FLAGS[match.teamA] || "🏳️"}</span>
-                    <span className="font-bold text-sm sm:text-base truncate w-full" title={match.teamA}>{match.teamA}</span>
-                  </div>
-
-                  {/* Score Central ou "VS" */}
-                  <div className="w-2/12 flex justify-center">
-                    {isPlayed ? (
-                      <div className="bg-gray-900 px-3 py-1 rounded-lg font-mono font-bold text-base border border-gray-700 flex gap-2">
-                        <span>{match.scoreA}</span>
-                        <span className="text-gray-600">-</span>
-                        <span>{match.scoreB}</span>
-                      </div>
-                    ) : (
-                      <span className="text-xs uppercase bg-gray-900 text-gray-500 px-2.5 py-1 rounded-md font-semibold border border-gray-700/50">VS</span>
-                    )}
-                  </div>
-
-                  {/* Équipe B */}
-                  <div className="flex flex-col sm:flex-row-reverse items-center gap-2 w-5/12 text-center sm:text-right">
-                    <span className="text-2xl sm:text-xl">{FLAGS[match.teamB] || "🏳️"}</span>
-                    <span className="font-bold text-sm sm:text-base truncate w-full" title={match.teamB}>{match.teamB}</span>
-                  </div>
-                </div>
-
-                {/* INFOS DU MATCH */}
-                <div className="flex justify-between text-[11px] text-gray-400 border-t border-gray-700/40 pt-3 mt-4 px-1">
-                  <span>📅 {formatDate(match.date)}</span>
-                  <span>⏰ {match.time} (locale)</span>
-                  <span className="truncate max-w-[150px]" title={match.stadium}>🏟️ {match.stadium}</span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-      </div>
-
-    </div>
+    <span className="bg-blue-500/20 text-blue-300 text-xs font-semibold px-2 py-0.5 rounded-full">
+      À venir
+    </span>
   );
 }
 
-export default Matches;
+function MatchRow({ match }) {
+  const status = getMatchStatus(match.date, match.time);
+  const ai     = AI_PREDICTIONS[match.id];
+  const [showAI, setShowAI] = useState(false);
+
+  const flagA = FLAGS[match.teamA] ?? "🏳️";
+  const flagB = FLAGS[match.teamB] ?? "🏳️";
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`rounded-2xl border p-4 transition ${
+        status === "live"
+          ? "bg-red-500/10 border-red-500/40 shadow-red-500/10 shadow-lg"
+          : status === "finished"
+            ? "bg-white/5 border-white/10"
+            : "bg-white/8 border-white/10"
+      }`}
+    >
+      {/* En-tête */}
+      <div className="flex justify-between items-center mb-3 text-xs text-gray-400">
+        <StatusBadge status={status} />
+        <span>🕒 {match.date} · {match.time}</span>
+        <span>📍 {match.stadium}</span>
+      </div>
+
+      {/* Équipes */}
+      <div className="flex items-center justify-between">
+        <div className="flex-1 text-center">
+          <div className="text-3xl mb-1">{flagA}</div>
+          <div className="text-sm font-bold leading-tight">{match.teamA}</div>
+        </div>
+
+        <div className="mx-4 text-center">
+          {status === "finished" ? (
+            <div className="text-2xl font-bold text-white">
+              ? – ?
+            </div>
+          ) : status === "live" ? (
+            <div className="text-2xl font-bold text-red-400 animate-pulse">
+              En cours
+            </div>
+          ) : (
+            <div className="text-lg text-gray-500 font-bold">vs</div>
+          )}
+        </div>
+
+        <div className="flex-1 text-center">
+          <div className="text-3xl mb-1">{flagB}</div>
+          <div className="text-sm font-bold leading-tight">{match.teamB}</div>
+        </div>
+      </div>
+
+      {/* Prédiction IA */}
+      {ai && status === "upcoming" && (
+        <div className="mt-3 pt-3 border-t border-white/10">
+          <button
+            onClick={() => setShowAI(!showAI)}
+            className="w-full text-xs text-purple-300 hover:text-purple-200 font-semibold transition flex items-center justify-center gap-1"
+          >
+            🤖 {showAI ? "Masquer" : "Voir"} la prédiction IA
+          </button>
+
+          <AnimatePresence>
+            {showAI && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden mt-2 text-xs text-center"
+              >
+                <div className="flex items-center justify-center gap-4 my-2">
+                  <span className="text-2xl font-bold text-white">{ai.scoreA}</span>
+                  <span className="text-gray-500">–</span>
+                  <span className="text-2xl font-bold text-white">{ai.scoreB}</span>
+                </div>
+                <div className="text-purple-300 font-semibold mb-1">
+                  {ai.winner === "Draw" ? "🤝 Match nul prédit" : `🏆 ${ai.winner} favori`}
+                  <span className={`ml-2 font-bold ${
+                    ai.confidence >= 75 ? "text-green-400"
+                    : ai.confidence >= 55 ? "text-yellow-400"
+                    : "text-orange-400"
+                  }`}>
+                    {ai.confidence}%
+                  </span>
+                </div>
+                <p className="text-gray-400 italic">"{ai.reasoning}"</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+const FILTER_GROUPS = ["TOUS", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"];
+const FILTER_STATUS = [
+  { id: "all",      label: "Tous"     },
+  { id: "live",     label: "🔴 Live"  },
+  { id: "upcoming", label: "À venir"  },
+  { id: "finished", label: "Terminés" },
+];
+
+export default function Matches() {
+  const [activeGroup,  setActiveGroup]  = useState("TOUS");
+  const [activeStatus, setActiveStatus] = useState("all");
+
+  const filtered = useMemo(() => {
+    return MATCHES.filter(m => {
+      const status    = getMatchStatus(m.date, m.time);
+      const groupOk   = activeGroup === "TOUS" || m.group === activeGroup;
+      const statusOk  = activeStatus === "all"  || status === activeStatus;
+      return groupOk && statusOk;
+    });
+  }, [activeGroup, activeStatus]);
+
+  // Stats rapides
+  const stats = useMemo(() => {
+    const live     = MATCHES.filter(m => getMatchStatus(m.date, m.time) === "live").length;
+    const finished = MATCHES.filter(m => getMatchStatus(m.date, m.time) === "finished").length;
+    const upcoming = MATCHES.filter(m => getMatchStatus(m.date, m.time) === "upcoming").length;
+    return { live, finished, upcoming, total: MATCHES.length };
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-red-900 via-black to-blue-900 text-white pb-16">
+
+      {/* ── HEADER ── */}
+      <div className="sticky top-0 z-20 bg-black/60 backdrop-blur-md border-b border-white/10 px-4 py-3">
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-2xl font-bold">📅 Match Center</h1>
+          <p className="text-xs text-gray-400 mt-0.5">
+            {stats.total} matchs · {stats.live > 0 ? `🔴 ${stats.live} live · ` : ""}
+            {stats.finished} terminés · {stats.upcoming} à venir
+          </p>
+        </div>
+      </div>
+
+      <div className="max-w-4xl mx-auto px-4 pt-4">
+
+        {/* ── FILTRE STATUT ── */}
+        <div className="flex gap-2 mb-4">
+          {FILTER_STATUS.map(({ id, label }) => (
+            <button
+              key={id}
+              onClick={() => setActiveStatus(id)}
+              className={`flex-1 py-2 rounded-xl text-xs font-bold transition ${
+                activeStatus === id
+                  ? "bg-blue-600 text-white"
+                  : "bg-white/10 text-gray-300 hover:bg-white/20"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* ── FILTRE GROUPE ── */}
+        <div className="flex gap-2 overflow-x-auto pb-2 mb-5 scrollbar-hide">
+          {FILTER_GROUPS.map(g => (
+            <button
+              key={g}
+              onClick={() => setActiveGroup(g)}
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-bold transition ${
+                activeGroup === g
+                  ? "bg-white text-black"
+                  : "bg-white/10 text-gray-300 hover:bg-white/20"
+              }`}
+            >
+              {g === "TOUS" ? "Tous" : `Gr. ${g}`}
+            </button>
+          ))}
+        </div>
+
+        {/* ── LISTE MATCHS ── */}
+        <div className="grid gap-3">
+          <AnimatePresence>
+            {filtered.map(match => (
+              <MatchRow key={match.id} match={match} />
+            ))}
+          </AnimatePresence>
+        </div>
+
+        {/* Aucun match */}
+        {filtered.length === 0 && (
+          <div className="text-center text-gray-400 py-20">
+            <div className="text-5xl mb-4">📭</div>
+            <p>Aucun match pour ce filtre.</p>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
