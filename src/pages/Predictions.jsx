@@ -1,66 +1,42 @@
 // src/pages/Predictions.jsx
-// Version finale — ton code avec MatchCard et Leaderboard intégrés
-// Inspired by LigiPredictor (MIT) + all_leagues-prediction (MIT)
+// Version finale — useBackendPredictions (MongoDB) + localStorage fallback
 
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MATCHES, FLAGS, getUpcomingMatches } from "../data/matches";
-import { AI_PREDICTIONS, getConfidenceColor, getConfidenceBg } from "../data/aiPredictions";
-import { calculatePoints, getOutcome, agreesWithAI, getMedal } from "../utils/scoring";
+import { MATCHES, getUpcomingMatches } from "../data/matches";
+import { AI_PREDICTIONS } from "../data/aiPredictions";
+import { getMedal, agreesWithAI } from "../utils/scoring";
+import { useBackendPredictions } from "../hooks/useBackendPredictions";
+import { useAuth } from "../hooks/useAuth";
 import MatchCard from "../components/MatchCard";
 import Leaderboard from "../components/Leaderboard";
+import { useState } from "react";
 
-// ─── localStorage helpers ─────────────────────────────────────────────────────
-const STORAGE_KEY = "wch_predictions";
-const JOKER_KEY   = "wch_joker";
-
-function loadPredictions() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
-  catch { return {}; }
-}
-function savePredictions(preds) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(preds));
-}
-function loadJoker() {
-  return localStorage.getItem(JOKER_KEY) || null;
-}
-function saveJoker(matchId) {
-  localStorage.setItem(JOKER_KEY, String(matchId));
-}
-
-// ─── Composant principal ──────────────────────────────────────────────────────
 export default function Predictions() {
-  const [predictions, setPredictions] = useState(loadPredictions);
-  const [jokerMatchId, setJokerMatchId] = useState(() => {
-    const stored = loadJoker();
-    return stored ? Number(stored) : null;
-  });
-  const [activeGroup, setActiveGroup] = useState("ALL");
+  const { user } = useAuth();
+  const playerName = user?.username ?? localStorage.getItem("playerName") ?? "Joueur";
+
+  const {
+    predictions,
+    savePrediction,
+    handleSetJoker,
+    getPrediction,
+    hasJoker,
+    jokerMatchId,
+    savedCount,
+    syncing,
+  } = useBackendPredictions();
+
+  const [activeGroup,     setActiveGroup]     = useState("ALL");
   const [showLeaderboard, setShowLeaderboard] = useState(false);
 
-  const playerName = localStorage.getItem("playerName") || "Joueur";
+  const medal = getMedal(savedCount * 8);
 
-  // Matchs affichés selon le filtre actif
+  // Matchs affichés selon le filtre
   const displayedMatches = useMemo(() => {
     if (activeGroup === "ALL") return getUpcomingMatches(12);
     return MATCHES.filter(m => m.group === activeGroup);
   }, [activeGroup]);
-
-  function handleSavePrediction(matchId, scores) {
-    const updated = { ...predictions, [matchId]: scores };
-    setPredictions(updated);
-    savePredictions(updated);
-  }
-
-  function handleSetJoker(matchId) {
-    const newJoker = jokerMatchId === matchId ? null : matchId;
-    setJokerMatchId(newJoker);
-    if (newJoker) saveJoker(newJoker);
-    else localStorage.removeItem(JOKER_KEY);
-  }
-
-  const savedCount = Object.keys(predictions).length;
-  const medal = getMedal(savedCount * 8);
 
   const groups = ["ALL", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"];
 
@@ -75,11 +51,14 @@ export default function Predictions() {
             <p className="text-xs text-gray-400">
               {savedCount} pronostic{savedCount > 1 ? "s" : ""} enregistré{savedCount > 1 ? "s" : ""}
               {jokerMatchId ? " · ⭐ Joker posé" : " · ⭐ Joker disponible"}
+              {syncing && " · 🔄 Sync..."}
             </p>
           </div>
           <div className="flex gap-2 items-center">
             <div className="text-right">
-              <div className="text-sm font-bold text-yellow-400">{medal.emoji} {playerName}</div>
+              <div className="text-sm font-bold text-yellow-400">
+                {medal.emoji} {playerName}
+              </div>
               <div className="text-xs text-gray-400">{medal.label}</div>
             </div>
             <button
@@ -162,9 +141,9 @@ export default function Predictions() {
               <MatchCard
                 key={match.id}
                 match={match}
-                prediction={predictions[match.id] || null}
-                isJoker={jokerMatchId === match.id}
-                onSave={handleSavePrediction}
+                prediction={getPrediction(match.id)}
+                isJoker={hasJoker(match.id)}
+                onSave={savePrediction}
                 onJoker={handleSetJoker}
               />
             ))}
@@ -176,6 +155,13 @@ export default function Predictions() {
           <div className="text-center text-gray-400 py-20">
             <div className="text-5xl mb-4">📭</div>
             <p>Aucun match dans ce groupe pour l'instant.</p>
+          </div>
+        )}
+
+        {/* ── Note sync backend ── */}
+        {!user && (
+          <div className="mt-6 bg-blue-900/30 border border-blue-400/20 rounded-xl px-4 py-3 text-xs text-blue-200 text-center">
+            💡 Connecte-toi pour sauvegarder tes pronostics en ligne et apparaître au classement.
           </div>
         )}
 
