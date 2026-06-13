@@ -35,6 +35,7 @@ export default function Predictions() {
   const medal = getMedal(savedCount * 8);
 
   // Matchs affichés selon le filtre
+  // Remplace dans Predictions.jsx :
   const displayedMatches = useMemo(() => {
     if (activeGroup === "ALL") return getUpcomingMatches(12);
     return MATCHES.filter(m => m.group === activeGroup);

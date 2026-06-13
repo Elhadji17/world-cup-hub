@@ -6,6 +6,7 @@
 // Source : calendrier officiel FIFA (Canada, USA, Mexique)
 // Groupes A à L — 48 équipes, 104 matchs
 
+import { getMatchStatus } from "../utils/dateUtils";
 export const GROUPS = {
   A: ["Mexique", "Afrique du Sud", "Corée du Sud", "Tchéquie"],
   B: ["Canada", "Bosnie-et-Herzégovine", "Qatar", "Suisse"],
@@ -169,12 +170,14 @@ export const MATCHES = [
   { id: 72, group: "L", teamA: "Croatie",    teamB: "Ghana",    date: "2026-06-27", time: "16:00", stadium: "Vancouver",    status: "upcoming" },
 ];
 
+// Récupérer les matchs à venir (statut calculé dynamiquement)
+export function getUpcomingMatches(limit = 12) {
+  return MATCHES
+    .filter(m => getMatchStatus(m.date, m.time, m.stadium) === "upcoming")
+    .slice(0, limit);
+}
+
 // Récupérer les matchs d'un groupe
 export function getMatchesByGroup(groupLetter) {
   return MATCHES.filter(m => m.group === groupLetter);
-}
-
-// Récupérer les matchs à venir (prochains 7 jours)
-export function getUpcomingMatches(limit = 6) {
-  return MATCHES.filter(m => m.status === "upcoming").slice(0, limit);
 }
