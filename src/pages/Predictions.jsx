@@ -1,5 +1,5 @@
 // src/pages/Predictions.jsx
-// Version finale — Code avec MatchCard et Leaderboard intégrés
+// Version finale — ton code avec MatchCard et Leaderboard intégrés
 // Inspired by LigiPredictor (MIT) + all_leagues-prediction (MIT)
 
 import { useState, useMemo } from "react";
@@ -12,24 +12,18 @@ import Leaderboard from "../components/Leaderboard";
 
 // ─── localStorage helpers ─────────────────────────────────────────────────────
 const STORAGE_KEY = "wch_predictions";
-const JOKER_KEY = "wch_joker";
+const JOKER_KEY   = "wch_joker";
 
 function loadPredictions() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
-  } catch {
-    return {};
-  }
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+  catch { return {}; }
 }
-
 function savePredictions(preds) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(preds));
 }
-
 function loadJoker() {
   return localStorage.getItem(JOKER_KEY) || null;
 }
-
 function saveJoker(matchId) {
   localStorage.setItem(JOKER_KEY, String(matchId));
 }
@@ -61,19 +55,18 @@ export default function Predictions() {
   function handleSetJoker(matchId) {
     const newJoker = jokerMatchId === matchId ? null : matchId;
     setJokerMatchId(newJoker);
-    if (newJoker) {
-      saveJoker(newJoker);
-    } else {
-      localStorage.removeItem(JOKER_KEY);
-    }
+    if (newJoker) saveJoker(newJoker);
+    else localStorage.removeItem(JOKER_KEY);
   }
 
   const savedCount = Object.keys(predictions).length;
   const medal = getMedal(savedCount * 8);
+
   const groups = ["ALL", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-900 via-black to-purple-900 text-white pb-16">
+
       {/* ── HEADER STICKY ── */}
       <div className="sticky top-0 z-20 bg-black/60 backdrop-blur-md border-b border-white/10 px-4 py-3">
         <div className="max-w-4xl mx-auto flex justify-between items-center">
@@ -100,11 +93,14 @@ export default function Predictions() {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 pt-4">
+
         {/* ── INFO JOKER ── */}
         <div className="bg-yellow-400/10 border border-yellow-400/30 rounded-2xl p-4 mb-4 text-sm">
           <p className="font-bold text-yellow-300 mb-1">⭐ Règle du Joker</p>
           <p className="text-gray-300">
-            Utilise le bouton ⭐ sur le match où tu es <strong>le plus confiant</strong>. Si ton pronostic est correct, tu obtiens <strong>le double des points</strong> ! Tu peux changer ton joker à tout moment avant le coup d'envoi.
+            Utilise le bouton ⭐ sur le match où tu es <strong>le plus confiant</strong>.
+            Si ton pronostic est correct, tu obtiens <strong>le double des points</strong> !
+            Tu peux changer ton joker à tout moment avant le coup d'envoi.
           </p>
         </div>
 
@@ -130,11 +126,11 @@ export default function Predictions() {
             <button
               key={g}
               onClick={() => setActiveGroup(g)}
-              className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-bold transition ${
-                activeGroup === g
+              className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-bold transition
+                ${activeGroup === g
                   ? "bg-blue-600 text-white"
                   : "bg-white/10 text-gray-300 hover:bg-white/20"
-              }`}
+                }`}
             >
               {g === "ALL" ? "À venir" : `Gr. ${g}`}
             </button>
@@ -150,10 +146,10 @@ export default function Predictions() {
               exit={{ height: 0, opacity: 0 }}
               className="overflow-hidden mb-4"
             >
-              <Leaderboard 
-                predictions={predictions} 
-                jokerMatchId={jokerMatchId} 
-                playerName={playerName} 
+              <Leaderboard
+                predictions={predictions}
+                jokerMatchId={jokerMatchId}
+                playerName={playerName}
               />
             </motion.div>
           )}
@@ -182,6 +178,7 @@ export default function Predictions() {
             <p>Aucun match dans ce groupe pour l'instant.</p>
           </div>
         )}
+
       </div>
     </div>
   );
