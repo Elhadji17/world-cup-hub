@@ -12,7 +12,7 @@ import questionsDefault            from "../data/questions.json";
 import questionsWC                 from "../data/questions-world-cup.json";
 import questionsSN                 from "../data/questions-senegal.json";
 import questionsFR                 from "../data/questions-france.json";
-import questionsUCL                from "../data/questions-champions-league.json";
+import questionsUCL from "../data/questions-ucl.json";
 import questionsBD                 from "../data/questions-ballon-dor.json";
 
 const QUESTIONS_MAP = {

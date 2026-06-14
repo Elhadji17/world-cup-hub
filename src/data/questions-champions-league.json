@@ -1,0 +1,142 @@
+[
+  {
+    "id": "ucl001",
+    "question": "Quel club a remporté le plus de Ligues des Champions ?",
+    "options": ["Barcelona", "Bayern Munich", "AC Milan", "Real Madrid"],
+    "answer": "Real Madrid",
+    "category": "Ligue des Champions"
+  },
+  {
+    "id": "ucl002",
+    "question": "Qui est le meilleur buteur de l'histoire de la Ligue des Champions ?",
+    "options": ["Messi", "Benzema", "Ronaldo", "Raul"],
+    "answer": "Ronaldo",
+    "category": "Ligue des Champions"
+  },
+  {
+    "id": "ucl003",
+    "question": "Quel club a réalisé le 'Miracle d'Istanbul' en 2005 ?",
+    "options": ["Chelsea", "Arsenal", "Manchester United", "Liverpool"],
+    "answer": "Liverpool",
+    "category": "Ligue des Champions"
+  },
+  {
+    "id": "ucl004",
+    "question": "En quelle année le Real Madrid a-t-il remporté sa 14ème Ligue des Champions ?",
+    "options": ["2020", "2021", "2022", "2023"],
+    "answer": "2022",
+    "category": "Ligue des Champions"
+  },
+  {
+    "id": "ucl005",
+    "question": "Quel est le score le plus large en match de Ligue des Champions ?",
+    "options": ["8-0", "9-0", "10-0", "11-0"],
+    "answer": "9-0",
+    "category": "Ligue des Champions"
+  },
+  {
+    "id": "ucl006",
+    "question": "Quel joueur a marqué lors de 3 finales de Ligue des Champions différentes ?",
+    "options": ["Messi", "Ronaldo", "Benzema", "Nedvěd"],
+    "answer": "Ronaldo",
+    "category": "Ligue des Champions"
+  },
+  {
+    "id": "ucl007",
+    "question": "Quel club a remporté la Ligue des Champions 2024 ?",
+    "options": ["Manchester City", "Borussia Dortmund", "PSG", "Real Madrid"],
+    "answer": "Real Madrid",
+    "category": "Ligue des Champions"
+  },
+  {
+    "id": "ucl008",
+    "question": "Quel est l'hymne officiel de la Ligue des Champions ?",
+    "options": ["Champions", "The Champions League Anthem", "We Are the Champions", "Glory Glory"],
+    "answer": "The Champions League Anthem",
+    "category": "Ligue des Champions"
+  },
+  {
+    "id": "ucl009",
+    "question": "Quel club français a atteint la finale de la LDC le plus récemment ?",
+    "options": ["Olympique de Marseille", "PSG", "Monaco", "Lyon"],
+    "answer": "PSG",
+    "category": "Ligue des Champions"
+  },
+  {
+    "id": "ucl010",
+    "question": "Combien de fois Barcelona a-t-il remporté la Ligue des Champions ?",
+    "options": ["3", "4", "5", "6"],
+    "answer": "5",
+    "category": "Ligue des Champions"
+  },
+  {
+    "id": "ucl011",
+    "question": "Quel stade a accueilli la finale de la LDC 2023 ?",
+    "options": ["Wembley", "Atatürk", "Olimpiyskiy", "Estádio do Sport Lisboa"],
+    "answer": "Atatürk",
+    "category": "Ligue des Champions"
+  },
+  {
+    "id": "ucl012",
+    "question": "Qui a marqué le but victorieux en finale de la LDC 2019 pour Liverpool ?",
+    "options": ["Salah", "Firmino", "Origi", "Mané"],
+    "answer": "Origi",
+    "category": "Ligue des Champions"
+  },
+  {
+    "id": "ucl013",
+    "question": "Quel club allemand a remporté la LDC le plus de fois ?",
+    "options": ["Borussia Dortmund", "Bayern Munich", "Borussia Mönchengladbach", "Hambourg SV"],
+    "answer": "Bayern Munich",
+    "category": "Ligue des Champions"
+  },
+  {
+    "id": "ucl014",
+    "question": "Quel joueur a réussi un triplé en finale de la LDC ?",
+    "options": ["Ronaldo", "Gareth Bale", "Van Nistelrooy", "Shevchenko"],
+    "answer": "Gareth Bale",
+    "category": "Ligue des Champions"
+  },
+  {
+    "id": "ucl015",
+    "question": "Quel est le recordman de victoires en LDC en tant que joueur ?",
+    "options": ["Ronaldo", "Casillas", "Modric", "Marcelo"],
+    "answer": "Marcelo",
+    "category": "Ligue des Champions"
+  },
+  {
+    "id": "ucl016",
+    "question": "Quel club a été le premier à remporter la Coupe d'Europe en 1956 ?",
+    "options": ["Barcelona", "Real Madrid", "Juventus", "Benfica"],
+    "answer": "Real Madrid",
+    "category": "Ligue des Champions"
+  },
+  {
+    "id": "ucl017",
+    "question": "Quel gardien a remporté la LDC avec 3 clubs différents ?",
+    "options": ["Casillas", "Buffon", "Cech", "Aucun"],
+    "answer": "Aucun",
+    "category": "Ligue des Champions"
+  },
+  {
+    "id": "ucl018",
+    "question": "En quelle année Man City a-t-il remporté sa première LDC ?",
+    "options": ["2021", "2022", "2023", "2024"],
+    "answer": "2023",
+    "category": "Ligue des Champions"
+  },
+  {
+    "id": "ucl019",
+    "question": "Quel joueur a marqué le but le plus rapide en finale de LDC ?",
+    "options": ["Puerta", "Gerrard", "Maldini", "Ronaldo"],
+    "answer": "Maldini",
+    "category": "Ligue des Champions"
+  },
+  {
+    "id": "ucl020",
+    "question": "Quel est le nom de la compétition avant qu'elle devienne 'Ligue des Champions' en 1992 ?",
+    "options": ["Coupe UEFA", "Coupe d'Europe des clubs champions", "Supercoupe d'Europe", "Coupe Intercontinentale"],
+    "answer": "Coupe d'Europe des clubs champions",
+    "category": "Ligue des Champions"
+  }
+]
