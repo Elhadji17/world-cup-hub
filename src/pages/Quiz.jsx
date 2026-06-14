@@ -1,100 +1,86 @@
+// src/pages/Quiz.jsx
+// Quiz WC 2026 — design moderne + auth intégré + animations
 
-import questions from "../data/questions.json";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { motion, AnimatePresence }           from "framer-motion";
+import { Link }                              from "react-router-dom";
+import { useAuth }                           from "../hooks/useAuth";
+import questions                             from "../data/questions.json";
 
-function Quiz() {
+// ── Constantes ────────────────────────────────────────────────────────────────
+const TIMER_MAX   = 15;
+const MAX_LIVES   = 3;
+const POINTS_CORRECT = 10;
+const POINTS_FAST    = 5;  // bonus si réponse en < 5s
 
-    const [current, setCurrent] = useState(0);
-    const [score, setScore] = useState(0);
-    const [finished, setFinished] = useState(false);
-    const [playerName, setPlayerName] = useState(localStorage.getItem("playerName") || "");
-    const [timeLeft, setTimeLeft] = useState(15);
-    const [showResult, setShowResult] = useState(false);
-    const [isCorrect, setIsCorrect] = useState(false);
-    const [selectedAnswer, setSelectedAnswer] = useState(null);
-    const [lives, setLives] = useState(3);
-    const xp = score * 10;
-    const level = Math.floor(xp / 100) + 1;
-    const [ending, setEnding] = useState(false);
-    
+// ── Utilitaires ───────────────────────────────────────────────────────────────
+function getMedal(score, total) {
+  const pct = score / total;
+  if (pct >= 0.9) return { emoji: "🥇", label: "Champion !", color: "text-yellow-400" };
+  if (pct >= 0.7) return { emoji: "🥈", label: "Expert",     color: "text-gray-300"   };
+  if (pct >= 0.5) return { emoji: "🥉", label: "Confirmé",   color: "text-amber-600"  };
+  return              { emoji: "⚽", label: "Débutant",   color: "text-blue-400"   };
+}
 
-    function savePlayer() {
-    if (playerName.trim() === "") return;
+function shuffle(arr) {
+  return [...arr].sort(() => Math.random() - 0.5);
+}
 
-    localStorage.setItem("playerName", playerName);
-    window.location.reload();
-    }
+// ── Composant ─────────────────────────────────────────────────────────────────
+export default function Quiz() {
+  const { user } = useAuth();
+  const playerName = user?.username ?? localStorage.getItem("playerName") ?? "Joueur";
 
-    if (!localStorage.getItem("playerName")) {
-    return (
-        <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6">
+  // Mélanger les questions au démarrage
+  const [shuffledQ]      = useState(() => shuffle(questions));
+  const [current,        setCurrent]        = useState(0);
+  const [score,          setScore]          = useState(0);
+  const [lives,          setLives]          = useState(MAX_LIVES);
+  const [timeLeft,       setTimeLeft]       = useState(TIMER_MAX);
+  const [selectedAnswer, setSelectedAnswer] = useState(null);
+  const [showResult,     setShowResult]     = useState(false);
+  const [isCorrect,      setIsCorrect]      = useState(false);
+  const [finished,       setFinished]       = useState(false);
+  const [ending,         setEnding]         = useState(false);
+  const [streak,         setStreak]         = useState(0);  // série de bonnes réponses
 
-        <h1 className="text-4xl font-bold mb-8">
-            ⚽ Entre ton pseudo
-        </h1>
+  const question    = shuffledQ[current];
+  const totalQ      = shuffledQ.length;
+  const xp          = score * POINTS_CORRECT;
+  const level       = Math.floor(xp / 100) + 1;
+  const progress    = ((current + 1) / totalQ) * 100;
 
-        <input
-        type="text"
-        value={playerName}
-        onChange={(e) => setPlayerName(e.target.value)}
-        placeholder="Ton pseudo"
-        className="p-4 rounded-xl text-black w-full max-w-md bg-white"
-        />
-
-        <button
-            onClick={savePlayer}
-            className="mt-6 bg-green-600 px-6 py-3 rounded-xl font-bold"
-        >
-            Commencer
-        </button>
-
-        </div>
-    );
-    }
-
-  const question = questions[current];
+  // ── Timer ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (finished || showResult) return;
-
-    if (timeLeft === 0) {
-        handleTimeout();
-        return;
-    }
-
-    const timer = setTimeout(() => {
-        setTimeLeft((prev) => prev - 1);
-    }, 1000);
-
-    return () => clearTimeout(timer);
+    if (timeLeft === 0) { handleTimeout(); return; }
+    const t = setTimeout(() => setTimeLeft(p => p - 1), 1000);
+    return () => clearTimeout(t);
   }, [timeLeft, showResult, finished]);
 
+  // ── Fin si plus de vies ────────────────────────────────────────────────────
   useEffect(() => {
-        if (lives <= 0 && !finished) {
-            finishQuiz(score + (isCorrect ? 1 : 0));
-        }
-    }, [lives]);
+    if (lives <= 0 && !finished) finishQuiz(score);
+  }, [lives]);
 
-
+  // ── Répondre ───────────────────────────────────────────────────────────────
   function handleAnswer(option) {
     if (showResult) return;
-
     const correct = option === question.answer;
-
     setSelectedAnswer(option);
     setIsCorrect(correct);
-
-    if (correct) {
-        setScore((prev) => prev + 1);
-    }
-    if (!correct) {
-        setLives(prev => prev - 1);
-    }
-
     setShowResult(true);
 
-    setTimeout(() => {
-        goToNextQuestion();
-    }, 2000);
+    if (correct) {
+      const bonus = timeLeft >= 10 ? POINTS_FAST : 0;
+      setScore(p => p + 1);
+      setStreak(p => p + 1);
+    } else {
+      setLives(p => p - 1);
+      setStreak(0);
+    }
+
+    setTimeout(() => goNext(correct), 1800);
   }
 
   function handleTimeout() {
@@ -102,330 +88,302 @@ function Quiz() {
     setSelectedAnswer(null);
     setIsCorrect(false);
     setShowResult(true);
-
-    setTimeout(() => {
-        goToNextQuestion();
-    }, 2000);
+    setLives(p => p - 1);
+    setStreak(0);
+    setTimeout(() => goNext(false), 1800);
   }
-  function goToNextQuestion() {
+
+  function goNext(wasCorrect) {
     const next = current + 1;
-
-    if (next < questions.length) {
-        setCurrent(next);
-        setTimeLeft(15);
-        setShowResult(false);
-        setSelectedAnswer(null);
+    if (next < totalQ) {
+      setCurrent(next);
+      setTimeLeft(TIMER_MAX);
+      setShowResult(false);
+      setSelectedAnswer(null);
     } else {
-        finishQuiz(score + (isCorrect ? 1 : 0));
+      finishQuiz(score + (wasCorrect ? 1 : 0));
     }
-    }
+  }
 
-    function getButtonClass(option) {
-        if (!showResult) {
-            return "bg-green-600 hover:bg-green-700";
-        }
+  // ── Fin du quiz ────────────────────────────────────────────────────────────
+  function finishQuiz(finalScore) {
+    if (ending) return;
+    setEnding(true);
 
-        if (option === question.answer) {
-            return "bg-green-500";
-        }
+    // Sauvegarder localement
+    const best = Number(localStorage.getItem("bestScore")) || 0;
+    if (finalScore > best) localStorage.setItem("bestScore", finalScore);
 
-        if (option === selectedAnswer && option !== question.answer) {
-            return "bg-red-500";
-        }
+    const history = JSON.parse(localStorage.getItem("history")) || [];
+    history.push({ score: finalScore, total: totalQ, date: Date.now() });
+    localStorage.setItem("history", JSON.stringify(history));
 
-        return "bg-gray-700";
-    }
+    const lb = JSON.parse(localStorage.getItem("leaderboard")) || [];
+    lb.push({ name: playerName, score: finalScore });
+    lb.sort((a, b) => b.score - a.score);
+    localStorage.setItem("leaderboard", JSON.stringify(lb.slice(0, 10)));
 
-    function finishQuiz(finalScore = score) {
-        if (ending) return;
-        setEnding(true);
+    setScore(finalScore);
+    setFinished(true);
+  }
 
-        const bestScore =
-            Number(localStorage.getItem("bestScore")) || 0;
+  function replay() {
+    setCurrent(0);
+    setScore(0);
+    setLives(MAX_LIVES);
+    setTimeLeft(TIMER_MAX);
+    setShowResult(false);
+    setSelectedAnswer(null);
+    setFinished(false);
+    setEnding(false);
+    setStreak(0);
+  }
 
-        if (finalScore > bestScore) {
-            localStorage.setItem("bestScore", finalScore);
-        }
+  // ── Couleur bouton ─────────────────────────────────────────────────────────
+  function btnClass(option) {
+    if (!showResult) return "bg-white/10 hover:bg-white/20 border-white/20";
+    if (option === question.answer) return "bg-green-500/80 border-green-400";
+    if (option === selectedAnswer)  return "bg-red-500/80 border-red-400";
+    return "bg-white/5 border-white/10 opacity-50";
+  }
 
-        const leaderboard =
-            JSON.parse(localStorage.getItem("leaderboard")) || [];
-
-        leaderboard.push({
-            name: localStorage.getItem("playerName"),
-            score: finalScore
-        });
-
-        leaderboard.sort((a, b) => b.score - a.score);
-
-        localStorage.setItem(
-            "leaderboard",
-            JSON.stringify(leaderboard.slice(0, 10))
-        );
-
-        const history =
-            JSON.parse(localStorage.getItem("history")) || [];
-
-        history.push({
-            score: finalScore,
-            total: questions.length,
-            date: Date.now()
-        });
-
-        localStorage.setItem(
-            "history",
-            JSON.stringify(history)
-        );
-
-        setFinished(true);
-    }
-
-    if (finished) {
-    const history =
-        JSON.parse(localStorage.getItem("history")) || [];
-
-    const gamesPlayed = history.length;
-
-    const average =
-        gamesPlayed === 0
-        ? 0
-        : (
-            history.reduce((acc, game) => acc + game.score, 0) /
-            gamesPlayed
-            ).toFixed(1);
+  // ══════════════════════════════════════════════════════════════════════════
+  // ÉCRAN RÉSULTAT
+  // ══════════════════════════════════════════════════════════════════════════
+  if (finished) {
+    const medal    = getMedal(score, totalQ);
+    const history  = JSON.parse(localStorage.getItem("history")) || [];
+    const best     = Number(localStorage.getItem("bestScore")) || 0;
+    const avg      = history.length
+      ? (history.reduce((a, g) => a + g.score, 0) / history.length).toFixed(1)
+      : 0;
+    const lb = JSON.parse(localStorage.getItem("leaderboard")) || [];
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-black text-white p-6">
+      <div className="min-h-screen bg-gradient-to-b from-gray-900 via-black to-green-900 text-white pb-16">
+        <div className="max-w-xl mx-auto px-4 pt-10">
 
-        <h1 className="text-5xl font-bold mb-6 text-center">
-            🎉 Bravo {localStorage.getItem("playerName")}
-        </h1>
+          {/* Résultat principal */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center mb-8"
+          >
+            <div className="text-7xl mb-4">{medal.emoji}</div>
+            <h1 className="text-3xl font-bold mb-1">
+              Bravo {playerName} !
+            </h1>
+            <p className={`text-lg font-semibold ${medal.color}`}>{medal.label}</p>
+          </motion.div>
 
-        {/* SCORE */}
-        <p className="text-3xl">
-            Score : {score} / {questions.length}
-        </p>
+          {/* Score */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-white/10 rounded-2xl p-6 mb-4 text-center"
+          >
+            <div className="text-5xl font-bold text-white mb-1">
+              {score}<span className="text-2xl text-gray-400">/{totalQ}</span>
+            </div>
+            <div className="text-gray-400 text-sm">Score final</div>
 
-        {/* BEST SCORE */}
-        <p className="mt-4 text-xl text-green-400">
-            Meilleur score : {localStorage.getItem("bestScore")}
-        </p>
+            <div className="grid grid-cols-3 gap-3 mt-4 text-center text-sm">
+              <div className="bg-white/5 rounded-xl p-3">
+                <div className="text-xl font-bold text-yellow-400">{best}</div>
+                <div className="text-gray-400 text-xs">Meilleur</div>
+              </div>
+              <div className="bg-white/5 rounded-xl p-3">
+                <div className="text-xl font-bold text-blue-400">{history.length}</div>
+                <div className="text-gray-400 text-xs">Parties</div>
+              </div>
+              <div className="bg-white/5 rounded-xl p-3">
+                <div className="text-xl font-bold text-green-400">{avg}</div>
+                <div className="text-gray-400 text-xs">Moyenne</div>
+              </div>
+            </div>
+          </motion.div>
 
-        {/* 📊 STATS */}
-        <div className="mt-6 text-center">
-            <h2 className="text-2xl font-bold text-blue-400 mb-3">
-            📊 Tes statistiques
-            </h2>
-
-            <p>Parties jouées : {gamesPlayed}</p>
-            <p>
-            Moyenne : {average} / {questions.length}
-            </p>
-        </div>
-
-        {/* WHATSAPP */}
-        <a
-            href={`https://wa.me/?text=${encodeURIComponent(
-            `🔥 J'ai obtenu ${score}/${questions.length} sur World Cup Hub ⚽`
-            )}`}
-            target="_blank"
-            rel="noopener noreferrer"
-        >
-            <button className="mt-6 bg-green-500 hover:bg-green-600 transition px-6 py-3 rounded-xl font-bold">
-            Partager sur WhatsApp
-            </button>
-        </a>
-
-        {/* LEADERBOARD */}
-        <div className="mt-10 w-full max-w-md">
-
-            <h2 className="text-2xl font-bold mb-4 text-yellow-400 text-center">
-            🏆 Leaderboard
-            </h2>
-
-            {(JSON.parse(localStorage.getItem("leaderboard")) || []).map(
-            (player, index) => (
-                <div
-                key={index}
-                className="flex justify-between bg-gray-800 p-3 rounded-xl mb-2"
+          {/* Leaderboard local */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="mb-6"
+          >
+            <h2 className="text-lg font-bold mb-3 text-yellow-400">🏆 Classement local</h2>
+            <div className="space-y-2">
+              {lb.slice(0, 5).map((p, i) => (
+                <div key={i}
+                  className={`flex justify-between items-center px-4 py-2 rounded-xl ${
+                    p.name === playerName ? "bg-blue-600/30 border border-blue-400/40" : "bg-white/5"
+                  }`}
                 >
-                <span>
-                    #{index + 1} {player.name}
-                </span>
-
-                <span>{player.score}</span>
+                  <span className="text-sm">
+                    {["🥇","🥈","🥉"][i] ?? `#${i+1}`} {p.name}
+                    {p.name === playerName && <span className="text-xs text-blue-300 ml-1">(toi)</span>}
+                  </span>
+                  <span className="font-bold">{p.score}</span>
                 </div>
-            )
-            )}
+              ))}
+            </div>
+          </motion.div>
 
+          {/* Boutons */}
+          <div className="space-y-3">
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={replay}
+              className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-4 rounded-2xl transition"
+            >
+              🔄 Rejouer
+            </motion.button>
+
+            <a href={`https://wa.me/?text=${encodeURIComponent(
+              `🧠 J'ai obtenu ${score}/${totalQ} au Quiz World Cup Hub !\n${medal.emoji} ${medal.label}\n🔥 https://world-cup-hub-kappa.vercel.app/quiz`
+            )}`} target="_blank" rel="noopener noreferrer">
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                className="w-full bg-green-500 hover:bg-green-400 text-white font-bold py-4 rounded-2xl transition mt-3"
+              >
+                📲 Partager sur WhatsApp
+              </motion.button>
+            </a>
+
+            <Link to="/">
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                className="w-full bg-white/10 hover:bg-white/20 text-white font-bold py-4 rounded-2xl transition mt-3"
+              >
+                🏠 Retour à l'accueil
+              </motion.button>
+            </Link>
+          </div>
         </div>
-
-        {/* REPLAY */}
-        <button
-            
-            onClick={() => {
-                setCurrent(0);
-                setScore(0);
-                setFinished(false);
-                setLives(3);
-                setTimeLeft(15);
-                setShowResult(false);
-                setSelectedAnswer(null);
-            }}
-            className="mt-8 bg-green-600 px-6 py-3 rounded-xl"
-        >
-            Rejouer
-        </button>
-
-        </div>
+      </div>
     );
-    }
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // ÉCRAN QUIZ
+  // ══════════════════════════════════════════════════════════════════════════
+  const timerColor = timeLeft <= 5 ? "bg-red-500" : timeLeft <= 10 ? "bg-yellow-400" : "bg-green-400";
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center p-6">
+    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-black to-blue-900 text-white pb-16">
+      <div className="max-w-xl mx-auto px-4 pt-6">
 
-    {/* Barre de progression */}
-    <div className="w-full max-w-2xl mb-6">
-    <div className="flex justify-between text-sm text-gray-300 mb-2">
-        <span>Question {current + 1}</span>
-        <span>{questions.length}</span>
-    </div>
-
-    <div className="w-full bg-gray-700 rounded-full h-3">
-
-        <div
-        className="bg-green-500 h-3 rounded-full transition-all duration-500"
-        style={{
-            width: `${((current + 1) / questions.length) * 100}%`
-        }}
-        />
-
-    </div>
-
-    {/* Affichage du chronomètre */}
-    <div className="mb-6 text-center">
-
-        <div className="text-4xl font-bold text-yellow-400">
-            ⏱️ {timeLeft}s
-        </div>
-
-    </div>
-
-    {/* Barre de temps dynamique */}
-    <div className="w-64 bg-gray-700 h-2 rounded-full mx-auto mt-2">
-        <div
-            className="bg-yellow-400 h-2 rounded-full transition-all"
-            style={{
-                width: `${(timeLeft / 15) * 100}%`
-            }}
-        />
-    </div>    
-    
-    {/* carte de progression */}
-    <div className="flex gap-4 mb-8">
-
-        <div className="bg-gray-800 px-4 py-2 rounded-xl">
-            🎯 {score} points
-        </div>
-
-        <div className="bg-gray-800 px-4 py-2 rounded-xl">
-            📈 {Math.round((current / questions.length) * 100)}%
-        </div>
-
-        </div>    
-
-    {/* Ajouter des vies */}
-    <div className="text-red-400 text-2xl">
-        {"❤️".repeat(lives)}
-        </div>
-
-    <div className="bg-yellow-500 text-black px-4 py-2 rounded-xl">
-        ⭐ XP : {xp}
-        </div>
-
-    <div className="bg-purple-600 px-4 py-2 rounded-xl">
-        ⭐ Niveau {level}
-    </div>        
-    
-    {/* Statistiques pendant la partie */}
-    <div className="mb-8 flex gap-6">
-
-        <div className="bg-gray-800 px-4 py-2 rounded-xl">
-            🎯 Score : {score}
-        </div>
-
-        <div className="bg-gray-800 px-4 py-2 rounded-xl">
-            ⚽ {Math.round(
-            (score / Math.max(current, 1)) * 100
-            ) || 0}%
-        </div>
-
-        </div>    
-
-    </div>
-      {/* QUESTION */}
-      <h2 className="text-3xl mb-10 text-center">
-        {question.question}
-      </h2>
-
-      {/* OPTIONS */}
-      <div className="grid gap-4 w-full max-w-md">
-
-        {question.options.map((option, index) => (
-          <button
-            disabled={showResult}
-            key={index}
-            onClick={() => handleAnswer(option)}
-            className={`
-                ${getButtonClass(option)}
-                ${showResult ? "opacity-70" : ""}
-                transition-all duration-300
-                p-4 rounded-xl text-xl font-bold
-                `}
-          >
-            {option}
-          </button>
-        ))}
-
-      </div>
-
-      {/* Réponse correcte ou non */}
-      {showResult && (
-
-        <div className="mt-8 text-center">
-
-            {isCorrect ? (
-
-            <div className="text-green-400 text-2xl font-bold">
-                ✅ Bonne réponse !
-            </div>
-
-            ) : (
-
-            <div>
-                <div className="text-red-400 text-2xl font-bold">
-                ❌ Mauvaise réponse
-                </div>
-
-                <div className="mt-2 text-yellow-400">
-                Bonne réponse :
-                {" "}
-                {question.answer}
-                </div>
-            </div>
-
+        {/* ── Header stats ── */}
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex gap-1 text-xl">
+            {Array.from({ length: MAX_LIVES }).map((_, i) => (
+              <span key={i} className={i < lives ? "text-red-400" : "text-gray-700"}>❤️</span>
+            ))}
+          </div>
+          <div className="flex gap-2 text-sm">
+            {streak >= 3 && (
+              <span className="bg-orange-500/30 text-orange-300 px-2 py-1 rounded-lg font-bold">
+                🔥 {streak} série !
+              </span>
             )}
-
+            <span className="bg-yellow-500/20 text-yellow-300 px-2 py-1 rounded-lg font-bold">
+              ⭐ Niv. {level}
+            </span>
+            <span className="bg-green-500/20 text-green-300 px-2 py-1 rounded-lg font-bold">
+              🎯 {score} pts
+            </span>
+          </div>
         </div>
 
-        )}
-      
-      {/* SCORE */}
-      <div className="mt-10 text-gray-300">
-        Question {current + 1} / {questions.length}
-      </div>
+        {/* ── Barre de progression ── */}
+        <div className="mb-2 flex justify-between text-xs text-gray-400">
+          <span>Question {current + 1} / {totalQ}</span>
+          <span>{Math.round(progress)}%</span>
+        </div>
+        <div className="w-full bg-white/10 rounded-full h-2 mb-5">
+          <motion.div
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: 0.4 }}
+            className="bg-blue-500 h-2 rounded-full"
+          />
+        </div>
 
+        {/* ── Timer ── */}
+        <div className="flex items-center gap-3 mb-6">
+          <div className={`text-2xl font-bold ${timeLeft <= 5 ? "text-red-400 animate-pulse" : "text-yellow-400"}`}>
+            ⏱️ {timeLeft}s
+          </div>
+          <div className="flex-1 bg-white/10 rounded-full h-2">
+            <motion.div
+              animate={{ width: `${(timeLeft / TIMER_MAX) * 100}%` }}
+              transition={{ duration: 0.5 }}
+              className={`h-2 rounded-full transition-colors ${timerColor}`}
+            />
+          </div>
+        </div>
+
+        {/* ── Question ── */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={current}
+            initial={{ opacity: 0, x: 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -30 }}
+            transition={{ duration: 0.25 }}
+          >
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 mb-6 border border-white/10">
+              <p className="text-xs text-gray-400 uppercase tracking-wide mb-2 font-semibold">
+                {question.category ?? "Culture foot"}
+              </p>
+              <h2 className="text-xl font-bold leading-snug">{question.question}</h2>
+            </div>
+
+            {/* ── Options ── */}
+            <div className="grid gap-3">
+              {question.options.map((option, i) => (
+                <motion.button
+                  key={i}
+                  whileTap={{ scale: showResult ? 1 : 0.97 }}
+                  disabled={showResult}
+                  onClick={() => handleAnswer(option)}
+                  className={`w-full text-left px-5 py-4 rounded-xl border font-semibold text-sm transition-all ${btnClass(option)}`}
+                >
+                  <span className="text-gray-400 mr-2">{["A","B","C","D"][i]}.</span>
+                  {option}
+                </motion.button>
+              ))}
+            </div>
+
+            {/* ── Feedback ── */}
+            <AnimatePresence>
+              {showResult && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className={`mt-4 p-4 rounded-xl text-center font-bold ${
+                    isCorrect
+                      ? "bg-green-500/20 border border-green-400/40 text-green-300"
+                      : "bg-red-500/20 border border-red-400/40 text-red-300"
+                  }`}
+                >
+                  {isCorrect ? (
+                    <span>✅ Bonne réponse ! {streak >= 2 ? `🔥 Série de ${streak} !` : ""}</span>
+                  ) : (
+                    <span>
+                      ❌ Mauvaise réponse
+                      {selectedAnswer === null && " (temps écoulé)"}
+                      {" — "}
+                      Réponse : <span className="text-white">{question.answer}</span>
+                    </span>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        </AnimatePresence>
+
+      </div>
     </div>
   );
 }
-
-export default Quiz;
