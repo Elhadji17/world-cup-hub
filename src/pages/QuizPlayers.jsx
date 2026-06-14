@@ -31,6 +31,11 @@ function getMedal(score, total) {
 function PlayerImage({ wikimedia, blur, showResult }) {
   const [status, setStatus] = useState("loading");
 
+  // Reset status quand l'image change
+  useEffect(() => {
+    setStatus("loading");
+  }, [wikimedia]);
+  
   return (
     <div className="relative w-full h-64 rounded-2xl overflow-hidden bg-gray-800 border border-white/10">
 
@@ -54,17 +59,18 @@ function PlayerImage({ wikimedia, blur, showResult }) {
 
       {/* Image — flou CSS direct */}
       <img
+        key={wikimedia}              {/* ← ajoute cette ligne */}
         src={wikimedia}
         alt="Devine ce joueur"
         onLoad={() => setStatus("ok")}
         onError={() => setStatus("error")}
         style={{
-          filter:     `blur(${blur}px)`,
-          transition: "filter 1s ease-out",
-          opacity:    status === "ok" ? 1 : 0,
-          width:      "100%",
-          height:     "100%",
-          objectFit:  "cover",
+          filter:         `blur(${blur}px)`,
+          transition:     "filter 1s ease-out",
+          opacity:        status === "ok" ? 1 : 0,
+          width:          "100%",
+          height:         "100%",
+          objectFit:      "cover",
           objectPosition: "center 20%",
         }}
       />
