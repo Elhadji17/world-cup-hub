@@ -12,6 +12,10 @@ function Quiz() {
     const [showResult, setShowResult] = useState(false);
     const [isCorrect, setIsCorrect] = useState(false);
     const [selectedAnswer, setSelectedAnswer] = useState(null);
+    const [lives, setLives] = useState(3);
+    const xp = score * 10;
+    const level = Math.floor(xp / 100) + 1;
+    const [ending, setEnding] = useState(false);
     
 
     function savePlayer() {
@@ -64,8 +68,15 @@ function Quiz() {
     return () => clearTimeout(timer);
   }, [timeLeft, showResult, finished]);
 
+  useEffect(() => {
+        if (lives <= 0 && !finished) {
+            finishQuiz(score + (isCorrect ? 1 : 0));
+        }
+    }, [lives]);
+
 
   function handleAnswer(option) {
+    if (showResult) return;
 
     const correct = option === question.answer;
 
@@ -74,6 +85,9 @@ function Quiz() {
 
     if (correct) {
         setScore((prev) => prev + 1);
+    }
+    if (!correct) {
+        setLives(prev => prev - 1);
     }
 
     setShowResult(true);
@@ -84,6 +98,7 @@ function Quiz() {
   }
 
   function handleTimeout() {
+    if (showResult) return;
     setSelectedAnswer(null);
     setIsCorrect(false);
     setShowResult(true);
@@ -101,8 +116,67 @@ function Quiz() {
         setShowResult(false);
         setSelectedAnswer(null);
     } else {
-        setFinished(true);
+        finishQuiz(score + (isCorrect ? 1 : 0));
     }
+    }
+
+    function getButtonClass(option) {
+        if (!showResult) {
+            return "bg-green-600 hover:bg-green-700";
+        }
+
+        if (option === question.answer) {
+            return "bg-green-500";
+        }
+
+        if (option === selectedAnswer && option !== question.answer) {
+            return "bg-red-500";
+        }
+
+        return "bg-gray-700";
+    }
+
+    function finishQuiz(finalScore = score) {
+        if (ending) return;
+        setEnding(true);
+
+        const bestScore =
+            Number(localStorage.getItem("bestScore")) || 0;
+
+        if (finalScore > bestScore) {
+            localStorage.setItem("bestScore", finalScore);
+        }
+
+        const leaderboard =
+            JSON.parse(localStorage.getItem("leaderboard")) || [];
+
+        leaderboard.push({
+            name: localStorage.getItem("playerName"),
+            score: finalScore
+        });
+
+        leaderboard.sort((a, b) => b.score - a.score);
+
+        localStorage.setItem(
+            "leaderboard",
+            JSON.stringify(leaderboard.slice(0, 10))
+        );
+
+        const history =
+            JSON.parse(localStorage.getItem("history")) || [];
+
+        history.push({
+            score: finalScore,
+            total: questions.length,
+            date: Date.now()
+        });
+
+        localStorage.setItem(
+            "history",
+            JSON.stringify(history)
+        );
+
+        setFinished(true);
     }
 
     if (finished) {
@@ -187,10 +261,15 @@ function Quiz() {
 
         {/* REPLAY */}
         <button
+            
             onClick={() => {
-            setCurrent(0);
-            setScore(0);
-            setFinished(false);
+                setCurrent(0);
+                setScore(0);
+                setFinished(false);
+                setLives(3);
+                setTimeLeft(15);
+                setShowResult(false);
+                setSelectedAnswer(null);
             }}
             className="mt-8 bg-green-600 px-6 py-3 rounded-xl"
         >
@@ -229,8 +308,44 @@ function Quiz() {
             ⏱️ {timeLeft}s
         </div>
 
+    </div>
+
+    {/* Barre de temps dynamique */}
+    <div className="w-64 bg-gray-700 h-2 rounded-full mx-auto mt-2">
+        <div
+            className="bg-yellow-400 h-2 rounded-full transition-all"
+            style={{
+                width: `${(timeLeft / 15) * 100}%`
+            }}
+        />
+    </div>    
+    
+    {/* carte de progression */}
+    <div className="flex gap-4 mb-8">
+
+        <div className="bg-gray-800 px-4 py-2 rounded-xl">
+            🎯 {score} points
         </div>
 
+        <div className="bg-gray-800 px-4 py-2 rounded-xl">
+            📈 {Math.round((current / questions.length) * 100)}%
+        </div>
+
+        </div>    
+
+    {/* Ajouter des vies */}
+    <div className="text-red-400 text-2xl">
+        {"❤️".repeat(lives)}
+        </div>
+
+    <div className="bg-yellow-500 text-black px-4 py-2 rounded-xl">
+        ⭐ XP : {xp}
+        </div>
+
+    <div className="bg-purple-600 px-4 py-2 rounded-xl">
+        ⭐ Niveau {level}
+    </div>        
+    
     {/* Statistiques pendant la partie */}
     <div className="mb-8 flex gap-6">
 
@@ -257,9 +372,15 @@ function Quiz() {
 
         {question.options.map((option, index) => (
           <button
+            disabled={showResult}
             key={index}
             onClick={() => handleAnswer(option)}
-            className="bg-green-600 hover:bg-green-700 transition p-4 rounded-xl text-xl"
+            className={`
+                ${getButtonClass(option)}
+                ${showResult ? "opacity-70" : ""}
+                transition-all duration-300
+                p-4 rounded-xl text-xl font-bold
+                `}
           >
             {option}
           </button>
