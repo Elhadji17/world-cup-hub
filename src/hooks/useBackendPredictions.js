@@ -1,8 +1,7 @@
 // src/hooks/useBackendPredictions.js
-// Sauvegarde les pronostics sur MongoDB via /api/predictions/save
-// Fallback localStorage si l'utilisateur n'est pas connecté
+// Récupère les pronostics depuis MongoDB (avec points) + sauvegarde
 
-import { useState, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 const API         = import.meta.env.VITE_API_URL ?? "";
 const TOKEN_KEY   = "wch_token";
@@ -13,10 +12,9 @@ function loadLocal() {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
   catch { return {}; }
 }
-
 function loadJoker() {
-  const stored = localStorage.getItem(JOKER_KEY);
-  return stored ? Number(stored) : null;
+  const s = localStorage.getItem(JOKER_KEY);
+  return s ? Number(s) : null;
 }
 
 export function useBackendPredictions() {
@@ -26,16 +24,50 @@ export function useBackendPredictions() {
 
   const token = localStorage.getItem(TOKEN_KEY);
 
+  // ── Charger les pronostics depuis MongoDB au montage ─────────────────────
+  useEffect(() => {
+    if (!token) return;
+    async function fetchFromBackend() {
+      try {
+        const res  = await fetch(`${API}/api/predictions/me`, {
+          headers: { "Authorization": `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+
+        // Convertir le tableau en objet indexé par matchId
+        const map = {};
+        for (const p of data.predictions ?? []) {
+          map[p.matchId] = {
+            scoreA:    p.scoreA,
+            scoreB:    p.scoreB,
+            isJoker:   p.isJoker,
+            points:    p.points,
+            breakdown: p.breakdown,
+          };
+          if (p.isJoker) setJokerMatchId(p.matchId);
+        }
+
+        // Fusionner avec localStorage (local prioritaire si plus récent)
+        setPredictions(prev => ({ ...map, ...prev }));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...map }));
+      } catch (err) {
+        console.warn("[fetchFromBackend]", err.message);
+      }
+    }
+    fetchFromBackend();
+  }, [token]);
+
   // ── Sauvegarder un pronostic ─────────────────────────────────────────────
   const savePrediction = useCallback(async (matchId, scores) => {
     const isJoker = jokerMatchId === matchId;
-
-    // Sauvegarde locale immédiate
-    const updated = { ...predictions, [matchId]: { ...scores, isJoker } };
+    const updated = {
+      ...predictions,
+      [matchId]: { ...scores, isJoker, points: null, breakdown: null },
+    };
     setPredictions(updated);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
 
-    // Sync backend si connecté
     if (!token) return;
     setSyncing(true);
     try {
@@ -48,20 +80,19 @@ export function useBackendPredictions() {
         body: JSON.stringify({ matchId, ...scores, isJoker }),
       });
     } catch (err) {
-      console.warn("[savePrediction] backend error:", err.message);
+      console.warn("[savePrediction]", err.message);
     } finally {
       setSyncing(false);
     }
   }, [predictions, jokerMatchId, token]);
 
-  // ── Poser / retirer le joker ─────────────────────────────────────────────
+  // ── Joker ────────────────────────────────────────────────────────────────
   const handleSetJoker = useCallback((matchId) => {
     const newJoker = jokerMatchId === matchId ? null : matchId;
     setJokerMatchId(newJoker);
     if (newJoker) localStorage.setItem(JOKER_KEY, String(newJoker));
     else          localStorage.removeItem(JOKER_KEY);
 
-    // Re-sync la prédiction existante avec le nouveau statut joker
     const pred = predictions[matchId];
     if (pred && token) {
       fetch(`${API}/api/predictions/save`, {
@@ -80,18 +111,12 @@ export function useBackendPredictions() {
     }
   }, [jokerMatchId, predictions, token]);
 
-  const getPrediction  = useCallback((matchId) => predictions[matchId] ?? null, [predictions]);
-  const hasJoker       = useCallback((matchId) => jokerMatchId === matchId, [jokerMatchId]);
-  const savedCount     = Object.keys(predictions).length;
+  const getPrediction = useCallback((matchId) => predictions[matchId] ?? null, [predictions]);
+  const hasJoker      = useCallback((matchId) => jokerMatchId === matchId, [jokerMatchId]);
+  const savedCount    = Object.keys(predictions).length;
 
   return {
-    predictions,
-    savePrediction,
-    handleSetJoker,
-    getPrediction,
-    hasJoker,
-    jokerMatchId,
-    savedCount,
-    syncing,
+    predictions, savePrediction, handleSetJoker,
+    getPrediction, hasJoker, jokerMatchId, savedCount, syncing,
   };
 }

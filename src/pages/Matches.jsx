@@ -1,21 +1,11 @@
-// src/pages/Matches.jsx
-// Calendrier complet WC 2026 — affiche les vrais scores depuis le backend
+// src/pages/Matches.jsx — heure locale + scores réels
 
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MATCHES, FLAGS } from "../data/matches";
 import { AI_PREDICTIONS } from "../data/aiPredictions";
 import { useResults } from "../hooks/useResults";
-
-
-function getMatchStatus(dateStr, timeStr) {
-  const now       = new Date();
-  const matchDate = new Date(`${dateStr}T${timeStr}:00`);
-  const endDate   = new Date(matchDate.getTime() + 2 * 60 * 60 * 1000);
-  if (now < matchDate) return "upcoming";
-  if (now >= matchDate && now <= endDate) return "live";
-  return "finished";
-}
+import { getMatchStatus, formatLocalDate, formatLocalTime, timeUntilMatch } from "../utils/dateUtils";
 
 function StatusBadge({ status }) {
   if (status === "live") return (
@@ -36,10 +26,10 @@ function StatusBadge({ status }) {
 }
 
 function MatchRow({ match, result }) {
-  const status = getMatchStatus(match.date, match.time);
-  const ai     = AI_PREDICTIONS[match.id];
+  const status   = getMatchStatus(match.date, match.time, match.stadium);
+  const countdown = timeUntilMatch(match.date, match.time, match.stadium);
+  const ai       = AI_PREDICTIONS[match.id];
   const [showAI, setShowAI] = useState(false);
-
   const flagA = FLAGS[match.teamA] ?? "🏳️";
   const flagB = FLAGS[match.teamB] ?? "🏳️";
 
@@ -56,10 +46,13 @@ function MatchRow({ match, result }) {
             : "bg-white/8 border-white/10"
       }`}
     >
-      {/* En-tête */}
-      <div className="flex justify-between items-center mb-3 text-xs text-gray-400">
+      {/* En-tête — heure locale */}
+      <div className="flex justify-between items-center mb-3 text-xs text-gray-400 flex-wrap gap-1">
         <StatusBadge status={status} />
-        <span>🕒 {match.date} · {match.time}</span>
+        <span>
+          🕒 {formatLocalDate(match.date, match.time, match.stadium)} · {formatLocalTime(match.date, match.time, match.stadium)}
+          {countdown && <span className="ml-1 text-blue-300">({countdown})</span>}
+        </span>
         <span>📍 {match.stadium}</span>
       </div>
 
@@ -70,9 +63,8 @@ function MatchRow({ match, result }) {
           <div className="text-sm font-bold leading-tight">{match.teamA}</div>
         </div>
 
-        <div className="mx-4 text-center min-w-[80px]">
+        <div className="mx-4 text-center min-w-[90px]">
           {result ? (
-            // ✅ Vrai score depuis MongoDB
             <div className="text-2xl font-bold text-white">
               {result.realScoreA} – {result.realScoreB}
             </div>
@@ -91,7 +83,7 @@ function MatchRow({ match, result }) {
         </div>
       </div>
 
-      {/* Prédiction IA — seulement pour les matchs à venir */}
+      {/* Prédiction IA — matchs à venir */}
       {ai && status === "upcoming" && (
         <div className="mt-3 pt-3 border-t border-white/10">
           <button
@@ -100,7 +92,6 @@ function MatchRow({ match, result }) {
           >
             🤖 {showAI ? "Masquer" : "Voir"} la prédiction IA
           </button>
-
           <AnimatePresence>
             {showAI && (
               <motion.div
@@ -131,7 +122,7 @@ function MatchRow({ match, result }) {
         </div>
       )}
 
-      {/* Résultat final — comparaison IA vs réalité */}
+      {/* IA vs Réalité — matchs terminés */}
       {result && ai && (
         <div className="mt-3 pt-3 border-t border-white/10 text-xs text-center">
           <span className="text-gray-400">IA avait prédit : </span>
@@ -146,7 +137,7 @@ function MatchRow({ match, result }) {
   );
 }
 
-const FILTER_GROUPS = ["TOUS", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"];
+const FILTER_GROUPS = ["TOUS","A","B","C","D","E","F","G","H","I","J","K","L"];
 const FILTER_STATUS = [
   { id: "all",      label: "Tous"     },
   { id: "live",     label: "🔴 Live"  },
@@ -161,24 +152,22 @@ export default function Matches() {
 
   const filtered = useMemo(() => {
     return MATCHES.filter(m => {
-      const status   = getMatchStatus(m.date, m.time);
+      const status   = getMatchStatus(m.date, m.time, m.stadium);
       const groupOk  = activeGroup === "TOUS" || m.group === activeGroup;
       const statusOk = activeStatus === "all"  || status === activeStatus;
       return groupOk && statusOk;
     });
   }, [activeGroup, activeStatus]);
 
-  const stats = useMemo(() => {
-    const live     = MATCHES.filter(m => getMatchStatus(m.date, m.time) === "live").length;
-    const finished = MATCHES.filter(m => getMatchStatus(m.date, m.time) === "finished").length;
-    const upcoming = MATCHES.filter(m => getMatchStatus(m.date, m.time) === "upcoming").length;
-    return { live, finished, upcoming };
-  }, []);
+  const stats = useMemo(() => ({
+    live:     MATCHES.filter(m => getMatchStatus(m.date, m.time, m.stadium) === "live").length,
+    finished: MATCHES.filter(m => getMatchStatus(m.date, m.time, m.stadium) === "finished").length,
+    upcoming: MATCHES.filter(m => getMatchStatus(m.date, m.time, m.stadium) === "upcoming").length,
+  }), []);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-red-900 via-black to-blue-900 text-white pb-16">
 
-      {/* ── HEADER ── */}
       <div className="sticky top-0 z-20 bg-black/60 backdrop-blur-md border-b border-white/10 px-4 py-3">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-2xl font-bold">📅 Match Center</h1>
@@ -193,16 +182,11 @@ export default function Matches() {
 
       <div className="max-w-4xl mx-auto px-4 pt-4">
 
-        {/* ── FILTRE STATUT ── */}
         <div className="flex gap-2 mb-4">
           {FILTER_STATUS.map(({ id, label }) => (
-            <button
-              key={id}
-              onClick={() => setActiveStatus(id)}
+            <button key={id} onClick={() => setActiveStatus(id)}
               className={`flex-1 py-2 rounded-xl text-xs font-bold transition ${
-                activeStatus === id
-                  ? "bg-blue-600 text-white"
-                  : "bg-white/10 text-gray-300 hover:bg-white/20"
+                activeStatus === id ? "bg-blue-600 text-white" : "bg-white/10 text-gray-300 hover:bg-white/20"
               }`}
             >
               {label}
@@ -210,16 +194,11 @@ export default function Matches() {
           ))}
         </div>
 
-        {/* ── FILTRE GROUPE ── */}
         <div className="flex gap-2 overflow-x-auto pb-2 mb-5 scrollbar-hide">
           {FILTER_GROUPS.map(g => (
-            <button
-              key={g}
-              onClick={() => setActiveGroup(g)}
+            <button key={g} onClick={() => setActiveGroup(g)}
               className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-bold transition ${
-                activeGroup === g
-                  ? "bg-white text-black"
-                  : "bg-white/10 text-gray-300 hover:bg-white/20"
+                activeGroup === g ? "bg-white text-black" : "bg-white/10 text-gray-300 hover:bg-white/20"
               }`}
             >
               {g === "TOUS" ? "Tous" : `Gr. ${g}`}
@@ -227,15 +206,10 @@ export default function Matches() {
           ))}
         </div>
 
-        {/* ── LISTE MATCHS ── */}
         <div className="grid gap-3">
           <AnimatePresence>
             {filtered.map(match => (
-              <MatchRow
-                key={match.id}
-                match={match}
-                result={getResult(match.id)}
-              />
+              <MatchRow key={match.id} match={match} result={getResult(match.id)} />
             ))}
           </AnimatePresence>
         </div>
