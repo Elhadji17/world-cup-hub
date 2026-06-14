@@ -31,6 +31,7 @@ export default function QuizHub() {
 
   function handleSelect(cat) {
     if (cat.isDaily && dailyDone) return;
+    if (cat.isPlayers) { navigate("/quiz/players"); return; }  // ← ajoute ça
     navigate(`/quiz/${cat.id}`);
   }
 

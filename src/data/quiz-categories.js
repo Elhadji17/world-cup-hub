@@ -52,6 +52,17 @@ export const CATEGORIES = [
     count:       20,
   },
   {
+    id:          "players",
+    title:       "Devine le joueur",
+    emoji:       "📸",
+    description: "Image floutée → défloutage progressif → qui est ce joueur ?",
+    color:       "from-purple-700 to-pink-800",
+    border:      "border-purple-400/40",
+    difficulty:  "Varié",
+    count:       15,
+    isPlayers:   true,
+  },
+  {
     id:          "daily",
     title:       "Quiz du Jour",
     emoji:       "🔥",

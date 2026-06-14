@@ -12,6 +12,8 @@ import Share from "./pages/Share";
 import ResetPassword from "./pages/ResetPassword";
 import Hub from './pages/Hub';
 import QuizHub  from "./pages/QuizHub";
+import QuizPlayers from "./pages/QuizPlayers";
+
 
 
 
@@ -32,6 +34,7 @@ function AnimatedRoutes() {
         />
 
         <Route path="/quiz" element={<PageWrapper><QuizHub /></PageWrapper>} />
+        <Route path="/quiz/players" element={<PageWrapper><QuizPlayers /></PageWrapper>} />
         <Route path="/quiz/:categoryId" element={<PageWrapper><Quiz /></PageWrapper>} />
 
         <Route
@@ -63,6 +66,7 @@ function AnimatedRoutes() {
         <Route path="/share" element={<PageWrapper><Share /></PageWrapper>} />
         <Route path="/reset-password" element={<PageWrapper><ResetPassword /></PageWrapper>} />
         <Route path="/Hub" element={<Hub />} />
+        
 
       </Routes>
     </AnimatePresence>
