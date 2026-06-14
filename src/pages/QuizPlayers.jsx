@@ -27,19 +27,22 @@ function getMedal(score, total) {
   return              { emoji: "⚽", label: "Continue !",    color: "text-blue-400"   };
 }
 
-// Composant image avec proxy + gestion d'erreur
+// Composant image — flou CSS direct (plus fiable que Framer Motion)
 function PlayerImage({ wikimedia, blur, showResult }) {
-  const [status, setStatus] = useState("loading"); // loading | ok | error
-  const proxyUrl = wikimedia;
+  const [status, setStatus] = useState("loading");
 
   return (
     <div className="relative w-full h-64 rounded-2xl overflow-hidden bg-gray-800 border border-white/10">
+
+      {/* Spinner pendant le chargement */}
       {status === "loading" && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-4xl animate-pulse">⏳</div>
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+          <div className="text-4xl animate-bounce">⚽</div>
+          <p className="text-gray-400 text-xs">Chargement de l'image...</p>
         </div>
       )}
 
+      {/* Erreur */}
       {status === "error" && (
         <div className="absolute inset-0 flex items-center justify-center text-center">
           <div>
@@ -49,22 +52,27 @@ function PlayerImage({ wikimedia, blur, showResult }) {
         </div>
       )}
 
-      <motion.img
-        src={proxyUrl}
+      {/* Image — flou CSS direct */}
+      <img
+        src={wikimedia}
         alt="Devine ce joueur"
         onLoad={() => setStatus("ok")}
         onError={() => setStatus("error")}
-        animate={{ filter: `blur(${blur}px)` }}
-        transition={{ duration: 1, ease: "easeOut" }}
-        className={`w-full h-full object-cover object-top transition-opacity ${
-          status === "ok" ? "opacity-100" : "opacity-0"
-        }`}
+        style={{
+          filter:     `blur(${blur}px)`,
+          transition: "filter 1s ease-out",
+          opacity:    status === "ok" ? 1 : 0,
+          width:      "100%",
+          height:     "100%",
+          objectFit:  "cover",
+          objectPosition: "center 20%",
+        }}
       />
 
-      {/* Overlay "Qui est-ce ?" quand image encore floutée */}
+      {/* Label flou */}
       {status === "ok" && blur > 4 && !showResult && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="bg-black/50 backdrop-blur-sm rounded-xl px-4 py-2 text-white text-sm font-bold">
+        <div className="absolute inset-0 flex items-end justify-center pb-4">
+          <div className="bg-black/60 rounded-xl px-4 py-2 text-white text-sm font-bold">
             🔍 Qui est ce joueur ?
           </div>
         </div>
