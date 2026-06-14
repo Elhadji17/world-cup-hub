@@ -1,0 +1,72 @@
+[
+  {
+    "id": "dy001",
+    "question": "Quel pays a inventé le football moderne ?",
+    "options": ["France", "Allemagne", "Angleterre", "Espagne"],
+    "answer": "Angleterre",
+    "category": "Quiz du Jour"
+  },
+  {
+    "id": "dy002",
+    "question": "Quel est le diamètre officiel d'un ballon de football ?",
+    "options": ["20-22 cm", "21-22 cm", "22-23 cm", "23-24 cm"],
+    "answer": "21-22 cm",
+    "category": "Quiz du Jour"
+  },
+  {
+    "id": "dy003",
+    "question": "Combien de joueurs compose une équipe de football sur le terrain ?",
+    "options": ["9", "10", "11", "12"],
+    "answer": "11",
+    "category": "Quiz du Jour"
+  },
+  {
+    "id": "dy004",
+    "question": "Quelle est la durée d'un match de football réglementaire ?",
+    "options": ["80 min", "90 min", "100 min", "120 min"],
+    "answer": "90 min",
+    "category": "Quiz du Jour"
+  },
+  {
+    "id": "dy005",
+    "question": "Quel est le trophée remis au vainqueur de la Coupe du Monde ?",
+    "options": ["Trophée Jules Rimet", "Trophée FIFA", "Coupe du Monde FIFA", "Trophée d'Or"],
+    "answer": "Coupe du Monde FIFA",
+    "category": "Quiz du Jour"
+  },
+  {
+    "id": "dy006",
+    "question": "Quel est l'organe dirigeant du football mondial ?",
+    "options": ["UEFA", "CAF", "FIFA", "CONMEBOL"],
+    "answer": "FIFA",
+    "category": "Quiz du Jour"
+  },
+  {
+    "id": "dy007",
+    "question": "Combien de cartons jaunes avant un carton rouge ?",
+    "options": ["1", "2", "3", "4"],
+    "answer": "2",
+    "category": "Quiz du Jour"
+  },
+  {
+    "id": "dy008",
+    "question": "Quelle distance sépare le point de penalty des buts ?",
+    "options": ["10 m", "11 m", "12 m", "9 m"],
+    "answer": "11 m",
+    "category": "Quiz du Jour"
+  },
+  {
+    "id": "dy009",
+    "question": "Quel continent domine le plus en nombre de victoires en Coupe du Monde ?",
+    "options": ["Europe", "Amérique du Sud", "Afrique", "Asie"],
+    "answer": "Europe",
+    "category": "Quiz du Jour"
+  },
+  {
+    "id": "dy010",
+    "question": "Quel est le salaire le plus élevé dans le football en 2024 ?",
+    "options": ["Messi", "Ronaldo", "Mbappé", "Neymar"],
+    "answer": "Ronaldo",
+    "category": "Quiz du Jour"
+  }
+]

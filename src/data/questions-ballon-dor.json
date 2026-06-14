@@ -1,0 +1,142 @@
+[
+  {
+    "id": "bd001",
+    "question": "Qui a remporté le plus de Ballons d'Or dans l'histoire ?",
+    "options": ["Ronaldo", "Messi", "Platini", "Cruyff"],
+    "answer": "Messi",
+    "category": "Ballon d'Or"
+  },
+  {
+    "id": "bd002",
+    "question": "En quelle année le Ballon d'Or a-t-il été créé ?",
+    "options": ["1950", "1956", "1960", "1964"],
+    "answer": "1956",
+    "category": "Ballon d'Or"
+  },
+  {
+    "id": "bd003",
+    "question": "Quel magazine français décerne le Ballon d'Or ?",
+    "options": ["L'Équipe", "France Football", "So Foot", "Onze Mondial"],
+    "answer": "France Football",
+    "category": "Ballon d'Or"
+  },
+  {
+    "id": "bd004",
+    "question": "Qui a remporté le Ballon d'Or 2023 ?",
+    "options": ["Mbappé", "Haaland", "Bellingham", "Rodri"],
+    "answer": "Rodri",
+    "category": "Ballon d'Or"
+  },
+  {
+    "id": "bd005",
+    "question": "Quel joueur africain a remporté le Ballon d'Or ?",
+    "options": ["Drogba", "Eto'o", "George Weah", "Salah"],
+    "answer": "George Weah",
+    "category": "Ballon d'Or"
+  },
+  {
+    "id": "bd006",
+    "question": "Combien de Ballons d'Or Ronaldo (Portugal) a-t-il remportés ?",
+    "options": ["4", "5", "6", "7"],
+    "answer": "5",
+    "category": "Ballon d'Or"
+  },
+  {
+    "id": "bd007",
+    "question": "Quel gardien de but a remporté le Ballon d'Or ?",
+    "options": ["Buffon", "Casillas", "Yashin", "Neuer"],
+    "answer": "Yashin",
+    "category": "Ballon d'Or"
+  },
+  {
+    "id": "bd008",
+    "question": "En quelle année Messi a-t-il remporté son 8ème Ballon d'Or ?",
+    "options": ["2021", "2022", "2023", "2024"],
+    "answer": "2023",
+    "category": "Ballon d'Or"
+  },
+  {
+    "id": "bd009",
+    "question": "Quel Français a remporté le plus de Ballons d'Or ?",
+    "options": ["Zidane", "Henry", "Platini", "Papin"],
+    "answer": "Platini",
+    "category": "Ballon d'Or"
+  },
+  {
+    "id": "bd010",
+    "question": "Quel joueur a remporté le Ballon d'Or en 2022 ?",
+    "options": ["Messi", "Benzema", "Mbappé", "Modric"],
+    "answer": "Benzema",
+    "category": "Ballon d'Or"
+  },
+  {
+    "id": "bd011",
+    "question": "Qui a remporté le premier Ballon d'Or de l'histoire en 1956 ?",
+    "options": ["Di Stéfano", "Puskas", "Stanley Matthews", "Pelé"],
+    "answer": "Stanley Matthews",
+    "category": "Ballon d'Or"
+  },
+  {
+    "id": "bd012",
+    "question": "Quel joueur brésilien a remporté le Ballon d'Or en 1997 ?",
+    "options": ["Pelé", "Romario", "Ronaldo", "Rivaldo"],
+    "answer": "Ronaldo",
+    "category": "Ballon d'Or"
+  },
+  {
+    "id": "bd013",
+    "question": "Combien d'années consécutives Messi a-t-il remporté le Ballon d'Or entre 2009 et 2012 ?",
+    "options": ["3", "4", "5", "2"],
+    "answer": "4",
+    "category": "Ballon d'Or"
+  },
+  {
+    "id": "bd014",
+    "question": "Quel Néerlandais a remporté 3 Ballons d'Or ?",
+    "options": ["Van Basten", "Gullit", "Cruyff", "Rijkaard"],
+    "answer": "Cruyff",
+    "category": "Ballon d'Or"
+  },
+  {
+    "id": "bd015",
+    "question": "Quel joueur a remporté le Ballon d'Or en 2018 ?",
+    "options": ["Messi", "Ronaldo", "Modric", "Griezmann"],
+    "answer": "Modric",
+    "category": "Ballon d'Or"
+  },
+  {
+    "id": "bd016",
+    "question": "Quel club a le plus de joueurs ayant remporté le Ballon d'Or ?",
+    "options": ["Barcelona", "Real Madrid", "Bayern Munich", "Juventus"],
+    "answer": "Barcelona",
+    "category": "Ballon d'Or"
+  },
+  {
+    "id": "bd017",
+    "question": "Quel joueur a remporté le Ballon d'Or le plus jeune ?",
+    "options": ["Messi", "Ronaldo", "Rooney", "Mbappé"],
+    "answer": "Messi",
+    "category": "Ballon d'Or"
+  },
+  {
+    "id": "bd018",
+    "question": "En quelle année le FIFA Ballon d'Or a-t-il été créé (fusion FIFA + France Football) ?",
+    "options": ["2008", "2010", "2012", "2014"],
+    "answer": "2010",
+    "category": "Ballon d'Or"
+  },
+  {
+    "id": "bd019",
+    "question": "Quel joueur néerlandais a remporté le Ballon d'Or en 1992 ?",
+    "options": ["Cruyff", "Van Basten", "Gullit", "Rijkaard"],
+    "answer": "Van Basten",
+    "category": "Ballon d'Or"
+  },
+  {
+    "id": "bd020",
+    "question": "Quel est l'écart record entre deux Ballons d'Or pour un même joueur ?",
+    "options": ["5 ans", "7 ans", "10 ans", "12 ans"],
+    "answer": "7 ans",
+    "category": "Ballon d'Or"
+  }
+]

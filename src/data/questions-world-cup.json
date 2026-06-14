@@ -1,0 +1,142 @@
+[
+  {
+    "id": "wc001",
+    "question": "Combien de fois le Brésil a-t-il remporté la Coupe du Monde ?",
+    "options": ["4", "5", "6", "3"],
+    "answer": "5",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc002",
+    "question": "Dans quel pays a eu lieu la première Coupe du Monde en 1930 ?",
+    "options": ["Brésil", "France", "Uruguay", "Argentine"],
+    "answer": "Uruguay",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc003",
+    "question": "Qui est le meilleur buteur de l'histoire des Coupes du Monde ?",
+    "options": ["Pelé", "Ronaldo (Brésil)", "Miroslav Klose", "Gerd Müller"],
+    "answer": "Miroslav Klose",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc004",
+    "question": "Quelle équipe a remporté la Coupe du Monde 2018 ?",
+    "options": ["Croatie", "Belgique", "France", "Angleterre"],
+    "answer": "France",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc005",
+    "question": "Quel pays organisera la Coupe du Monde 2026 ?",
+    "options": ["USA seulement", "USA, Canada, Mexique", "Canada et Mexique", "USA et Canada"],
+    "answer": "USA, Canada, Mexique",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc006",
+    "question": "Combien d'équipes participent à la Coupe du Monde 2026 ?",
+    "options": ["32", "40", "48", "36"],
+    "answer": "48",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc007",
+    "question": "Qui a marqué le but de la main lors du quart de finale Argentine-Angleterre en 1986 ?",
+    "options": ["Pelé", "Maradona", "Valdano", "Burruchaga"],
+    "answer": "Maradona",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc008",
+    "question": "Quel gardien a arrêté 3 penaltys en finale de Coupe du Monde 2022 ?",
+    "options": ["Lloris", "Alisson", "Martinez (E. Martinez)", "Courtois"],
+    "answer": "Martinez (E. Martinez)",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc009",
+    "question": "Combien de Coupes du Monde Pelé a-t-il remportées ?",
+    "options": ["1", "2", "3", "4"],
+    "answer": "3",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc010",
+    "question": "Quel est le score le plus large de l'histoire des Coupes du Monde ?",
+    "options": ["10-1", "9-0", "11-0", "8-0"],
+    "answer": "10-1",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc011",
+    "question": "En quelle année l'Allemagne a-t-elle battu le Brésil 7-1 ?",
+    "options": ["2010", "2014", "2018", "2006"],
+    "answer": "2014",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc012",
+    "question": "Quel joueur a reçu le Ballon d'Or de la Coupe du Monde 2022 ?",
+    "options": ["Mbappé", "Messi", "Modric", "Benzema"],
+    "answer": "Messi",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc013",
+    "question": "Qui a remporté le Soulier d'Or de la Coupe du Monde 2022 ?",
+    "options": ["Mbappé", "Messi", "Giroud", "Neymar"],
+    "answer": "Mbappé",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc014",
+    "question": "Quelle nation a remporté la Coupe du Monde 2022 ?",
+    "options": ["France", "Croatie", "Maroc", "Argentine"],
+    "answer": "Argentine",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc015",
+    "question": "Quel pays est le seul à avoir participé à toutes les Coupes du Monde ?",
+    "options": ["Brésil", "Allemagne", "Italie", "Argentine"],
+    "answer": "Brésil",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc016",
+    "question": "Combien de buts Ronaldo (Brésil) a-t-il marqué en Coupe du Monde ?",
+    "options": ["12", "15", "10", "8"],
+    "answer": "15",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc017",
+    "question": "Quel stade a accueilli la finale de la Coupe du Monde 2022 ?",
+    "options": ["Lusail Stadium", "Al Bayt Stadium", "Khalifa Stadium", "Al Janoub Stadium"],
+    "answer": "Lusail Stadium",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc018",
+    "question": "Quelle équipe africaine a atteint le stade le plus avancé en 2022 ?",
+    "options": ["Sénégal", "Ghana", "Tunisie", "Maroc"],
+    "answer": "Maroc",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc019",
+    "question": "En quelle année la France a-t-elle remporté sa première Coupe du Monde ?",
+    "options": ["1994", "1998", "2002", "2006"],
+    "answer": "1998",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc020",
+    "question": "Qui a remporté la Coupe du Monde 2010 en Afrique du Sud ?",
+    "options": ["Brésil", "Allemagne", "Pays-Bas", "Espagne"],
+    "answer": "Espagne",
+    "category": "Coupe du Monde"
+  }
+]

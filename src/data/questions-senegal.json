@@ -1,0 +1,142 @@
+[
+  {
+    "id": "sn001",
+    "question": "En quelle année le Sénégal a-t-il remporté la CAN pour la première fois ?",
+    "options": ["2019", "2021", "2022", "2023"],
+    "answer": "2022",
+    "category": "Quiz Sénégal"
+  },
+  {
+    "id": "sn002",
+    "question": "Quel est le surnom de l'équipe nationale du Sénégal ?",
+    "options": ["Les Éléphants", "Les Lions de la Téranga", "Les Fennecs", "Les Aigles"],
+    "answer": "Les Lions de la Téranga",
+    "category": "Quiz Sénégal"
+  },
+  {
+    "id": "sn003",
+    "question": "Quel joueur sénégalais évolue au FC Liverpool et est considéré comme l'un des meilleurs du monde ?",
+    "options": ["Idrissa Gueye", "Kalidou Koulibaly", "Sadio Mané", "Cheikhou Kouyaté"],
+    "answer": "Sadio Mané",
+    "category": "Quiz Sénégal"
+  },
+  {
+    "id": "sn004",
+    "question": "Lors de quelle Coupe du Monde le Sénégal a-t-il atteint les quarts de finale pour la première fois ?",
+    "options": ["1998", "2002", "2006", "2018"],
+    "answer": "2002",
+    "category": "Quiz Sénégal"
+  },
+  {
+    "id": "sn005",
+    "question": "Quel club Sadio Mané a-t-il rejoint après Liverpool ?",
+    "options": ["PSG", "Real Madrid", "Bayern Munich", "Manchester City"],
+    "answer": "Bayern Munich",
+    "category": "Quiz Sénégal"
+  },
+  {
+    "id": "sn006",
+    "question": "Combien de fois le Sénégal a-t-il participé à la Coupe du Monde avant 2026 ?",
+    "options": ["2", "3", "4", "5"],
+    "answer": "3",
+    "category": "Quiz Sénégal"
+  },
+  {
+    "id": "sn007",
+    "question": "Quel défenseur sénégalais a longtemps évolué à Napoli et Chelsea ?",
+    "options": ["Cheikhou Kouyaté", "Kalidou Koulibaly", "Abdou Diallo", "Pape Abou Cissé"],
+    "answer": "Kalidou Koulibaly",
+    "category": "Quiz Sénégal"
+  },
+  {
+    "id": "sn008",
+    "question": "Quel entraîneur a mené le Sénégal à la victoire à la CAN 2022 ?",
+    "options": ["Bruno Metsu", "Aliou Cissé", "Henri Kasperczak", "Lamine N'Diaye"],
+    "answer": "Aliou Cissé",
+    "category": "Quiz Sénégal"
+  },
+  {
+    "id": "sn009",
+    "question": "Dans quel groupe est le Sénégal lors de la Coupe du Monde 2026 ?",
+    "options": ["Groupe G", "Groupe H", "Groupe I", "Groupe J"],
+    "answer": "Groupe I",
+    "category": "Quiz Sénégal"
+  },
+  {
+    "id": "sn010",
+    "question": "Quel joueur sénégalais a remporté le Ballon d'Or africain en 2022 ?",
+    "options": ["Kalidou Koulibaly", "Idrissa Gueye", "Sadio Mané", "Ismaïla Sarr"],
+    "answer": "Sadio Mané",
+    "category": "Quiz Sénégal"
+  },
+  {
+    "id": "sn011",
+    "question": "Contre quelle équipe le Sénégal a-t-il éliminé la France en 2002 ?",
+    "options": ["En poules", "En quarts", "En demies", "En finale"],
+    "answer": "En poules",
+    "category": "Quiz Sénégal"
+  },
+  {
+    "id": "sn012",
+    "question": "Quel stade est le principal stade national du Sénégal ?",
+    "options": ["Stade de Thiès", "Stade Léopold Sédar Senghor", "Stade Abdoulaye Wade", "Stade de Ziguinchor"],
+    "answer": "Stade Abdoulaye Wade",
+    "category": "Quiz Sénégal"
+  },
+  {
+    "id": "sn013",
+    "question": "Quel joueur sénégalais évolue à Al-Nassr avec Cristiano Ronaldo ?",
+    "options": ["Sadio Mané", "Ismaïla Sarr", "Habib Diallo", "Boulaye Dia"],
+    "answer": "Sadio Mané",
+    "category": "Quiz Sénégal"
+  },
+  {
+    "id": "sn014",
+    "question": "Quel est le score de la victoire du Sénégal en finale CAN 2022 aux tirs au but ?",
+    "options": ["3-2", "4-2", "5-3", "4-3"],
+    "answer": "4-2",
+    "category": "Quiz Sénégal"
+  },
+  {
+    "id": "sn015",
+    "question": "Contre qui le Sénégal a-t-il joué la finale de la CAN 2022 ?",
+    "options": ["Maroc", "Egypte", "Cameroun", "Nigeria"],
+    "answer": "Egypte",
+    "category": "Quiz Sénégal"
+  },
+  {
+    "id": "sn016",
+    "question": "Quel joueur sénégalais évolue à Everton/Watford et est connu pour sa vitesse ?",
+    "options": ["Boulaye Dia", "Ismaïla Sarr", "Keita Baldé", "Famara Diédhiou"],
+    "answer": "Ismaïla Sarr",
+    "category": "Quiz Sénégal"
+  },
+  {
+    "id": "sn017",
+    "question": "En quelle année Aliou Cissé a-t-il été nommé sélectionneur du Sénégal ?",
+    "options": ["2012", "2015", "2016", "2018"],
+    "answer": "2015",
+    "category": "Quiz Sénégal"
+  },
+  {
+    "id": "sn018",
+    "question": "Quel joueur sénégalais a marqué contre la France lors du mondial 2002 ?",
+    "options": ["El Hadji Diouf", "Bouba Diop", "Papa Bouba Diop", "Salif Diao"],
+    "answer": "Papa Bouba Diop",
+    "category": "Quiz Sénégal"
+  },
+  {
+    "id": "sn019",
+    "question": "Dans quel groupe se trouve le Sénégal avec la France en 2026 ?",
+    "options": ["Groupe G", "Groupe H", "Groupe I", "Groupe J"],
+    "answer": "Groupe I",
+    "category": "Quiz Sénégal"
+  },
+  {
+    "id": "sn020",
+    "question": "Quel ancien joueur sénégalais est devenu entraîneur reconnu en Europe ?",
+    "options": ["El Hadji Diouf", "Aliou Cissé", "Henri Camara", "Salif Diao"],
+    "answer": "Aliou Cissé",
+    "category": "Quiz Sénégal"
+  }
+]

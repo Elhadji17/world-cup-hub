@@ -10,6 +10,10 @@ import LeaderboardPage from "./pages/Leaderboard";
 import Admin from "./pages/Admin";
 import Share from "./pages/Share";
 import ResetPassword from "./pages/ResetPassword";
+import Hub from './pages/Hub';
+import QuizHub  from "./pages/QuizHub";
+import QuizGame from "./pages/QuizGame";
+
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -27,14 +31,8 @@ function AnimatedRoutes() {
           }
         />
 
-        <Route
-          path="/quiz"
-          element={
-            <PageWrapper>
-              <Quiz />
-            </PageWrapper>
-          }
-        />
+        <Route path="/quiz" element={<PageWrapper><QuizHub /></PageWrapper>} />
+        <Route path="/quiz/:categoryId" element={<PageWrapper><QuizGame /></PageWrapper>} />
 
         <Route
           path="/predictions"
@@ -64,6 +62,7 @@ function AnimatedRoutes() {
         <Route path="/admin" element={<PageWrapper><Admin /></PageWrapper>} />
         <Route path="/share" element={<PageWrapper><Share /></PageWrapper>} />
         <Route path="/reset-password" element={<PageWrapper><ResetPassword /></PageWrapper>} />
+        <Route path="/Hub" element={<Hub />} />
 
       </Routes>
     </AnimatePresence>

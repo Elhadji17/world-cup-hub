@@ -1,0 +1,142 @@
+[
+  {
+    "id": "fr001",
+    "question": "Combien de Coupes du Monde la France a-t-elle remportées ?",
+    "options": ["1", "2", "3", "0"],
+    "answer": "2",
+    "category": "Quiz France"
+  },
+  {
+    "id": "fr002",
+    "question": "Qui est le meilleur buteur de l'histoire de l'équipe de France ?",
+    "options": ["Zidane", "Henry", "Mbappé", "Platini"],
+    "answer": "Mbappé",
+    "category": "Quiz France"
+  },
+  {
+    "id": "fr003",
+    "question": "Quel est le surnom de l'équipe de France ?",
+    "options": ["Les Coqs", "Les Bleus", "Les Tricolores", "Les Gaulois"],
+    "answer": "Les Bleus",
+    "category": "Quiz France"
+  },
+  {
+    "id": "fr004",
+    "question": "Qui a marqué le but de la tête en finale de 1998 contre le Brésil ?",
+    "options": ["Henry", "Petit", "Zidane", "Desailly"],
+    "answer": "Zidane",
+    "category": "Quiz France"
+  },
+  {
+    "id": "fr005",
+    "question": "Quel stade accueille les matchs à domicile de l'équipe de France ?",
+    "options": ["Parc des Princes", "Vélodrome", "Stade de France", "Groupama Stadium"],
+    "answer": "Stade de France",
+    "category": "Quiz France"
+  },
+  {
+    "id": "fr006",
+    "question": "En quelle année la France a-t-elle remporté l'Euro ?",
+    "options": ["1996", "2000", "2004", "2008"],
+    "answer": "2000",
+    "category": "Quiz France"
+  },
+  {
+    "id": "fr007",
+    "question": "Qui était le capitaine de la France lors de la finale 2022 ?",
+    "options": ["Griezmann", "Varane", "Lloris", "Mbappé"],
+    "answer": "Lloris",
+    "category": "Quiz France"
+  },
+  {
+    "id": "fr008",
+    "question": "Quel joueur français a remporté le Ballon d'Or en 2022 ?",
+    "options": ["Mbappé", "Griezmann", "Benzema", "Varane"],
+    "answer": "Benzema",
+    "category": "Quiz France"
+  },
+  {
+    "id": "fr009",
+    "question": "Contre quelle équipe la France a-t-elle perdu la finale de la Coupe du Monde 2006 ?",
+    "options": ["Brésil", "Espagne", "Italie", "Allemagne"],
+    "answer": "Italie",
+    "category": "Quiz France"
+  },
+  {
+    "id": "fr010",
+    "question": "Quel joueur a quitté la France pour le Real Madrid en 2022 ?",
+    "options": ["Griezmann", "Varane", "Mbappé", "Benzema"],
+    "answer": "Mbappé",
+    "category": "Quiz France"
+  },
+  {
+    "id": "fr011",
+    "question": "Combien de buts Thierry Henry a-t-il marqués avec l'équipe de France ?",
+    "options": ["41", "48", "51", "44"],
+    "answer": "51",
+    "category": "Quiz France"
+  },
+  {
+    "id": "fr012",
+    "question": "Quel Français a remporté le plus de Ballons d'Or ?",
+    "options": ["Zidane", "Henry", "Platini", "Mbappé"],
+    "answer": "Platini",
+    "category": "Quiz France"
+  },
+  {
+    "id": "fr013",
+    "question": "Quel entraîneur a mené la France au titre en 1998 ?",
+    "options": ["Jacquet", "Domenech", "Deschamps", "Houllier"],
+    "answer": "Jacquet",
+    "category": "Quiz France"
+  },
+  {
+    "id": "fr014",
+    "question": "Quel joueur français était connu sous le nom 'La Pulga Française' ?",
+    "options": ["Ribéry", "Nasri", "Ben Arfa", "Payet"],
+    "answer": "Ribéry",
+    "category": "Quiz France"
+  },
+  {
+    "id": "fr015",
+    "question": "En quelle année Zidane a-t-il reçu son carton rouge en finale de Coupe du Monde ?",
+    "options": ["2002", "2004", "2006", "2008"],
+    "answer": "2006",
+    "category": "Quiz France"
+  },
+  {
+    "id": "fr016",
+    "question": "Quel club Kylian Mbappé a-t-il rejoint après le PSG ?",
+    "options": ["Barcelona", "Bayern Munich", "Real Madrid", "Manchester City"],
+    "answer": "Real Madrid",
+    "category": "Quiz France"
+  },
+  {
+    "id": "fr017",
+    "question": "Combien de buts Mbappé a-t-il marqués en finale de Coupe du Monde 2022 ?",
+    "options": ["2", "3", "1", "4"],
+    "answer": "3",
+    "category": "Quiz France"
+  },
+  {
+    "id": "fr018",
+    "question": "Quel joueur français a joué le plus de matchs en équipe nationale ?",
+    "options": ["Hugo Lloris", "Thierry Henry", "Lilian Thuram", "Zidane"],
+    "answer": "Hugo Lloris",
+    "category": "Quiz France"
+  },
+  {
+    "id": "fr019",
+    "question": "Quel est le record de victoires consécutives des Bleus ?",
+    "options": ["14", "17", "22", "18"],
+    "answer": "17",
+    "category": "Quiz France"
+  },
+  {
+    "id": "fr020",
+    "question": "Quel joueur français a marqué lors de la finale de l'Euro 2000 ?",
+    "options": ["Henry", "Zidane", "Trezeguet", "Pires"],
+    "answer": "Trezeguet",
+    "category": "Quiz France"
+  }
+]
