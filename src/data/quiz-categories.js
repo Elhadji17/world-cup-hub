@@ -1,5 +1,4 @@
 // src/data/quiz-categories.js
-// Définition des catégories de quiz
 
 export const CATEGORIES = [
   {
@@ -9,7 +8,6 @@ export const CATEGORIES = [
     description: "Histoire, records et moments légendaires des Coupes du Monde",
     color:       "from-green-600 to-emerald-800",
     border:      "border-green-500/40",
-    questions:   "questions-world-cup.json",
     difficulty:  "Moyen",
     count:       20,
   },
@@ -20,7 +18,6 @@ export const CATEGORIES = [
     description: "Les Lions de la Téranga, l'AFCON et les stars sénégalaises",
     color:       "from-yellow-600 to-green-700",
     border:      "border-yellow-500/40",
-    questions:   "questions-senegal.json",
     difficulty:  "Facile",
     count:       20,
   },
@@ -31,18 +28,16 @@ export const CATEGORIES = [
     description: "Les Bleus, leurs titres, leurs légendes",
     color:       "from-blue-600 to-red-700",
     border:      "border-blue-500/40",
-    questions:   "questions-france.json",
     difficulty:  "Moyen",
     count:       20,
   },
   {
-    id: "champions-league",
+    id:          "champions-league",
     title:       "Ligue des Champions",
     emoji:       "🏆",
     description: "Clubs, finales, records et nuits européennes inoubliables",
     color:       "from-blue-800 to-purple-900",
     border:      "border-blue-400/40",
-    questions: "questions-champions-league.json",
     difficulty:  "Difficile",
     count:       20,
   },
@@ -53,7 +48,6 @@ export const CATEGORIES = [
     description: "Gagnants, années, records et anecdotes du trophée suprême",
     color:       "from-yellow-500 to-amber-700",
     border:      "border-yellow-400/40",
-    questions:   "questions-ballon-dor.json",
     difficulty:  "Difficile",
     count:       20,
   },
@@ -64,7 +58,6 @@ export const CATEGORIES = [
     description: "Un nouveau quiz chaque jour — classement 24h renouvelé",
     color:       "from-red-600 to-orange-700",
     border:      "border-red-500/40",
-    questions:   "questions-daily.json",
     difficulty:  "Varié",
     count:       10,
     isDaily:     true,
