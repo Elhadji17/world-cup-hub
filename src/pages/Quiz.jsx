@@ -58,10 +58,7 @@ export default function Quiz() {
     return () => clearTimeout(t);
   }, [timeLeft, showResult, finished]);
 
-  // ── Fin si plus de vies ────────────────────────────────────────────────────
-  useEffect(() => {
-    if (lives <= 0 && !finished) finishQuiz(score);
-  }, [lives]);
+ 
 
   // ── Répondre ───────────────────────────────────────────────────────────────
   function handleAnswer(option) {
@@ -75,9 +72,16 @@ export default function Quiz() {
       const bonus = timeLeft >= 10 ? POINTS_FAST : 0;
       setScore(p => p + 1);
       setStreak(p => p + 1);
-    } else {
-      setLives(p => p - 1);
-      setStreak(0);
+    } 
+    if (!correct) {
+        const newLives = lives - 1;
+        setLives(newLives);
+        setStreak(0);
+        if (newLives <= 0) {
+            setShowResult(true);
+            setTimeout(() => finishQuiz(score), 1800);
+            return;
+        }
     }
 
     setTimeout(() => goNext(correct), 1800);
@@ -88,7 +92,13 @@ export default function Quiz() {
     setSelectedAnswer(null);
     setIsCorrect(false);
     setShowResult(true);
-    setLives(p => p - 1);
+    const newLives = lives - 1;
+    setLives(newLives);
+    if (newLives <= 0) {
+        setShowResult(true);
+        setTimeout(() => finishQuiz(score), 1800);
+        return;
+    }
     setStreak(0);
     setTimeout(() => goNext(false), 1800);
   }
@@ -277,7 +287,9 @@ export default function Quiz() {
         <div className="flex justify-between items-center mb-4">
           <div className="flex gap-1 text-xl">
             {Array.from({ length: MAX_LIVES }).map((_, i) => (
-              <span key={i} className={i < lives ? "text-red-400" : "text-gray-700"}>❤️</span>
+                <span key={i} style={{ opacity: i < lives ? 1 : 0.2 }}>
+                    {i < lives ? "❤️" : "🖤"}
+                </span>
             ))}
           </div>
           <div className="flex gap-2 text-sm">
