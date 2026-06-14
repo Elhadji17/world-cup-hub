@@ -12,7 +12,7 @@ import Share from "./pages/Share";
 import ResetPassword from "./pages/ResetPassword";
 import Hub from './pages/Hub';
 import QuizHub  from "./pages/QuizHub";
-import QuizGame from "./pages/QuizGame";
+
 
 
 function AnimatedRoutes() {
@@ -32,7 +32,7 @@ function AnimatedRoutes() {
         />
 
         <Route path="/quiz" element={<PageWrapper><QuizHub /></PageWrapper>} />
-        <Route path="/quiz/:categoryId" element={<PageWrapper><QuizGame /></PageWrapper>} />
+        <Route path="/quiz/:categoryId" element={<PageWrapper><Quiz /></PageWrapper>} />
 
         <Route
           path="/predictions"
