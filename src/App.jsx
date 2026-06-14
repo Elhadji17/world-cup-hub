@@ -9,6 +9,7 @@ import Navbar from "./components/Navbar";
 import LeaderboardPage from "./pages/Leaderboard";
 import Admin from "./pages/Admin";
 import Share from "./pages/Share";
+import ResetPassword from "./pages/ResetPassword";
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -62,6 +63,7 @@ function AnimatedRoutes() {
         />
         <Route path="/admin" element={<PageWrapper><Admin /></PageWrapper>} />
         <Route path="/share" element={<PageWrapper><Share /></PageWrapper>} />
+        <Route path="/reset-password" element={<PageWrapper><ResetPassword /></PageWrapper>} />
 
       </Routes>
     </AnimatePresence>
