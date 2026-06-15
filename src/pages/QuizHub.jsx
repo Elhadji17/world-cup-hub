@@ -68,7 +68,7 @@ export default function QuizHub() {
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          onClick={() => navigate("/quiz/leaderboard")}
+          onClick={() => navigate("/leaderboard")}
           className="mb-5 bg-yellow-500/10 border border-yellow-400/30 rounded-2xl px-4 py-3 flex justify-between items-center cursor-pointer hover:bg-yellow-500/20 transition"
         >
           <div>
