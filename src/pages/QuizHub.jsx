@@ -72,7 +72,7 @@ export default function QuizHub() {
           className="mb-5 bg-yellow-500/10 border border-yellow-400/30 rounded-2xl px-4 py-3 flex justify-between items-center cursor-pointer hover:bg-yellow-500/20 transition"
         >
           <div>
-            <div className="text-sm font-bold text-yellow-400">🏆 Tes coins totaux</div>
+            <div className="text-sm font-bold text-yellow-400">🏆 Tes points totaux</div>
             <div className="text-xs text-gray-400">Voir le classement mondial</div>
           </div>
           <div className="text-2xl font-bold text-yellow-400">{totalPoints} pts</div>

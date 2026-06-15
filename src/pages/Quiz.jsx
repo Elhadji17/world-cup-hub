@@ -95,7 +95,7 @@ export default function Quiz() {
     setShowResult(true);
 
     if (correct) {
-        setScore(p => p + 1);
+        setScore(p => p + 10);
         setStreak(p => p + 1);
         const bonus = timeLeft >= 10 ? 10 : 0;
         setLocalCoins(p => p + 10 + bonus);  // ← ajouter ça
