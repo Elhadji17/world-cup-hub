@@ -288,7 +288,7 @@ export default function QuizPlayers() {
             className="relative mb-4"
           >
             <PlayerImage
-              wikimedia={question.wikimedia}
+              wikimedia={question.image}
               blur={blur}
               showResult={showResult}
             />
@@ -340,7 +340,7 @@ export default function QuizPlayers() {
         {/* Attribution */}
         {showResult && (
           <p className="text-xs text-gray-600 text-center mt-3">
-            📷 {question.license}
+            📷 {question.license ?? "CC — Wikimedia Commons"}
           </p>
         )}
 
