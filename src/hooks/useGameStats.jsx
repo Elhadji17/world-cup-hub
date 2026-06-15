@@ -5,7 +5,7 @@ const API       = import.meta.env.VITE_API_URL ?? "";
 const LOCAL_KEY = "wch_gamestats";
 const MAX_LIVES     = 5;
 const LIFE_REGEN_MS = 60 * 60 * 1000;
-const DEFAULT = { coins: 0, lives: MAX_LIVES, totalCoins: 0, lastLifeAt: Date.now(), freeHintsLeft: 0 };
+const DEFAULT = { coins: 0, lives: MAX_LIVES, totalCoins: 0, totalPoints: 0, lastLifeAt: Date.now(), freeHintsLeft: 0 };
 
 function load()     { try { return JSON.parse(localStorage.getItem(LOCAL_KEY)) ?? DEFAULT; } catch { return DEFAULT; } }
 function save(s)    { localStorage.setItem(LOCAL_KEY, JSON.stringify(s)); }
@@ -40,6 +40,7 @@ export function GameStatsProvider({ children }) {
           coins:         data.coins,
           lives:         data.lives,
           totalCoins:    data.totalCoins,
+          totalPoints:   data.totalPoints ?? 0,
           lastLifeAt:    Date.now(),
           freeHintsLeft: data.freeHintsLeft ?? 0,
         });
@@ -106,7 +107,7 @@ export function GameStatsProvider({ children }) {
 
   return (
     <Ctx.Provider value={{
-      coins: stats.coins, lives: stats.lives, totalCoins: stats.totalCoins,
+      coins: stats.coins, lives: stats.lives, totalCoins: stats.totalCoins, totalPoints: stats.totalPoints ?? 0,
       freeHintsLeft: stats.freeHintsLeft ?? 0, nextLifeIn,
       maxLives: MAX_LIVES, submitResult, useLife, buyItem, refresh,
     }}>

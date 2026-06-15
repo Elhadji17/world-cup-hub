@@ -20,7 +20,7 @@ function isDailyDone() {
 export default function QuizHub() {
   const navigate   = useNavigate();
   const { user }   = useAuth();
-  const { coins, lives, totalCoins, maxLives } = useGameStats();
+  const { coins, lives, totalCoins, totalPoints, maxLives } = useGameStats();
   const playerName = user?.username ?? localStorage.getItem("playerName") ?? "Joueur";
   const [dailyDone] = useState(isDailyDone);
 
@@ -75,7 +75,7 @@ export default function QuizHub() {
             <div className="text-sm font-bold text-yellow-400">🏆 Tes coins totaux</div>
             <div className="text-xs text-gray-400">Voir le classement mondial</div>
           </div>
-          <div className="text-2xl font-bold text-yellow-400">{totalCoins} 🪙</div>
+          <div className="text-2xl font-bold text-yellow-400">{totalPoints} pts</div>
         </motion.div>
 
         {/* Grille catégories */}

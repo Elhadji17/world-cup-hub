@@ -1,5 +1,5 @@
 // src/pages/QuizLeaderboard.jsx
-// Classement mondial Quiz — trié par totalCoins
+// Classement mondial Quiz — trié par totalPoints
 
 import { useState, useEffect } from "react";
 import { motion }              from "framer-motion";
@@ -29,11 +29,11 @@ function SkeletonRow() {
 }
 
 export default function QuizLeaderboard() {
-  const { user }          = useAuth();
-  const { coins, lives, totalCoins } = useGameStats();
-  const [leaderboard, setLeaderboard] = useState([]);
-  const [loading,     setLoading]     = useState(true);
-  const [lastUpdated, setLastUpdated] = useState(null);
+  const { user }                        = useAuth();
+  const { coins, totalPoints: myPoints } = useGameStats();
+  const [leaderboard, setLeaderboard]   = useState([]);
+  const [loading,     setLoading]       = useState(true);
+  const [lastUpdated, setLastUpdated]   = useState(null);
 
   async function fetchLeaderboard() {
     setLoading(true);
@@ -60,14 +60,13 @@ export default function QuizLeaderboard() {
             <p className="text-xs text-gray-400">
               {lastUpdated
                 ? `Mis à jour à ${lastUpdated.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`
-                : "Chargement..."
-              }
+                : "Chargement..."}
             </p>
           </div>
           <div className="flex gap-2 items-center">
             <div className="bg-yellow-500/20 border border-yellow-400/30 rounded-xl px-3 py-1 text-center">
-              <div className="text-sm font-bold text-yellow-400">{coins} 🪙</div>
-              <div className="text-xs text-gray-400">mes coins</div>
+              <div className="text-sm font-bold text-yellow-400">{myPoints ?? 0} pts</div>
+              <div className="text-xs text-gray-400">mes points</div>
             </div>
             <motion.button whileTap={{ scale: 0.95 }} onClick={fetchLeaderboard}
               disabled={loading}
@@ -83,8 +82,7 @@ export default function QuizLeaderboard() {
         {/* Mon rang */}
         {myRank && (
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-            className="mb-6 bg-blue-600/20 border border-blue-400/40 rounded-2xl px-5 py-4"
-          >
+            className="mb-6 bg-blue-600/20 border border-blue-400/40 rounded-2xl px-5 py-4">
             <p className="text-xs text-blue-300 font-semibold uppercase tracking-wide mb-2">Ta position</p>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -99,8 +97,8 @@ export default function QuizLeaderboard() {
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-2xl font-bold text-yellow-400">{myRank.totalCoins}</div>
-                <div className="text-xs text-gray-400">coins totaux</div>
+                <div className="text-2xl font-bold text-yellow-400">{myRank.totalPoints}</div>
+                <div className="text-xs text-gray-400">pts classement</div>
               </div>
             </div>
           </motion.div>
@@ -114,14 +112,14 @@ export default function QuizLeaderboard() {
               className="flex-1 bg-gray-400/10 border border-gray-400/30 rounded-2xl p-4 text-center">
               <div className="text-3xl mb-1">🥈</div>
               <div className="text-sm font-bold truncate">{leaderboard[1].username}</div>
-              <div className="text-lg font-bold text-gray-300">{leaderboard[1].totalCoins} 🪙</div>
+              <div className="text-lg font-bold text-gray-300">{leaderboard[1].totalPoints} pts</div>
             </motion.div>
 
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
               className="flex-1 bg-yellow-500/20 border border-yellow-400/50 rounded-2xl p-5 text-center shadow-lg -translate-y-3">
               <div className="text-4xl mb-1">🥇</div>
               <div className="text-sm font-bold truncate">{leaderboard[0].username}</div>
-              <div className="text-xl font-bold text-yellow-300">{leaderboard[0].totalCoins} 🪙</div>
+              <div className="text-xl font-bold text-yellow-300">{leaderboard[0].totalPoints} pts</div>
             </motion.div>
 
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
@@ -129,7 +127,7 @@ export default function QuizLeaderboard() {
               className="flex-1 bg-amber-700/10 border border-amber-600/30 rounded-2xl p-4 text-center">
               <div className="text-3xl mb-1">🥉</div>
               <div className="text-sm font-bold truncate">{leaderboard[2].username}</div>
-              <div className="text-lg font-bold text-amber-400">{leaderboard[2].totalCoins} 🪙</div>
+              <div className="text-lg font-bold text-amber-400">{leaderboard[2].totalPoints} pts</div>
             </motion.div>
           </div>
         )}
@@ -171,8 +169,8 @@ export default function QuizLeaderboard() {
                         </div>
                       </div>
                       <div className="text-right shrink-0">
-                        <div className="text-lg font-bold text-yellow-400">{entry.totalCoins}</div>
-                        <div className="text-xs text-gray-400">🪙 coins</div>
+                        <div className="text-lg font-bold text-yellow-400">{entry.totalPoints}</div>
+                        <div className="text-xs text-gray-400">pts</div>
                       </div>
                     </motion.div>
                   );
@@ -181,7 +179,7 @@ export default function QuizLeaderboard() {
         </div>
 
         <p className="text-center text-xs text-gray-500 mt-8">
-          Classement basé sur les coins totaux gagnés en jouant ⚽
+          Classement basé sur les points totaux gagnés en jouant ⚽
         </p>
       </div>
     </div>
