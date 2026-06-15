@@ -97,7 +97,7 @@ export default function Navbar() {
       </nav>
 
       {/* Espace pour le bottom nav sur mobile */}
-      <div className="md:hidden h-16" />
+      
     </>
   );
 }
