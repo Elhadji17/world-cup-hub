@@ -73,28 +73,7 @@ export default function Quiz() {
   const level    = Math.floor(xp / 100) + 1;
 
   // Bloquer si plus de vies
-  if (globalLives <= 0 && !finished) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 via-black to-red-900 text-white flex items-center justify-center px-4">
-        <div className="text-center max-w-sm">
-          <div className="text-7xl mb-4">💔</div>
-          <h1 className="text-2xl font-bold mb-2">Plus de vies !</h1>
-          <p className="text-gray-400 mb-2">Tes vies se régénèrent automatiquement chaque heure.</p>
-          <p className="text-gray-400 mb-6">Ou achète-en dans le Shop avec tes coins.</p>
-          <div className="flex gap-3 justify-center">
-            <motion.button whileTap={{ scale: 0.97 }} onClick={() => navigate("/shop")}
-              className="bg-yellow-500 text-black font-bold px-6 py-3 rounded-xl">
-              🛒 Shop ({coins} 🪙)
-            </motion.button>
-            <motion.button whileTap={{ scale: 0.97 }} onClick={() => navigate("/quiz")}
-              className="bg-white/10 text-white font-bold px-6 py-3 rounded-xl">
-              ← Retour
-            </motion.button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  
 
   // ── Timer ──────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -289,6 +268,29 @@ export default function Quiz() {
                 📲 Partager sur WhatsApp
               </motion.button>
             </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (globalLives <= 0 && !finished) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-900 via-black to-red-900 text-white flex items-center justify-center px-4">
+        <div className="text-center max-w-sm">
+          <div className="text-7xl mb-4">💔</div>
+          <h1 className="text-2xl font-bold mb-2">Plus de vies !</h1>
+          <p className="text-gray-400 mb-2">Tes vies se régénèrent automatiquement chaque heure.</p>
+          <p className="text-gray-400 mb-6">Ou achète-en dans le Shop avec tes coins.</p>
+          <div className="flex gap-3 justify-center">
+            <motion.button whileTap={{ scale: 0.97 }} onClick={() => navigate("/shop")}
+              className="bg-yellow-500 text-black font-bold px-6 py-3 rounded-xl">
+              🛒 Shop ({coins} 🪙)
+            </motion.button>
+            <motion.button whileTap={{ scale: 0.97 }} onClick={() => navigate("/quiz")}
+              className="bg-white/10 text-white font-bold px-6 py-3 rounded-xl">
+              ← Retour
+            </motion.button>
           </div>
         </div>
       </div>
