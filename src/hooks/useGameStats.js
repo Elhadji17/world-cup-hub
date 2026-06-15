@@ -1,7 +1,7 @@
 // src/hooks/useGameStats.js
 // Context global GameStats — corrige React error #300
 
-import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useRef, createElement } from "react";
 
 const API       = import.meta.env.VITE_API_URL ?? "";
 const LOCAL_KEY = "wch_gamestats";
@@ -127,23 +127,21 @@ export function GameStatsProvider({ children }) {
     ? null
     : Math.max(0, LIFE_REGEN_MS - (Date.now() - (stats.lastLifeAt ?? Date.now())));
 
-  return (
-    <GameStatsContext.Provider value={{
-      coins:         stats.coins,
-      lives:         stats.lives,
-      totalCoins:    stats.totalCoins,
-      freeHintsLeft: stats.freeHintsLeft ?? 0,
-      nextLifeIn,
-      loading,
-      maxLives:      MAX_LIVES,
-      submitResult,
-      useLife,
-      buyItem,
-      refresh,
-    }}>
-      {children}
-    </GameStatsContext.Provider>
-  );
+  const value = {
+    coins:         stats.coins,
+    lives:         stats.lives,
+    totalCoins:    stats.totalCoins,
+    freeHintsLeft: stats.freeHintsLeft ?? 0,
+    nextLifeIn,
+    loading,
+    maxLives:      MAX_LIVES,
+    submitResult,
+    useLife,
+    buyItem,
+    refresh,
+  };
+
+  return createElement(GameStatsContext.Provider, { value }, children);
 }
 
 export function useGameStats() {
