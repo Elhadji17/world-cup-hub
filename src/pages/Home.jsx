@@ -63,7 +63,17 @@ const FEATURES = [
   btnCls: "bg-green-500 hover:bg-green-400",
   auth:   false,
 },
-
+{
+  to:     "/shop",
+  emoji:  "🛒",
+  title:  "Shop",
+  desc:   "Achète des coins pour continuer ta progression sur le quiz",
+  color:  "from-green-500 to-teal-700",
+  border: "border-green-400/30",
+  btn:    "Shop",
+  btnCls: "bg-green-500 hover:bg-green-400",
+  auth:   false,
+},
 ];
 
 const STATS = [
