@@ -156,7 +156,6 @@ export default function Quiz() {
     localStorage.setItem("history", JSON.stringify(history));
     const lb = JSON.parse(localStorage.getItem("leaderboard")) || [];
     const existing = lb.findIndex(p => p.name === playerName && p.category === category.id);
-    const actualLivesUsed = Math.min(livesUsed, globalLives);
     if (existing >= 0) {
     if (finalScore > lb[existing].score) lb[existing].score = finalScore;
     } else {
@@ -165,13 +164,13 @@ export default function Quiz() {
     lb.sort((a, b) => b.score - a.score);
     localStorage.setItem("leaderboard", JSON.stringify(lb.slice(0, 10)));
 
-    // Soumettre à MongoDB + calculer coins
+    // 1 partie = 1 vie globale consommée
     const result = await submitResult({
-      correct:     finalScore,
-      wrong:       wrongAnswers,
-      streak:      streak,
-      fastAnswers: fastAnswers,
-      livesUsed:   actualLivesUsed,
+    correct:     finalScore,
+    wrong:       wrongAnswers,
+    streak:      streak,
+    fastAnswers: fastAnswers,
+    livesUsed:   1,
     });
     setCoinsEarned(result.coinsEarned ?? 0);
 
