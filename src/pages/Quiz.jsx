@@ -314,8 +314,16 @@ export default function Quiz() {
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate("/quiz")}
-              className="text-gray-400 hover:text-white transition text-xl">←</button>
+            <button
+                onClick={() => {
+                    if (window.confirm("⚠️ Quitter la partie ? Ta progression sera perdue.")) {
+                    navigate("/quiz");
+                    }
+                }}
+                className="text-gray-400 hover:text-white transition text-xl"
+                >
+                ←
+                </button>
             <div className="text-2xl">{category.emoji}</div>
             <div>
               <div className="font-bold text-sm">{category.title}</div>
