@@ -94,18 +94,33 @@ export default function Predictions() {
         </div>
 
         {/* ── LÉGENDE POINTS ── */}
-        <div className="grid grid-cols-3 gap-2 mb-4 text-center text-xs">
-          <div className="bg-white/10 rounded-xl py-2 px-1">
-            <div className="text-green-400 font-bold text-lg">15 pts</div>
-            <div className="text-gray-400">Score exact</div>
-          </div>
-          <div className="bg-white/10 rounded-xl py-2 px-1">
-            <div className="text-blue-400 font-bold text-lg">7–10 pts</div>
-            <div className="text-gray-400">Bon résultat</div>
-          </div>
-          <div className="bg-white/10 rounded-xl py-2 px-1">
-            <div className="text-orange-400 font-bold text-lg">2 pts</div>
-            <div className="text-gray-400">Score proche</div>
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-4 text-sm">
+          <p className="font-bold text-white mb-3">🎯 Système de points</p>
+          <div className="space-y-2 text-xs text-gray-300">
+            <div className="flex justify-between">
+              <span>🎯 Score exact (ex: 2-1 = 2-1)</span>
+              <span className="text-green-400 font-bold">+15 pts</span>
+            </div>
+            <div className="flex justify-between">
+              <span>✅ Bon résultat (ex: victoire/nul/défaite)</span>
+              <span className="text-blue-400 font-bold">+7 pts</span>
+            </div>
+            <div className="flex justify-between">
+              <span>📊 Bon écart de buts</span>
+              <span className="text-blue-400 font-bold">+3 pts</span>
+            </div>
+            <div className="flex justify-between">
+              <span>⚽ Buts d'une équipe exacts</span>
+              <span className="text-orange-400 font-bold">+1 pt chacun</span>
+            </div>
+            <div className="flex justify-between">
+              <span>🔢 Score proche (±1 but)</span>
+              <span className="text-orange-400 font-bold">+2 pts</span>
+            </div>
+            <div className="flex justify-between">
+              <span>⭐ Joker sur bon pronostic</span>
+              <span className="text-yellow-400 font-bold">×2 pts</span>
+            </div>
           </div>
         </div>
 
