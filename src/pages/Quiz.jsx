@@ -5,7 +5,7 @@ import { useState, useEffect }          from "react";
 import { motion, AnimatePresence }       from "framer-motion";
 import { useNavigate, useParams }        from "react-router-dom";
 import { useAuth }                       from "../hooks/useAuth";
-import { useGameStats } from "../hooks/useGameStats.jsx";
+import { useGameStats }                  from "../hooks/useGameStats";
 import { getCategoryById }               from "../data/quiz-categories";
 
 import questionsDefault  from "../data/questions.json";
@@ -257,8 +257,7 @@ export default function Quiz() {
               className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-4 rounded-2xl transition">
               🔄 Rejouer {category.title}
             </motion.button>
-            
-            <motion.button whileTap={{ scale: 0.97 }} onClick={() => navigate("/leaderboard")}
+            <motion.button whileTap={{ scale: 0.97 }} onClick={() => navigate("/quiz/leaderboard")}
               className="w-full bg-yellow-600 hover:bg-yellow-500 text-black font-bold py-4 rounded-2xl transition">
               🏆 Classement mondial
             </motion.button>
