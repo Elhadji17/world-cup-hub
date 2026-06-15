@@ -157,7 +157,7 @@ export default function Home() {
                 <motion.button whileTap={{ scale: 0.97 }}
                   onClick={() => setShowAuth(true)}
                   className="w-full sm:w-auto bg-green-500 hover:bg-green-400 text-white font-bold px-8 py-4 rounded-2xl text-lg transition shadow-lg shadow-green-500/20">
-                  🚀 Incrivez-vous et Commencer gratuitement
+                  🚀 Commencer gratuitement
                 </motion.button>
                 <Link to="/matches">
                   <motion.button whileTap={{ scale: 0.97 }}
