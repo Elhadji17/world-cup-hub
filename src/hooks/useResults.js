@@ -13,7 +13,7 @@ export function useResults() {
   useEffect(() => {
     async function fetch_() {
       try {
-        const res  = await fetch(`${API}/api/results`);
+        const res = await fetch(`${API}/api/leaderboard?type=results`);
         const data = await res.json();
         if (res.ok) setResults(data.results ?? {});
       } catch (err) {
