@@ -42,7 +42,7 @@ export default function Quiz() {
   const navigate       = useNavigate();
   const { user }       = useAuth();
   const {
-    coins, lives: globalLives, maxLives,
+    localCoins, lives: globalLives, maxLives,
     submitResult,
   } = useGameStats();
 
@@ -64,6 +64,7 @@ export default function Quiz() {
   const [fastAnswers,      setFastAnswers]      = useState(0);
   const [livesUsed,        setLivesUsed]        = useState(0);
   const [coinsEarned,      setCoinsEarned]      = useState(0);
+  const [localCoins, setLocalCoins] = useState(coins); // coins affichés en temps réel
   const [wrongAnswers,     setWrongAnswers]      = useState(0);
 
   const question = shuffledQ[current];
@@ -92,9 +93,11 @@ export default function Quiz() {
     setShowResult(true);
 
     if (correct) {
-      setScore(p => p + 1);
-      setStreak(p => p + 1);
-      if (fast) setFastAnswers(p => p + 1);
+        setScore(p => p + 1);
+        setStreak(p => p + 1);
+        const bonus = timeLeft >= 10 ? 10 : 0;
+        setLocalCoins(p => p + 10 + bonus);  // ← ajouter ça
+        if (fast) setFastAnswers(p => p + 1);
     } else {
       const nl = lives - 1;
       setLives(nl);
