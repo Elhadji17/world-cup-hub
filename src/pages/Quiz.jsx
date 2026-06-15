@@ -42,7 +42,7 @@ export default function Quiz() {
   const navigate       = useNavigate();
   const { user }       = useAuth();
   const {
-    localCoins, lives: globalLives, maxLives,
+    coins, lives: globalLives, maxLives,
     submitResult,
   } = useGameStats();
 
