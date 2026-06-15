@@ -49,7 +49,6 @@ const ITEMS = [
 
 export default function Shop() {
   const { user }                   = useAuth();
-  const { coins, lives, buyItem, maxLives } = useGameStats();
   const [buying,  setBuying]       = useState(null);
   const [message, setMessage]      = useState(null);
   const { coins, lives, buyItem, maxLives, refresh } = useGameStats();
