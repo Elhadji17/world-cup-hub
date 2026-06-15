@@ -1,13 +1,15 @@
 // src/hooks/useGameStats.jsx
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 
-const API       = import.meta.env.VITE_API_URL ?? "";
-const LOCAL_KEY = "wch_gamestats";
+const API           = import.meta.env.VITE_API_URL ?? "";
+const LOCAL_KEY     = "wch_gamestats";
 const MAX_LIVES     = 5;
 const LIFE_REGEN_MS = 60 * 60 * 1000;
-const DEFAULT = { coins: 0, lives: MAX_LIVES, totalCoins: 0, totalPoints: 0, lastLifeAt: data.nextLifeIn
-  ? Date.now() - (3600000 - data.nextLifeIn)
-  : Date.now(), freeHintsLeft: 0 };
+
+const DEFAULT = {
+  coins: 0, lives: MAX_LIVES, totalCoins: 0, totalPoints: 0,
+  lastLifeAt: Date.now(), freeHintsLeft: 0,
+};
 
 function load()     { try { return JSON.parse(localStorage.getItem(LOCAL_KEY)) ?? DEFAULT; } catch { return DEFAULT; } }
 function save(s)    { localStorage.setItem(LOCAL_KEY, JSON.stringify(s)); }
@@ -19,7 +21,6 @@ export function GameStatsProvider({ children }) {
   const [stats, setStats] = useState(load);
 
   const safeSet = useCallback((fn) => {
-    // setTimeout 0 évite la mise à jour pendant le rendu
     setTimeout(() => {
       setStats(prev => {
         const next = typeof fn === "function" ? fn(prev) : { ...prev, ...fn };
@@ -38,12 +39,18 @@ export function GameStatsProvider({ children }) {
       });
       const data = await res.json();
       if (data.coins != null) {
+        // Calculer lastLifeAt depuis nextLifeIn pour que le compte à rebours
+        // soit cohérent entre les visites
+        const lastLifeAt = data.nextLifeIn
+          ? Date.now() - (LIFE_REGEN_MS - data.nextLifeIn)
+          : Date.now();
+
         safeSet({
           coins:         data.coins,
           lives:         data.lives,
           totalCoins:    data.totalCoins,
           totalPoints:   data.totalPoints ?? 0,
-          lastLifeAt:    Date.now(),
+          lastLifeAt,
           freeHintsLeft: data.freeHintsLeft ?? 0,
         });
       }
@@ -53,7 +60,7 @@ export function GameStatsProvider({ children }) {
   useEffect(() => { refresh(); }, []);
 
   const submitResult = useCallback(async ({ correct, wrong, streak, fastAnswers, livesUsed }) => {
-    const token = getToken();
+    const token  = getToken();
     const earned = (correct * 10) + ((fastAnswers ?? 0) * 10) +
       (streak >= 10 ? 80 : streak >= 5 ? 30 : 0);
 
@@ -109,9 +116,9 @@ export function GameStatsProvider({ children }) {
 
   return (
     <Ctx.Provider value={{
-      coins: stats.coins, lives: stats.lives, totalCoins: stats.totalCoins, totalPoints: stats.totalPoints ?? 0,
-      freeHintsLeft: stats.freeHintsLeft ?? 0, nextLifeIn,
-      maxLives: MAX_LIVES, submitResult, useLife, buyItem, refresh,
+      coins: stats.coins, lives: stats.lives, totalCoins: stats.totalCoins,
+      totalPoints: stats.totalPoints ?? 0, freeHintsLeft: stats.freeHintsLeft ?? 0,
+      nextLifeIn, maxLives: MAX_LIVES, submitResult, useLife, buyItem, refresh,
     }}>
       {children}
     </Ctx.Provider>
