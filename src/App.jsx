@@ -13,6 +13,8 @@ import ResetPassword from "./pages/ResetPassword";
 import Hub from './pages/Hub';
 import QuizHub  from "./pages/QuizHub";
 import QuizPlayers from "./pages/QuizPlayers";
+import Shop           from "./pages/Shop";
+import QuizLeaderboard from "./pages/QuizLeaderboard";
 
 
 
@@ -65,6 +67,8 @@ function AnimatedRoutes() {
         <Route path="/admin" element={<PageWrapper><Admin /></PageWrapper>} />
         <Route path="/share" element={<PageWrapper><Share /></PageWrapper>} />
         <Route path="/reset-password" element={<PageWrapper><ResetPassword /></PageWrapper>} />
+        <Route path="/shop"            element={<PageWrapper><Shop /></PageWrapper>} />
+        <Route path="/quiz/leaderboard" element={<PageWrapper><QuizLeaderboard /></PageWrapper>} />
         <Route path="/Hub" element={<Hub />} />
         
 
