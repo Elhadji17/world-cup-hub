@@ -1,32 +1,31 @@
 // src/pages/Quiz.jsx
-// Quiz par catégorie — reçoit categoryId depuis l'URL
+// Quiz par catégorie — coins + vies intégrés via useGameStats
 
-import { useState, useEffect }     from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import { useAuth }                 from "../hooks/useAuth";
-import { getCategoryById }         from "../data/quiz-categories";
+import { useState, useEffect }          from "react";
+import { motion, AnimatePresence }       from "framer-motion";
+import { useNavigate, useParams }        from "react-router-dom";
+import { useAuth }                       from "../hooks/useAuth";
+import { useGameStats }                  from "../hooks/useGameStats";
+import { getCategoryById }               from "../data/quiz-categories";
 
-// Import de toutes les questions
-import questionsDefault            from "../data/questions.json";
-import questionsWC                 from "../data/questions-world-cup.json";
-import questionsSN                 from "../data/questions-senegal.json";
-import questionsFR                 from "../data/questions-france.json";
-import questionsUCL from "../data/questions-ucl.json";
-import questionsDaily from "../data/questions-daily.json";
-import questionsBD                 from "../data/questions-ballon-dor.json";
+import questionsDefault  from "../data/questions.json";
+import questionsWC       from "../data/questions-world-cup.json";
+import questionsSN       from "../data/questions-senegal.json";
+import questionsFR       from "../data/questions-france.json";
+import questionsUCL      from "../data/questions-ucl.json";
+import questionsDaily    from "../data/questions-daily.json";
+import questionsBD       from "../data/questions-ballon-dor.json";
 
 const QUESTIONS_MAP = {
-  "world-cup":         questionsWC,
-  "senegal":           questionsSN,
-  "france":            questionsFR,
-  "champions-league":  questionsUCL,
-  "ballon-dor":        questionsBD,
-  "daily":             questionsDefault, // À remplacer par questions du jour
+  "world-cup":        questionsWC,
+  "senegal":          questionsSN,
+  "france":           questionsFR,
+  "champions-league": questionsUCL,
+  "ballon-dor":       questionsBD,
+  "daily":            questionsDaily,
 };
 
-const TIMER_MAX      = 15;
-const MAX_LIVES      = 3;
+const TIMER_MAX = 15;
 
 function getMedal(score, total) {
   const pct = score / total;
@@ -36,36 +35,66 @@ function getMedal(score, total) {
   return              { emoji: "⚽", label: "Débutant",    color: "text-blue-400"   };
 }
 
-function shuffle(arr) {
-  return [...arr].sort(() => Math.random() - 0.5);
-}
+function shuffle(arr) { return [...arr].sort(() => Math.random() - 0.5); }
 
 export default function Quiz() {
-  const { categoryId }  = useParams();
-  const navigate        = useNavigate();
-  const { user }        = useAuth();
+  const { categoryId } = useParams();
+  const navigate       = useNavigate();
+  const { user }       = useAuth();
+  const {
+    coins, lives: globalLives, maxLives,
+    submitResult, useLife,
+  } = useGameStats();
 
-  const category    = getCategoryById(categoryId) ?? getCategoryById("world-cup");
-  const allQ        = QUESTIONS_MAP[category.id] ?? questionsWC;
-  const playerName  = user?.username ?? localStorage.getItem("playerName") ?? "Joueur";
+  const category   = getCategoryById(categoryId) ?? getCategoryById("world-cup");
+  const allQ       = QUESTIONS_MAP[category.id] ?? questionsWC;
+  const playerName = user?.username ?? localStorage.getItem("playerName") ?? "Joueur";
 
   const [shuffledQ]      = useState(() => shuffle(allQ).slice(0, category.count));
-  const [current,        setCurrent]        = useState(0);
-  const [score,          setScore]          = useState(0);
-  const [lives,          setLives]          = useState(MAX_LIVES);
-  const [timeLeft,       setTimeLeft]       = useState(TIMER_MAX);
-  const [selectedAnswer, setSelectedAnswer] = useState(null);
-  const [showResult,     setShowResult]     = useState(false);
-  const [isCorrect,      setIsCorrect]      = useState(false);
-  const [finished,       setFinished]       = useState(false);
-  const [ending,         setEnding]         = useState(false);
-  const [streak,         setStreak]         = useState(0);
+  const [current,          setCurrent]          = useState(0);
+  const [score,            setScore]            = useState(0);
+  const [lives,            setLives]            = useState(Math.min(globalLives, 5));
+  const [timeLeft,         setTimeLeft]         = useState(TIMER_MAX);
+  const [selectedAnswer,   setSelectedAnswer]   = useState(null);
+  const [showResult,       setShowResult]       = useState(false);
+  const [isCorrect,        setIsCorrect]        = useState(false);
+  const [finished,         setFinished]         = useState(false);
+  const [ending,           setEnding]           = useState(false);
+  const [streak,           setStreak]           = useState(0);
+  const [fastAnswers,      setFastAnswers]      = useState(0);
+  const [livesUsed,        setLivesUsed]        = useState(0);
+  const [coinsEarned,      setCoinsEarned]      = useState(0);
+  const [wrongAnswers,     setWrongAnswers]      = useState(0);
 
   const question = shuffledQ[current];
   const totalQ   = shuffledQ.length;
   const progress = ((current + 1) / totalQ) * 100;
   const xp       = score * 10;
   const level    = Math.floor(xp / 100) + 1;
+
+  // Bloquer si plus de vies
+  if (globalLives <= 0 && !finished) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-900 via-black to-red-900 text-white flex items-center justify-center px-4">
+        <div className="text-center max-w-sm">
+          <div className="text-7xl mb-4">💔</div>
+          <h1 className="text-2xl font-bold mb-2">Plus de vies !</h1>
+          <p className="text-gray-400 mb-2">Tes vies se régénèrent automatiquement chaque heure.</p>
+          <p className="text-gray-400 mb-6">Ou achète-en dans le Shop avec tes coins.</p>
+          <div className="flex gap-3 justify-center">
+            <motion.button whileTap={{ scale: 0.97 }} onClick={() => navigate("/shop")}
+              className="bg-yellow-500 text-black font-bold px-6 py-3 rounded-xl">
+              🛒 Shop ({coins} 🪙)
+            </motion.button>
+            <motion.button whileTap={{ scale: 0.97 }} onClick={() => navigate("/quiz")}
+              className="bg-white/10 text-white font-bold px-6 py-3 rounded-xl">
+              ← Retour
+            </motion.button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // ── Timer ──────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -78,6 +107,7 @@ export default function Quiz() {
   function handleAnswer(option) {
     if (showResult) return;
     const correct = option === question.answer;
+    const fast    = timeLeft >= 10;
     setSelectedAnswer(option);
     setIsCorrect(correct);
     setShowResult(true);
@@ -85,67 +115,64 @@ export default function Quiz() {
     if (correct) {
       setScore(p => p + 1);
       setStreak(p => p + 1);
+      if (fast) setFastAnswers(p => p + 1);
     } else {
-      const newLives = lives - 1;
-      setLives(newLives);
+      const nl = lives - 1;
+      setLives(nl);
+      setLivesUsed(p => p + 1);
+      setWrongAnswers(p => p + 1);
       setStreak(0);
-      if (newLives <= 0) {
-        setTimeout(() => finishQuiz(score), 1800);
-        return;
-      }
+      useLife(); // déduire du global
+      if (nl <= 0) { setTimeout(() => finishQuiz(score), 1800); return; }
     }
     setTimeout(() => goNext(correct), 1800);
   }
 
   function handleTimeout() {
     if (showResult) return;
-    setSelectedAnswer(null);
-    setIsCorrect(false);
-    setShowResult(true);
-    setStreak(0);
-    const newLives = lives - 1;
-    setLives(newLives);
-    if (newLives <= 0) {
-      setTimeout(() => finishQuiz(score), 1800);
-      return;
-    }
+    setSelectedAnswer(null); setIsCorrect(false); setShowResult(true); setStreak(0);
+    const nl = lives - 1;
+    setLives(nl); setLivesUsed(p => p + 1); setWrongAnswers(p => p + 1);
+    useLife();
+    if (nl <= 0) { setTimeout(() => finishQuiz(score), 1800); return; }
     setTimeout(() => goNext(false), 1800);
   }
 
   function goNext(wasCorrect) {
     const next = current + 1;
     if (next < totalQ) {
-      setCurrent(next);
-      setTimeLeft(TIMER_MAX);
-      setShowResult(false);
-      setSelectedAnswer(null);
-    } else {
-      finishQuiz(score + (wasCorrect ? 1 : 0));
-    }
+      setCurrent(next); setTimeLeft(TIMER_MAX);
+      setShowResult(false); setSelectedAnswer(null);
+    } else finishQuiz(score + (wasCorrect ? 1 : 0));
   }
 
-  function finishQuiz(finalScore) {
+  async function finishQuiz(finalScore) {
     if (ending) return;
     setEnding(true);
 
+    // Sauvegarder localement
     const best = Number(localStorage.getItem("bestScore")) || 0;
     if (finalScore > best) localStorage.setItem("bestScore", finalScore);
-
     const history = JSON.parse(localStorage.getItem("history")) || [];
     history.push({ score: finalScore, total: totalQ, category: category.id, date: Date.now() });
     localStorage.setItem("history", JSON.stringify(history));
-
     const lb = JSON.parse(localStorage.getItem("leaderboard")) || [];
     lb.push({ name: playerName, score: finalScore, category: category.id });
     lb.sort((a, b) => b.score - a.score);
     localStorage.setItem("leaderboard", JSON.stringify(lb.slice(0, 10)));
 
+    // Soumettre à MongoDB + calculer coins
+    const result = await submitResult({
+      correct:     finalScore,
+      wrong:       wrongAnswers,
+      streak:      streak,
+      fastAnswers: fastAnswers,
+      livesUsed:   livesUsed,
+    });
+    setCoinsEarned(result.coinsEarned ?? 0);
+
     setScore(finalScore);
     setFinished(true);
-  }
-
-  function replay() {
-    navigate(0); // reload la page pour remélanger
   }
 
   function btnClass(option) {
@@ -163,8 +190,7 @@ export default function Quiz() {
     const history = JSON.parse(localStorage.getItem("history")) || [];
     const best    = Number(localStorage.getItem("bestScore")) || 0;
     const avg     = history.length
-      ? (history.reduce((a, g) => a + g.score, 0) / history.length).toFixed(1)
-      : 0;
+      ? (history.reduce((a, g) => a + g.score, 0) / history.length).toFixed(1) : 0;
     const lb = JSON.parse(localStorage.getItem("leaderboard")) || [];
 
     return (
@@ -172,8 +198,7 @@ export default function Quiz() {
         <div className="max-w-xl mx-auto px-4 pt-10">
 
           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-            className="text-center mb-6"
-          >
+            className="text-center mb-6">
             <div className="text-6xl mb-2">{category.emoji}</div>
             <p className="text-sm text-gray-400 mb-3">{category.title}</p>
             <div className="text-7xl mb-3">{medal.emoji}</div>
@@ -181,36 +206,48 @@ export default function Quiz() {
             <p className={`text-lg font-semibold ${medal.color}`}>{medal.label}</p>
           </motion.div>
 
-          {/* Score */}
+          {/* Score + Coins gagnés */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="bg-white/10 rounded-2xl p-6 mb-4 text-center"
-          >
+            className="bg-white/10 rounded-2xl p-6 mb-4 text-center">
             <div className="text-5xl font-bold text-white mb-1">
               {score}<span className="text-2xl text-gray-400">/{totalQ}</span>
             </div>
-            <div className="text-gray-400 text-sm">Score final · {category.title}</div>
+            <div className="text-gray-400 text-sm mb-3">Score final · {category.title}</div>
 
-            <div className="grid grid-cols-3 gap-3 mt-4 text-sm">
-              <div className="bg-white/5 rounded-xl p-3">
-                <div className="text-xl font-bold text-yellow-400">{best}</div>
+            {/* Coins gagnés */}
+            {coinsEarned > 0 && (
+              <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.5 }}
+                className="bg-yellow-500/20 border border-yellow-400/40 rounded-xl px-4 py-2 mb-3">
+                <span className="text-yellow-400 font-bold text-lg">+{coinsEarned} 🪙</span>
+                <span className="text-gray-300 text-sm ml-2">coins gagnés !</span>
+              </motion.div>
+            )}
+
+            <div className="grid grid-cols-4 gap-2 mt-2 text-sm">
+              <div className="bg-white/5 rounded-xl p-2">
+                <div className="text-lg font-bold text-yellow-400">{best}</div>
                 <div className="text-gray-400 text-xs">Meilleur</div>
               </div>
-              <div className="bg-white/5 rounded-xl p-3">
-                <div className="text-xl font-bold text-blue-400">{history.length}</div>
+              <div className="bg-white/5 rounded-xl p-2">
+                <div className="text-lg font-bold text-blue-400">{history.length}</div>
                 <div className="text-gray-400 text-xs">Parties</div>
               </div>
-              <div className="bg-white/5 rounded-xl p-3">
-                <div className="text-xl font-bold text-green-400">{avg}</div>
+              <div className="bg-white/5 rounded-xl p-2">
+                <div className="text-lg font-bold text-green-400">{avg}</div>
                 <div className="text-gray-400 text-xs">Moyenne</div>
+              </div>
+              <div className="bg-white/5 rounded-xl p-2">
+                <div className="text-lg font-bold text-orange-400">{coins}</div>
+                <div className="text-gray-400 text-xs">🪙 coins</div>
               </div>
             </div>
           </motion.div>
 
-          {/* Leaderboard */}
+          {/* Leaderboard local */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }} className="mb-6"
-          >
+            transition={{ delay: 0.3 }} className="mb-6">
             <h2 className="text-lg font-bold mb-3 text-yellow-400">🏆 Classement local</h2>
             <div className="space-y-2">
               {lb.slice(0, 5).map((p, i) => (
@@ -229,18 +266,20 @@ export default function Quiz() {
 
           {/* Boutons */}
           <div className="space-y-3">
-            <motion.button whileTap={{ scale: 0.97 }} onClick={replay}
+            <motion.button whileTap={{ scale: 0.97 }} onClick={() => navigate(0)}
               className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-4 rounded-2xl transition">
               🔄 Rejouer {category.title}
             </motion.button>
-
+            <motion.button whileTap={{ scale: 0.97 }} onClick={() => navigate("/quiz/leaderboard")}
+              className="w-full bg-yellow-600 hover:bg-yellow-500 text-black font-bold py-4 rounded-2xl transition">
+              🏆 Classement mondial
+            </motion.button>
             <motion.button whileTap={{ scale: 0.97 }} onClick={() => navigate("/quiz")}
               className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-2xl transition">
               🧠 Changer de catégorie
             </motion.button>
-
             <a href={`https://wa.me/?text=${encodeURIComponent(
-              `🧠 J'ai obtenu ${score}/${totalQ} au Quiz ${category.title} !\n${medal.emoji} ${medal.label}\n🔥 https://world-cup-hub-kappa.vercel.app/quiz`
+              `🧠 J'ai obtenu ${score}/${totalQ} au Quiz ${category.title} ! +${coinsEarned}🪙\n${medal.emoji} ${medal.label}\n🔥 https://world-cup-hub-kappa.vercel.app/quiz`
             )}`} target="_blank" rel="noopener noreferrer">
               <motion.button whileTap={{ scale: 0.97 }}
                 className="w-full bg-green-500 hover:bg-green-400 text-white font-bold py-4 rounded-2xl transition mt-3">
@@ -262,21 +301,28 @@ export default function Quiz() {
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-black to-blue-900 text-white pb-16">
       <div className="max-w-xl mx-auto px-4 pt-6">
 
-        {/* Header catégorie */}
-        <div className="flex items-center gap-3 mb-5">
-          <button onClick={() => navigate("/quiz")}
-            className="text-gray-400 hover:text-white transition text-xl">←</button>
-          <div className="text-2xl">{category.emoji}</div>
-          <div>
-            <div className="font-bold text-sm">{category.title}</div>
-            <div className="text-xs text-gray-400">{category.difficulty}</div>
+        {/* Header */}
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-3">
+            <button onClick={() => navigate("/quiz")}
+              className="text-gray-400 hover:text-white transition text-xl">←</button>
+            <div className="text-2xl">{category.emoji}</div>
+            <div>
+              <div className="font-bold text-sm">{category.title}</div>
+              <div className="text-xs text-gray-400">{category.difficulty}</div>
+            </div>
+          </div>
+          {/* Coins */}
+          <div className="bg-yellow-500/20 border border-yellow-400/30 rounded-xl px-3 py-1 text-center">
+            <div className="text-sm font-bold text-yellow-400">{coins} 🪙</div>
           </div>
         </div>
 
         {/* Stats header */}
         <div className="flex justify-between items-center mb-4">
+          {/* Vies */}
           <div className="flex gap-1">
-            {Array.from({ length: MAX_LIVES }).map((_, i) => (
+            {Array.from({ length: maxLives }).map((_, i) => (
               <span key={i} style={{ opacity: i < lives ? 1 : 0.2 }}>
                 {i < lives ? "❤️" : "🖤"}
               </span>
@@ -317,6 +363,10 @@ export default function Quiz() {
               transition={{ duration: 0.5 }}
               className={`h-2 rounded-full transition-colors ${timerColor}`} />
           </div>
+          {/* Bonus rapide */}
+          {timeLeft >= 10 && !showResult && (
+            <span className="text-xs text-yellow-400 font-bold">⚡+10</span>
+          )}
         </div>
 
         {/* Question */}
@@ -350,8 +400,7 @@ export default function Quiz() {
             {/* Feedback */}
             <AnimatePresence>
               {showResult && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                   className={`mt-4 p-4 rounded-xl text-center font-bold ${
                     isCorrect
                       ? "bg-green-500/20 border border-green-400/40 text-green-300"
@@ -359,7 +408,11 @@ export default function Quiz() {
                   }`}
                 >
                   {isCorrect ? (
-                    <span>✅ Bonne réponse ! {streak >= 2 ? `🔥 Série de ${streak} !` : ""}</span>
+                    <span>
+                      ✅ Bonne réponse ! +10🪙
+                      {timeLeft >= 10 && " ⚡+10🪙 rapide !"}
+                      {streak >= 2 && ` 🔥 Série de ${streak} !`}
+                    </span>
                   ) : (
                     <span>
                       ❌ {selectedAnswer === null ? "Temps écoulé" : "Mauvaise réponse"}
