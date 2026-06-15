@@ -53,7 +53,7 @@ export default function Quiz() {
   const [shuffledQ]      = useState(() => shuffle(allQ).slice(0, category.count));
   const [current,          setCurrent]          = useState(0);
   const [score,            setScore]            = useState(0);
-  const [lives,            setLives]            = useState(Math.min(globalLives, 5));
+  const [lives, setLives] = useState(globalLives);
   const [timeLeft,         setTimeLeft]         = useState(TIMER_MAX);
   const [selectedAnswer,   setSelectedAnswer]   = useState(null);
   const [showResult,       setShowResult]       = useState(false);
@@ -155,7 +155,12 @@ export default function Quiz() {
     history.push({ score: finalScore, total: totalQ, category: category.id, date: Date.now() });
     localStorage.setItem("history", JSON.stringify(history));
     const lb = JSON.parse(localStorage.getItem("leaderboard")) || [];
+    const existing = lb.findIndex(p => p.name === playerName && p.category === category.id);
+    if (existing >= 0) {
+    if (finalScore > lb[existing].score) lb[existing].score = finalScore;
+    } else {
     lb.push({ name: playerName, score: finalScore, category: category.id });
+    }
     lb.sort((a, b) => b.score - a.score);
     localStorage.setItem("leaderboard", JSON.stringify(lb.slice(0, 10)));
 
