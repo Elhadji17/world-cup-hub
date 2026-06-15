@@ -5,7 +5,7 @@ import { useState, useEffect }          from "react";
 import { motion, AnimatePresence }       from "framer-motion";
 import { useNavigate, useParams }        from "react-router-dom";
 import { useAuth }                       from "../hooks/useAuth";
-import { useGameStats }                  from "../hooks/useGameStats";
+import { useGameStats }                  from "../hooks/useGameStats.jsx";
 import { getCategoryById }               from "../data/quiz-categories";
 
 import questionsDefault  from "../data/questions.json";

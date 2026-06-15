@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useGameStats } from "../hooks/useGameStats";
+import { useGameStats } from "../hooks/useGameStats.jsx";
 import { useAuth }      from "../hooks/useAuth";
 
 const ITEMS = [
