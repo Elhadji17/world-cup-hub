@@ -73,7 +73,9 @@ export default function Quiz() {
   const xp       = score * 10;
   const level    = Math.floor(xp / 100) + 1;
 
-  // Bloquer si plus de vies
+  useEffect(() => {
+    setLocalCoins(coins);
+    }, [coins]);
   
 
   // ── Timer ──────────────────────────────────────────────────────────────────
@@ -322,7 +324,7 @@ export default function Quiz() {
           </div>
           {/* Coins */}
           <div className="bg-yellow-500/20 border border-yellow-400/30 rounded-xl px-3 py-1 text-center">
-            <div className="text-sm font-bold text-yellow-400">{coins} 🪙</div>
+            <div className="text-sm font-bold text-yellow-400">{localCoins} 🪙</div>
           </div>
         </div>
 
