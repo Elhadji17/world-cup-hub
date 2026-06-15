@@ -59,7 +59,7 @@ function PlayerImage({ wikimedia, blur, showResult }) {
 
       {/* Image — flou CSS direct */}
       <img
-        key={wikimedia}              {/* ← ajoute cette ligne */}
+        key={wikimedia}              
         src={wikimedia}
         alt="Devine ce joueur"
         onLoad={() => setStatus("ok")}
