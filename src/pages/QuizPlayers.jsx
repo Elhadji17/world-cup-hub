@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate }             from "react-router-dom";
 import { useAuth }                 from "../hooks/useAuth";
 import playersData                 from "../data/questions-players.json";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 
 
 const MAX_LIVES = 3;
@@ -31,14 +31,15 @@ function getMedal(score, total) {
 // Composant image — flou CSS direct (plus fiable que Framer Motion)
 function PlayerImage({ wikimedia, blur, showResult }) {
   const [status, setStatus] = useState("loading");
-  const imgRef = useRef(null);
 
+  // Reset au changement d'image
   useEffect(() => {
     setStatus("loading");
-    // Si l'image est déjà en cache, complete = true immédiatement
-    if (imgRef.current?.complete && imgRef.current?.naturalWidth > 0) {
-      setStatus("ok");
-    }
+    // Vérifier immédiatement si déjà en cache
+    const img = new Image();
+    img.onload  = () => setStatus("ok");
+    img.onerror = () => setStatus("error");
+    img.src = wikimedia;
   }, [wikimedia]);
 
   return (
@@ -57,23 +58,20 @@ function PlayerImage({ wikimedia, blur, showResult }) {
         </div>
       )}
 
-      <img
-        ref={imgRef}
-        key={wikimedia}
-        src={wikimedia}
-        alt="Devine ce joueur"
-        onLoad={() => setStatus("ok")}
-        onError={() => setStatus("error")}
-        style={{
-          filter:         `blur(${blur}px)`,
-          transition:     "filter 1s ease-out",
-          opacity:        status === "ok" ? 1 : 0,
-          width:          "100%",
-          height:         "100%",
-          objectFit:      "cover",
-          objectPosition: "center 20%",
-        }}
-      />
+      {status === "ok" && (
+        <img
+          src={wikimedia}
+          alt="Devine ce joueur"
+          style={{
+            filter:         `blur(${blur}px)`,
+            transition:     "filter 1s ease-out",
+            width:          "100%",
+            height:         "100%",
+            objectFit:      "cover",
+            objectPosition: "center 20%",
+          }}
+        />
+      )}
 
       {status === "ok" && blur > 4 && !showResult && (
         <div className="absolute inset-0 flex items-end justify-center pb-4">
