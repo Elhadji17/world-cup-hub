@@ -78,8 +78,8 @@ export default function Predictions() {
 
         {/* ── Note sync backend — EN HAUT ── */}
         {!user && (
-          <div className="mb-4 bg-blue-900/30 border border-blue-400/20 rounded-xl px-4 py-3 text-xs text-blue-200 text-center">
-            💡 Connecte-toi pour sauvegarder tes pronostics en ligne et apparaître au classement.
+          <div className="mb-4 bg-amber-500/20 border border-amber-400/50 rounded-xl px-4 py-3 text-sm text-amber-200 text-center font-semibold">
+            💡 Connecte-toi pour sauvegarder tes pronostics et apparaître au classement.
           </div>
         )}
         
