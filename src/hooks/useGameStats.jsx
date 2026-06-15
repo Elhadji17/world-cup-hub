@@ -1,13 +1,10 @@
 // src/hooks/useGameStats.jsx
-// Context global GameStats
-
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 
 const API       = import.meta.env.VITE_API_URL ?? "";
 const LOCAL_KEY = "wch_gamestats";
 const MAX_LIVES     = 5;
 const LIFE_REGEN_MS = 60 * 60 * 1000;
-
 const DEFAULT = { coins: 0, lives: MAX_LIVES, totalCoins: 0, lastLifeAt: Date.now(), freeHintsLeft: 0 };
 
 function load()     { try { return JSON.parse(localStorage.getItem(LOCAL_KEY)) ?? DEFAULT; } catch { return DEFAULT; } }
@@ -19,15 +16,17 @@ const Ctx = createContext(null);
 export function GameStatsProvider({ children }) {
   const [stats, setStats] = useState(load);
 
-  const update = useCallback((patch) => {
-    setStats(prev => {
-      const next = typeof patch === "function" ? patch(prev) : { ...prev, ...patch };
-      save(next);
-      return next;
-    });
+  const safeSet = useCallback((fn) => {
+    // setTimeout 0 évite la mise à jour pendant le rendu
+    setTimeout(() => {
+      setStats(prev => {
+        const next = typeof fn === "function" ? fn(prev) : { ...prev, ...fn };
+        save(next);
+        return next;
+      });
+    }, 0);
   }, []);
 
-  // Fetch MongoDB au montage
   const refresh = useCallback(async () => {
     const token = getToken();
     if (!token) return;
@@ -37,7 +36,7 @@ export function GameStatsProvider({ children }) {
       });
       const data = await res.json();
       if (data.coins != null) {
-        update({
+        safeSet({
           coins:         data.coins,
           lives:         data.lives,
           totalCoins:    data.totalCoins,
@@ -46,19 +45,16 @@ export function GameStatsProvider({ children }) {
         });
       }
     } catch {}
-  }, [update]);
+  }, [safeSet]);
 
   useEffect(() => { refresh(); }, []);
 
-  // Soumettre résultat
   const submitResult = useCallback(async ({ correct, wrong, streak, fastAnswers, livesUsed }) => {
     const token = getToken();
-    const earned = (correct * 10) +
-      ((fastAnswers ?? 0) * 10) +
+    const earned = (correct * 10) + ((fastAnswers ?? 0) * 10) +
       (streak >= 10 ? 80 : streak >= 5 ? 30 : 0);
 
-    // Mise à jour locale
-    update(prev => ({
+    safeSet(prev => ({
       ...prev,
       coins:      prev.coins + earned,
       totalCoins: prev.totalCoins + earned,
@@ -67,8 +63,6 @@ export function GameStatsProvider({ children }) {
     }));
 
     if (!token) return { coinsEarned: earned };
-
-    // Sync backend
     try {
       const res  = await fetch(`${API}/api/quiz?action=submit`, {
         method:  "POST",
@@ -77,19 +71,17 @@ export function GameStatsProvider({ children }) {
       });
       const data = await res.json();
       if (data.coins != null) {
-        update(prev => ({ ...prev, coins: data.coins, lives: data.lives }));
+        safeSet(prev => ({ ...prev, coins: data.coins, lives: data.lives }));
         return { coinsEarned: data.coinsEarned ?? earned };
       }
     } catch {}
     return { coinsEarned: earned };
-  }, [update]);
+  }, [safeSet]);
 
-  // Utiliser une vie
   const useLife = useCallback(() => {
-    update(prev => ({ ...prev, lives: Math.max(0, prev.lives - 1), lastLifeAt: Date.now() }));
-  }, [update]);
+    safeSet(prev => ({ ...prev, lives: Math.max(0, prev.lives - 1), lastLifeAt: Date.now() }));
+  }, [safeSet]);
 
-  // Acheter au shop
   const buyItem = useCallback(async (item) => {
     const token = getToken();
     if (!token) return { success: false, error: "Connecte-toi pour acheter." };
@@ -101,12 +93,12 @@ export function GameStatsProvider({ children }) {
       });
       const data = await res.json();
       if (!res.ok) return { success: false, error: data.error };
-      update(prev => ({ ...prev, coins: data.coins, lives: data.lives }));
+      safeSet(prev => ({ ...prev, coins: data.coins, lives: data.lives }));
       return { success: true, ...data };
     } catch (err) {
       return { success: false, error: err.message };
     }
-  }, [update]);
+  }, [safeSet]);
 
   const nextLifeIn = stats.lives >= MAX_LIVES
     ? null
@@ -114,16 +106,9 @@ export function GameStatsProvider({ children }) {
 
   return (
     <Ctx.Provider value={{
-      coins:         stats.coins,
-      lives:         stats.lives,
-      totalCoins:    stats.totalCoins,
-      freeHintsLeft: stats.freeHintsLeft ?? 0,
-      nextLifeIn,
-      maxLives:      MAX_LIVES,
-      submitResult,
-      useLife,
-      buyItem,
-      refresh,
+      coins: stats.coins, lives: stats.lives, totalCoins: stats.totalCoins,
+      freeHintsLeft: stats.freeHintsLeft ?? 0, nextLifeIn,
+      maxLives: MAX_LIVES, submitResult, useLife, buyItem, refresh,
     }}>
       {children}
     </Ctx.Provider>
