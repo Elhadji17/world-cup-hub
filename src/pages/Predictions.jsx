@@ -76,6 +76,13 @@ export default function Predictions() {
 
       <div className="max-w-4xl mx-auto px-4 pt-4">
 
+        {/* ── Note sync backend — EN HAUT ── */}
+        {!user && (
+          <div className="mb-4 bg-blue-900/30 border border-blue-400/20 rounded-xl px-4 py-3 text-xs text-blue-200 text-center">
+            💡 Connecte-toi pour sauvegarder tes pronostics en ligne et apparaître au classement.
+          </div>
+        )}
+        
         {/* ── INFO JOKER ── */}
         <div className="bg-yellow-400/10 border border-yellow-400/30 rounded-2xl p-4 mb-4 text-sm">
           <p className="font-bold text-yellow-300 mb-1">⭐ Règle du Joker</p>
@@ -162,12 +169,7 @@ export default function Predictions() {
           </div>
         )}
 
-        {/* ── Note sync backend ── */}
-        {!user && (
-          <div className="mt-6 bg-blue-900/30 border border-blue-400/20 rounded-xl px-4 py-3 text-xs text-blue-200 text-center">
-            💡 Connecte-toi pour sauvegarder tes pronostics en ligne et apparaître au classement.
-          </div>
-        )}
+        
 
       </div>
     </div>
