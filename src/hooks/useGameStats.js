@@ -1,44 +1,51 @@
 // src/hooks/useGameStats.js
-// Gestion coins + vies — sync MongoDB si connecté, localStorage sinon
+// Gestion coins + vies — MongoDB prioritaire sur localStorage
 
 import { useState, useEffect, useCallback } from "react";
 
-const API        = import.meta.env.VITE_API_URL ?? "";
-const TOKEN_KEY  = "wch_token";
-const LOCAL_KEY  = "wch_gamestats";
+const API       = import.meta.env.VITE_API_URL ?? "";
+const TOKEN_KEY = "wch_token";
+const LOCAL_KEY = "wch_gamestats";
 
-const MAX_LIVES      = 5;
-const LIFE_REGEN_MS  = 60 * 60 * 1000; // 1h
+const MAX_LIVES     = 5;
+const LIFE_REGEN_MS = 60 * 60 * 1000;
+
+const DEFAULT_STATS = {
+  coins: 0, lives: MAX_LIVES, totalCoins: 0,
+  lastLifeAt: Date.now(), freeHintsLeft: 0,
+  nextLifeIn: null, isDoubleCoins: false,
+};
 
 function loadLocal() {
-  try {
-    return JSON.parse(localStorage.getItem(LOCAL_KEY)) ?? {
-      coins: 100, lives: MAX_LIVES, totalCoins: 100,
-      lastLifeAt: Date.now(), freeHintsLeft: 0,
-    };
-  } catch { return { coins: 100, lives: MAX_LIVES, totalCoins: 100, lastLifeAt: Date.now(), freeHintsLeft: 0 }; }
+  try { return JSON.parse(localStorage.getItem(LOCAL_KEY)) ?? DEFAULT_STATS; }
+  catch { return DEFAULT_STATS; }
 }
 
 function saveLocal(stats) {
   localStorage.setItem(LOCAL_KEY, JSON.stringify(stats));
 }
 
+// Régénération locale (quand pas de réseau)
 function regenLivesLocal(stats) {
   if (stats.lives >= MAX_LIVES) return stats;
-  const elapsed  = Date.now() - stats.lastLifeAt;
+  const elapsed  = Date.now() - (stats.lastLifeAt ?? Date.now());
   const regenned = Math.floor(elapsed / LIFE_REGEN_MS);
   if (regenned <= 0) return stats;
-  const newLives   = Math.min(stats.lives + regenned, MAX_LIVES);
-  const newLastLife = stats.lastLifeAt + regenned * LIFE_REGEN_MS;
-  return { ...stats, lives: newLives, lastLifeAt: newLastLife };
+  return {
+    ...stats,
+    lives:      Math.min(stats.lives + regenned, MAX_LIVES),
+    lastLifeAt: (stats.lastLifeAt ?? Date.now()) + regenned * LIFE_REGEN_MS,
+  };
 }
 
 export function useGameStats() {
   const [stats,   setStats]   = useState(() => regenLivesLocal(loadLocal()));
   const [loading, setLoading] = useState(false);
+  const [synced,  setSynced]  = useState(false);
+
   const token = localStorage.getItem(TOKEN_KEY);
 
-  // Charger depuis le backend si connecté
+  // ── Charger depuis MongoDB au montage — PRIORITAIRE sur localStorage ──────
   useEffect(() => {
     if (!token) return;
     setLoading(true);
@@ -48,24 +55,35 @@ export function useGameStats() {
       .then(r => r.json())
       .then(data => {
         if (data.coins != null) {
-          const s = { ...stats, ...data, lastLifeAt: Date.now() };
-          setStats(s);
-          saveLocal(s);
+          // MongoDB est la source de vérité — on écrase localStorage
+          const fresh = {
+            coins:         data.coins,
+            lives:         data.lives,
+            totalCoins:    data.totalCoins,
+            lastLifeAt:    Date.now(),
+            freeHintsLeft: data.freeHintsLeft ?? 0,
+            nextLifeIn:    data.nextLifeIn,
+            isDoubleCoins: data.isDoubleCoins ?? false,
+          };
+          setStats(fresh);
+          saveLocal(fresh);
+          setSynced(true);
         }
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [token]);
 
-  // Temps avant prochaine vie
+  // ── Temps avant prochaine vie ─────────────────────────────────────────────
   const nextLifeIn = stats.lives >= MAX_LIVES
     ? null
-    : Math.max(0, LIFE_REGEN_MS - (Date.now() - stats.lastLifeAt));
+    : Math.max(0, LIFE_REGEN_MS - (Date.now() - (stats.lastLifeAt ?? Date.now())));
 
-  // Soumettre résultat d'une partie
+  // ── Soumettre résultat d'une partie ──────────────────────────────────────
   const submitResult = useCallback(async ({ correct, wrong, streak, fastAnswers, livesUsed }) => {
     // Calcul local immédiat
-    const coinsEarned = correct * 10 + (fastAnswers ?? 0) * 10 +
+    const coinsEarned = (correct * 10) +
+      ((fastAnswers ?? 0) * 10) +
       (streak >= 10 ? 80 : streak >= 5 ? 30 : 0);
 
     const newStats = {
@@ -88,23 +106,25 @@ export function useGameStats() {
       });
       const data = await res.json();
       if (data.coins != null) {
-        const s = { ...newStats, coins: data.coins, lives: data.lives };
-        setStats(s); saveLocal(s);
-        return { coinsEarned: data.coinsEarned };
+        const synced = { ...newStats, coins: data.coins, lives: data.lives };
+        setStats(synced);
+        saveLocal(synced);
+        return { coinsEarned: data.coinsEarned ?? coinsEarned };
       }
     } catch {}
     return { coinsEarned };
   }, [stats, token]);
 
-  // Utiliser une vie
+  // ── Utiliser une vie ──────────────────────────────────────────────────────
   const useLife = useCallback(() => {
     if (stats.lives <= 0) return false;
     const s = { ...stats, lives: stats.lives - 1, lastLifeAt: Date.now() };
-    setStats(s); saveLocal(s);
+    setStats(s);
+    saveLocal(s);
     return true;
   }, [stats]);
 
-  // Acheter au shop
+  // ── Acheter au shop ───────────────────────────────────────────────────────
   const buyItem = useCallback(async (item) => {
     if (!token) return { success: false, error: "Connecte-toi pour acheter." };
     try {
@@ -115,13 +135,36 @@ export function useGameStats() {
       });
       const data = await res.json();
       if (!res.ok) return { success: false, error: data.error };
+
+      // Mettre à jour immédiatement avec les vraies valeurs MongoDB
       const s = { ...stats, coins: data.coins, lives: data.lives };
-      setStats(s); saveLocal(s);
+      setStats(s);
+      saveLocal(s);
       return { success: true, ...data };
     } catch (err) {
       return { success: false, error: err.message };
     }
   }, [stats, token]);
+
+  // ── Rafraîchir manuellement depuis MongoDB ────────────────────────────────
+  const refresh = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res  = await fetch(`${API}/api/quiz?action=stats`, {
+        headers: { "Authorization": `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.coins != null) {
+        const fresh = {
+          coins: data.coins, lives: data.lives, totalCoins: data.totalCoins,
+          lastLifeAt: Date.now(), freeHintsLeft: data.freeHintsLeft ?? 0,
+          nextLifeIn: data.nextLifeIn, isDoubleCoins: data.isDoubleCoins ?? false,
+        };
+        setStats(fresh);
+        saveLocal(fresh);
+      }
+    } catch {}
+  }, [token]);
 
   return {
     coins:         stats.coins,
@@ -130,9 +173,11 @@ export function useGameStats() {
     freeHintsLeft: stats.freeHintsLeft ?? 0,
     nextLifeIn,
     loading,
+    synced,
     submitResult,
     useLife,
     buyItem,
+    refresh,
     maxLives: MAX_LIVES,
   };
 }
