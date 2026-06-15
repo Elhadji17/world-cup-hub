@@ -38,7 +38,7 @@ export default function QuizLeaderboard() {
   async function fetchLeaderboard() {
     setLoading(true);
     try {
-      const res  = await fetch(`${API}/api/quiz/leaderboard?limit=50`);
+      const res  = await fetch(`${API}/api/quiz?action=leaderboard&limit=50`);
       const data = await res.json();
       if (res.ok) { setLeaderboard(data.leaderboard); setLastUpdated(new Date()); }
     } catch {}

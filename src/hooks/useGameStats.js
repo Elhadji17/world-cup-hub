@@ -42,7 +42,7 @@ export function useGameStats() {
   useEffect(() => {
     if (!token) return;
     setLoading(true);
-    fetch(`${API}/api/quiz/stats`, {
+    fetch(`${API}/api/quiz?action=stats`, {
       headers: { "Authorization": `Bearer ${token}` },
     })
       .then(r => r.json())
@@ -81,7 +81,7 @@ export function useGameStats() {
     // Sync backend
     if (!token) return { coinsEarned };
     try {
-      const res  = await fetch(`${API}/api/quiz/stats`, {
+      const res  = await fetch(`${API}/api/quiz?action=submit`, {
         method:  "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body:    JSON.stringify({ correct, wrong, streak, fastAnswers, livesUsed }),
@@ -108,7 +108,7 @@ export function useGameStats() {
   const buyItem = useCallback(async (item) => {
     if (!token) return { success: false, error: "Connecte-toi pour acheter." };
     try {
-      const res  = await fetch(`${API}/api/quiz/shop`, {
+      const res  = await fetch(`${API}/api/quiz?action=shop`, {
         method:  "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body:    JSON.stringify({ item }),
