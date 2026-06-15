@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate }             from "react-router-dom";
 import { useAuth }                 from "../hooks/useAuth";
 import playersData                 from "../data/questions-players.json";
+import { useState, useEffect, useRef } from "react";
 
 
 const MAX_LIVES = 3;
@@ -30,36 +31,35 @@ function getMedal(score, total) {
 // Composant image — flou CSS direct (plus fiable que Framer Motion)
 function PlayerImage({ wikimedia, blur, showResult }) {
   const [status, setStatus] = useState("loading");
+  const imgRef = useRef(null);
 
-  // Reset status quand l'image change
   useEffect(() => {
     setStatus("loading");
+    // Si l'image est déjà en cache, complete = true immédiatement
+    if (imgRef.current?.complete && imgRef.current?.naturalWidth > 0) {
+      setStatus("ok");
+    }
   }, [wikimedia]);
-  
+
   return (
     <div className="relative w-full h-64 rounded-2xl overflow-hidden bg-gray-800 border border-white/10">
 
-      {/* Spinner pendant le chargement */}
       {status === "loading" && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
           <div className="text-4xl animate-bounce">⚽</div>
-          <p className="text-gray-400 text-xs">Chargement de l'image...</p>
+          <p className="text-gray-400 text-xs">Chargement...</p>
         </div>
       )}
 
-      {/* Erreur */}
       {status === "error" && (
-        <div className="absolute inset-0 flex items-center justify-center text-center">
-          <div>
-            <div className="text-6xl mb-2">👤</div>
-            <p className="text-gray-400 text-sm">Image indisponible</p>
-          </div>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-6xl">👤</div>
         </div>
       )}
 
-      {/* Image — flou CSS direct */}
       <img
-        key={wikimedia}              
+        ref={imgRef}
+        key={wikimedia}
         src={wikimedia}
         alt="Devine ce joueur"
         onLoad={() => setStatus("ok")}
@@ -75,7 +75,6 @@ function PlayerImage({ wikimedia, blur, showResult }) {
         }}
       />
 
-      {/* Label flou */}
       {status === "ok" && blur > 4 && !showResult && (
         <div className="absolute inset-0 flex items-end justify-center pb-4">
           <div className="bg-black/60 rounded-xl px-4 py-2 text-white text-sm font-bold">
