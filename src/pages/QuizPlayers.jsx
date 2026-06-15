@@ -2,7 +2,7 @@
 // Mode Devine le joueur — images Wikimedia Commons via proxy backend
 // Licence : Creative Commons — attribution dans le footer
 
-import { useState, useEffect } from "react";
+
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate }             from "react-router-dom";
 import { useAuth }                 from "../hooks/useAuth";
