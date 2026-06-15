@@ -52,6 +52,17 @@ const FEATURES = [
     btnCls:  "bg-yellow-500 hover:bg-yellow-400 text-black",
     auth:    false,
   },
+  {
+  to:     "/share",
+  emoji:  "📲",
+  title:  "Partager",
+  desc:   "Partage tes pronostics sur WhatsApp et Twitter",
+  color:  "from-green-500 to-teal-700",
+  border: "border-green-400/30",
+  btn:    "Partager",
+  btnCls: "bg-green-500 hover:bg-green-400",
+  auth:   false,
+},
 ];
 
 const STATS = [
