@@ -258,6 +258,10 @@ export default function Quiz() {
               🔄 Rejouer {category.title}
             </motion.button>
             <motion.button whileTap={{ scale: 0.97 }} onClick={() => navigate("/leaderboard")}
+                className="w-full bg-yellow-600 hover:bg-yellow-500 text-black font-bold py-4 rounded-2xl transition">
+                🏆 Classement mondial
+                </motion.button>
+            <motion.button whileTap={{ scale: 0.97 }} onClick={() => navigate("/leaderboard")}
               className="w-full bg-yellow-600 hover:bg-yellow-500 text-black font-bold py-4 rounded-2xl transition">
               🏆 Classement mondial
             </motion.button>
