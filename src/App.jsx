@@ -21,10 +21,10 @@ import QuizLeaderboard from "./pages/QuizLeaderboard";
 
 function AnimatedRoutes() {
   const location = useLocation();
-
   return (
-    <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname}>
+    <div className="pb-16 md:pb-0">  {/* ← ajoute ce div */}
+      <AnimatePresence mode="wait">
+        <Routes location={location} key={location.pathname}>
 
         <Route
           path="/"
@@ -73,7 +73,8 @@ function AnimatedRoutes() {
         
 
       </Routes>
-    </AnimatePresence>
+      </AnimatePresence>
+    </div>
   );
 }
 
