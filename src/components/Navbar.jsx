@@ -1,4 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
+import { useGameStats }      from "../hooks/useGameStats.jsx";
 
 const LINKS = [
   { to: "/",            label: "Home",       emoji: "🏠" },
@@ -6,25 +7,34 @@ const LINKS = [
   { to: "/predictions", label: "Pronostics", emoji: "🔮" },
   { to: "/matches",     label: "Matchs",     emoji: "📅" },
   { to: "/leaderboard", label: "Classement", emoji: "🏆" },
-  { to: "/share", label: "Partager", emoji: "📲" },
-  { to: "/shop",  label: "Shop",  emoji: "🛒" },
+  { to: "/share",       label: "Partager",   emoji: "📲" },
+  { to: "/shop",        label: "Shop",       emoji: "🛒" },
 ];
 
 function Navbar() {
   const { pathname } = useLocation();
+  const { coins, lives } = useGameStats();
 
   return (
-    <div className="flex justify-between items-center p-4 bg-black text-white border-b border-gray-700">
+    <div className="flex justify-between items-center px-4 py-3 bg-black text-white border-b border-gray-700">
 
-      {/* ── Titre du site transformé en lien vers l'accueil ── */}
-      <Link 
-        to="/" 
-        className="font-bold text-xl hover:text-green-400 transition cursor-pointer select-none"
-      >
-        <h1>⚽ World Cup Hub</h1>
+      {/* Titre */}
+      <Link to="/" className="font-bold text-xl hover:text-green-400 transition shrink-0">
+        ⚽ World Cup Hub
       </Link>
 
-      <div className="flex gap-1 md:gap-4 text-sm md:text-base">
+      {/* Coins + Vies — centre */}
+      <div className="flex items-center gap-2 text-xs font-bold">
+        <span className="bg-red-500/20 text-red-300 px-2 py-1 rounded-lg">
+          ❤️ {lives}
+        </span>
+        <span className="bg-yellow-500/20 text-yellow-300 px-2 py-1 rounded-lg">
+          {coins} 🪙
+        </span>
+      </div>
+
+      {/* Liens navigation */}
+      <div className="flex gap-1 md:gap-2 text-sm md:text-base">
         {LINKS.map(({ to, label, emoji }) => {
           const active = pathname === to;
           return (
@@ -43,7 +53,6 @@ function Navbar() {
           );
         })}
       </div>
-
     </div>
   );
 }
