@@ -53,7 +53,7 @@ export default function Shop() {
   const [message, setMessage]      = useState(null);
   const { coins, lives, buyItem, maxLives, refresh } = useGameStats();
 
-  useEffect(() => { refresh(); }, []);
+
 
   async function handleBuy(item) {
     if (!user) {
