@@ -5,6 +5,7 @@ import App                   from './App.jsx'
 import { AuthProvider }      from './hooks/useAuth.js'
 import { GameStatsProvider } from './hooks/useGameStats.jsx'
 import { registerSW }        from "virtual:pwa-register";
+import { Analytics } from "@vercel/analytics/react";
 
 registerSW();
 
@@ -13,6 +14,7 @@ createRoot(document.getElementById('root')).render(
     <AuthProvider>
       <GameStatsProvider>
         <App />
+        <Analytics />  {/* ← ajoute ici */}
       </GameStatsProvider>
     </AuthProvider>
   </StrictMode>,
