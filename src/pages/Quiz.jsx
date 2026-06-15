@@ -5,7 +5,7 @@ import { useState, useEffect }          from "react";
 import { motion, AnimatePresence }       from "framer-motion";
 import { useNavigate, useParams }        from "react-router-dom";
 import { useAuth }                       from "../hooks/useAuth";
-import { useGameStats }                  from "../hooks/useGameStats.jsx";
+import { useGameStats }                  from "../hooks/useGameStats";
 import { getCategoryById }               from "../data/quiz-categories";
 
 import questionsDefault  from "../data/questions.json";
@@ -43,7 +43,7 @@ export default function Quiz() {
   const { user }       = useAuth();
   const {
     coins, lives: globalLives, maxLives,
-    submitResult, useLife,
+    submitResult,
   } = useGameStats();
 
   const category   = getCategoryById(categoryId) ?? getCategoryById("world-cup");
@@ -122,7 +122,6 @@ export default function Quiz() {
       setLivesUsed(p => p + 1);
       setWrongAnswers(p => p + 1);
       setStreak(0);
-      useLife(); // déduire du global
       if (nl <= 0) { setTimeout(() => finishQuiz(score), 1800); return; }
     }
     setTimeout(() => goNext(correct), 1800);
@@ -133,7 +132,6 @@ export default function Quiz() {
     setSelectedAnswer(null); setIsCorrect(false); setShowResult(true); setStreak(0);
     const nl = lives - 1;
     setLives(nl); setLivesUsed(p => p + 1); setWrongAnswers(p => p + 1);
-    useLife();
     if (nl <= 0) { setTimeout(() => finishQuiz(score), 1800); return; }
     setTimeout(() => goNext(false), 1800);
   }
