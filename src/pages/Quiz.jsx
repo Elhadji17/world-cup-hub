@@ -156,6 +156,7 @@ export default function Quiz() {
     localStorage.setItem("history", JSON.stringify(history));
     const lb = JSON.parse(localStorage.getItem("leaderboard")) || [];
     const existing = lb.findIndex(p => p.name === playerName && p.category === category.id);
+    const actualLivesUsed = Math.min(livesUsed, globalLives);
     if (existing >= 0) {
     if (finalScore > lb[existing].score) lb[existing].score = finalScore;
     } else {
@@ -170,7 +171,7 @@ export default function Quiz() {
       wrong:       wrongAnswers,
       streak:      streak,
       fastAnswers: fastAnswers,
-      livesUsed:   0,
+      livesUsed:   actualLivesUsed,
     });
     setCoinsEarned(result.coinsEarned ?? 0);
 
