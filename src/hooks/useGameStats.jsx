@@ -5,7 +5,9 @@ const API       = import.meta.env.VITE_API_URL ?? "";
 const LOCAL_KEY = "wch_gamestats";
 const MAX_LIVES     = 5;
 const LIFE_REGEN_MS = 60 * 60 * 1000;
-const DEFAULT = { coins: 0, lives: MAX_LIVES, totalCoins: 0, totalPoints: 0, lastLifeAt: Date.now(), freeHintsLeft: 0 };
+const DEFAULT = { coins: 0, lives: MAX_LIVES, totalCoins: 0, totalPoints: 0, lastLifeAt: data.nextLifeIn
+  ? Date.now() - (3600000 - data.nextLifeIn)
+  : Date.now(), freeHintsLeft: 0 };
 
 function load()     { try { return JSON.parse(localStorage.getItem(LOCAL_KEY)) ?? DEFAULT; } catch { return DEFAULT; } }
 function save(s)    { localStorage.setItem(LOCAL_KEY, JSON.stringify(s)); }
