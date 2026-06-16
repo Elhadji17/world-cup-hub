@@ -27,6 +27,7 @@ const DESKTOP_LINKS = [
   { to: "/shop",        label: "Shop"       },
   { to: "/share",       label: "Partager"   },
   { to: "/profile",     label: "Profil"     },
+  { to: "/team", label: "Équipe" },
 ];
 
 // Liens dans le drawer "Plus"
@@ -36,6 +37,7 @@ const DRAWER_LINKS = [
   { to: "/cards",       label: "Cartes",       emoji: "🃏" },
   { to: "/shop",        label: "Shop",         emoji: "🛒" },
   { to: "/share",       label: "Partager",     emoji: "📲" },
+  { to: "/team", label: "Mon Équipe", emoji: "⚽" },
 ];
 
 export default function Navbar() {
