@@ -57,10 +57,11 @@ export default function Cards() {
       setRevealed(prev => [...prev, i]);
     }
 
-    // Ajouter à la collection
+    // Ajouter à la collection + sauvegarder MongoDB
     const newCollection = [...collection, ...cards];
     setCollection(newCollection);
-    saveCollection(newCollection);
+    saveLocal(newCollection);
+    saveToMongoDB(newCollection);
   }
 
   function closeOpening() {
@@ -87,7 +88,7 @@ export default function Cards() {
         <div className="max-w-2xl mx-auto flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold">🃏 Cartes</h1>
-            <p className="text-xs text-gray-400">{uniqueCards.length} cartes uniques · {collection.length} total</p>
+            <p className="text-xs text-gray-400">{uniqueCards.length} cartes uniques · {collection.length} total {syncing ? "· 🔄 Sync..." : "· ✅ Sauvegardé"}</p>
           </div>
           <div className="flex gap-2 items-center">
             <div className="bg-yellow-500/20 border border-yellow-400/30 rounded-xl px-3 py-1 text-center">
