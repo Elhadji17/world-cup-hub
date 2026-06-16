@@ -10,6 +10,7 @@ import { PACKS, openPack, PLAYERS } from "../data/players-cards";
 import PlayerCard                   from "../components/PlayerCard";
 
 const COLLECTION_KEY = "wch_cards";
+const API = import.meta.env.VITE_API_URL ?? "";
 
 function loadCollection() {
   try { return JSON.parse(localStorage.getItem(COLLECTION_KEY)) ?? []; }
@@ -21,6 +22,18 @@ function saveCollection(cards) {
 }
 function saveLocal(cards) {
   localStorage.setItem(COLLECTION_KEY, JSON.stringify(cards));
+}
+
+async function saveToMongoDB(cards) {
+  const token = localStorage.getItem("wch_token");
+  if (!token) return;
+  try {
+    await fetch(`${API}/api/quiz?action=save-cards`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+      body: JSON.stringify({ cards }),
+    });
+  } catch {}
 }
 
 // ── Page principale ───────────────────────────────────────────────────────────
