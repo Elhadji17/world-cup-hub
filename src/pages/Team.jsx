@@ -15,17 +15,14 @@ function loadCollection() {
   try { return JSON.parse(localStorage.getItem(COLLECTION_KEY)) ?? []; }
   catch { return []; }
 }
-
 function loadTeam() {
   try { return JSON.parse(localStorage.getItem(TEAM_KEY)) ?? {}; }
   catch { return {}; }
 }
-
 function saveTeam(team) {
   localStorage.setItem(TEAM_KEY, JSON.stringify(team));
 }
 
-// Formations disponibles
 const FORMATIONS = {
   "4-3-3": {
     label: "4-3-3",
@@ -92,16 +89,22 @@ function calcTeamRating(team, positions) {
 }
 
 export default function Team() {
-  const { user }                = useAuth();
-  const [formation, setFormation] = useState("4-3-3");
-  const [team,      setTeam]    = useState(loadTeam);
+  const { user }                    = useAuth();
+  const [formation,  setFormation]  = useState("4-3-3");
+  const [team,       setTeam]       = useState(loadTeam);
   const [collection, setCollection] = useState([]);
-  const [selecting, setSelecting]   = useState(null); // position en cours de sélection
-  const [saved,     setSaved]   = useState(false);
+  const [selecting,  setSelecting]  = useState(null);
+  const [saved,      setSaved]      = useState(false);
 
-  const positions = FORMATIONS[formation].positions;
+  const positions  = FORMATIONS[formation].positions;
   const teamRating = calcTeamRating(team, positions);
   const filledCount = positions.filter(p => team[p.id]).length;
+
+  // Joueurs déjà utilisés (sauf poste en cours de sélection)
+  const usedPlayerIds = Object.entries(team)
+    .filter(([posId]) => posId !== selecting)
+    .map(([, player]) => player?.id)
+    .filter(Boolean);
 
   // Charger collection
   useEffect(() => {
@@ -135,29 +138,7 @@ export default function Team() {
     saveTeam(newTeam);
   }
 
-  // Joueurs uniques dans la collection
   const uniqueCards = [...new Map(collection.map(c => [c.id, c])).values()];
-  // Joueurs déjà dans l'équipe (sauf le poste en cours de sélection)
-  const usedPlayerIds = Object.entries(team)
-    .filter(([posId]) => posId !== selecting)
-    .map(([, player]) => player?.id)
-    .filter(Boolean);
-
-    {[...uniqueCards].sort((a, b) => b.rating - a.rating).map((card) => {
-      const isUsed = usedPlayerIds.includes(card.id);
-      return (
-        <motion.div key={card.id}
-          whileTap={{ scale: isUsed ? 1 : 0.95 }}
-          onClick={() => !isUsed && handleSelectPlayer(card)}
-          className={`shrink-0 ${isUsed ? "opacity-30 cursor-not-allowed" : "cursor-pointer"}`}
-        >
-          <PlayerCard player={card} size="sm" animate={false} />
-          {isUsed && (
-            <div className="text-center text-xs text-red-400 font-bold mt-1">Déjà placé</div>
-          )}
-        </motion.div>
-      );
-    })}
 
   if (!user) {
     return (
@@ -182,10 +163,8 @@ export default function Team() {
             <p className="text-xs text-gray-400">{filledCount}/11 joueurs · Note {teamRating > 0 ? teamRating : "—"}</p>
           </div>
           {saved && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="text-xs text-green-400 font-bold">
-              ✅ Sauvegardé
-            </motion.div>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              className="text-xs text-green-400 font-bold">✅ Sauvegardé</motion.div>
           )}
         </div>
       </div>
@@ -216,52 +195,38 @@ export default function Team() {
           </motion.div>
         )}
 
-        {/* Terrain de foot */}
+        {/* Terrain */}
         <div className="relative w-full rounded-2xl overflow-hidden mb-6"
           style={{ paddingBottom: "140%", background: "linear-gradient(180deg, #166534 0%, #15803d 25%, #16a34a 50%, #15803d 75%, #166534 100%)" }}>
 
-          {/* Lignes du terrain */}
           <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 140" preserveAspectRatio="none">
-            {/* Bordure */}
             <rect x="3" y="3" width="94" height="134" fill="none" stroke="white" strokeWidth="0.5" strokeOpacity="0.4" />
-            {/* Ligne médiane */}
             <line x1="3" y1="70" x2="97" y2="70" stroke="white" strokeWidth="0.4" strokeOpacity="0.4" />
-            {/* Cercle central */}
             <circle cx="50" cy="70" r="12" fill="none" stroke="white" strokeWidth="0.4" strokeOpacity="0.4" />
-            {/* Surface de réparation haut */}
             <rect x="25" y="3" width="50" height="18" fill="none" stroke="white" strokeWidth="0.4" strokeOpacity="0.4" />
-            {/* Surface de réparation bas */}
             <rect x="25" y="119" width="50" height="18" fill="none" stroke="white" strokeWidth="0.4" strokeOpacity="0.4" />
-            {/* But haut */}
             <rect x="38" y="1" width="24" height="4" fill="none" stroke="white" strokeWidth="0.4" strokeOpacity="0.4" />
-            {/* But bas */}
             <rect x="38" y="135" width="24" height="4" fill="none" stroke="white" strokeWidth="0.4" strokeOpacity="0.4" />
           </svg>
 
-          {/* Joueurs sur le terrain */}
           {positions.map(pos => {
-            const player = team[pos.id];
+            const player     = team[pos.id];
             const isSelecting = selecting === pos.id;
-
             return (
               <div key={pos.id}
                 className="absolute transform -translate-x-1/2 -translate-y-1/2"
                 style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
               >
                 {player ? (
-                  // Joueur assigné
-                  <motion.div
-                    initial={{ scale: 0 }} animate={{ scale: 1 }}
+                  <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
                     className="flex flex-col items-center cursor-pointer"
                     onClick={() => setSelecting(pos.id)}
                   >
                     <div className="relative">
-                      {/* Photo ou initiale */}
                       <div className={`w-10 h-10 rounded-full border-2 overflow-hidden ${
                         player.rarity === "legendary" ? "border-purple-400" :
                         player.rarity === "gold"      ? "border-yellow-400" :
-                        player.rarity === "silver"    ? "border-gray-300"   :
-                                                        "border-amber-600"
+                        player.rarity === "silver"    ? "border-gray-300"   : "border-amber-600"
                       }`}>
                         {player.image ? (
                           <img src={player.image} alt={player.name}
@@ -273,7 +238,6 @@ export default function Team() {
                           </div>
                         )}
                       </div>
-                      {/* Note */}
                       <div className="absolute -bottom-1 -right-1 bg-black text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center">
                         {player.rating}
                       </div>
@@ -286,9 +250,7 @@ export default function Team() {
                     </div>
                   </motion.div>
                 ) : (
-                  // Poste vide
-                  <motion.button
-                    whileTap={{ scale: 0.9 }}
+                  <motion.button whileTap={{ scale: 0.9 }}
                     onClick={() => setSelecting(pos.id)}
                     className={`flex flex-col items-center transition ${isSelecting ? "scale-110" : ""}`}
                   >
@@ -307,7 +269,7 @@ export default function Team() {
           })}
         </div>
 
-        {/* Légende rôles */}
+        {/* Légende */}
         <div className="flex gap-2 justify-center mb-4 text-xs">
           {[["GK","bg-yellow-500"],["DEF","bg-blue-500"],["MIL","bg-green-500"],["ATT","bg-red-500"]].map(([role, color]) => (
             <div key={role} className="flex items-center gap-1">
@@ -316,67 +278,6 @@ export default function Team() {
             </div>
           ))}
         </div>
-
-        {/* Sélecteur de joueur */}
-        <AnimatePresence>
-          {selecting && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              className="fixed inset-x-0 bottom-16 z-30 bg-gray-900 border-t border-white/10 rounded-t-2xl p-4 max-h-72 overflow-y-auto"
-            >
-              <div className="flex justify-between items-center mb-3">
-                <div>
-                  <p className="text-sm font-bold text-white">
-                    Choisir pour <span className="text-green-400">{positions.find(p => p.id === selecting)?.label}</span>
-                  </p>
-                  <p className="text-xs text-gray-400">{uniqueCards.length} cartes disponibles</p>
-                </div>
-                <div className="flex gap-2">
-                  {team[selecting] && (
-                    <button onClick={() => { handleRemovePlayer(selecting); setSelecting(null); }}
-                      className="text-xs text-red-400 hover:text-red-300 bg-red-400/10 px-3 py-1 rounded-lg">
-                      ✕ Retirer
-                    </button>
-                  )}
-                  <button onClick={() => setSelecting(null)}
-                    className="text-xs text-gray-400 hover:text-white bg-white/10 px-3 py-1 rounded-lg">
-                    Annuler
-                  </button>
-                </div>
-              </div>
-
-              {uniqueCards.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-400 text-sm mb-3">Tu n'as pas encore de cartes !</p>
-                  <Link to="/cards" onClick={() => setSelecting(null)}>
-                    <button className="bg-purple-500 text-white text-sm font-bold px-4 py-2 rounded-xl">
-                      🎁 Ouvrir des packs
-                    </button>
-                  </Link>
-                </div>
-              ) : (
-                <div className="flex gap-3 overflow-x-auto pb-2">
-                  {[...uniqueCards].sort((a, b) => b.rating - a.rating).map((card, i) => (
-                    <motion.div key={card.id}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => handleSelectPlayer(card)}
-                      className="shrink-0 cursor-pointer"
-                    >
-                      <PlayerCard player={card} size="sm" animate={false} />
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Overlay pour fermer le sélecteur */}
-        {selecting && (
-          <div className="fixed inset-0 z-20 bg-black/40" onClick={() => setSelecting(null)} />
-        )}
 
         {/* Info si collection vide */}
         {uniqueCards.length === 0 && (
@@ -391,6 +292,70 @@ export default function Team() {
           </div>
         )}
       </div>
+
+      {/* Sélecteur de joueur */}
+      <AnimatePresence>
+        {selecting && (
+          <>
+            <div className="fixed inset-0 z-20 bg-black/40" onClick={() => setSelecting(null)} />
+            <motion.div
+              initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="fixed inset-x-0 bottom-0 z-30 bg-gray-900 border-t border-white/10 rounded-t-2xl p-4 pb-20 max-h-80 overflow-y-auto"
+            >
+              <div className="flex justify-between items-center mb-3">
+                <div>
+                  <p className="text-sm font-bold text-white">
+                    Poste : <span className="text-green-400">{positions.find(p => p.id === selecting)?.label}</span>
+                  </p>
+                  <p className="text-xs text-gray-400">{uniqueCards.length} cartes · {usedPlayerIds.length} déjà placés</p>
+                </div>
+                <div className="flex gap-2">
+                  {team[selecting] && (
+                    <button onClick={() => { handleRemovePlayer(selecting); setSelecting(null); }}
+                      className="text-xs text-red-400 bg-red-400/10 px-3 py-1 rounded-lg">
+                      ✕ Retirer
+                    </button>
+                  )}
+                  <button onClick={() => setSelecting(null)}
+                    className="text-xs text-gray-400 bg-white/10 px-3 py-1 rounded-lg">
+                    Annuler
+                  </button>
+                </div>
+              </div>
+
+              {uniqueCards.length === 0 ? (
+                <div className="text-center py-6">
+                  <p className="text-gray-400 text-sm mb-3">Aucune carte disponible</p>
+                  <Link to="/cards" onClick={() => setSelecting(null)}>
+                    <button className="bg-purple-500 text-white text-sm font-bold px-4 py-2 rounded-xl">
+                      🎁 Ouvrir des packs
+                    </button>
+                  </Link>
+                </div>
+              ) : (
+                <div className="flex gap-3 overflow-x-auto pb-2">
+                  {[...uniqueCards].sort((a, b) => b.rating - a.rating).map(card => {
+                    const isUsed = usedPlayerIds.includes(card.id);
+                    return (
+                      <motion.div key={card.id}
+                        whileTap={{ scale: isUsed ? 1 : 0.95 }}
+                        onClick={() => !isUsed && handleSelectPlayer(card)}
+                        className={`shrink-0 ${isUsed ? "opacity-30 cursor-not-allowed" : "cursor-pointer"}`}
+                      >
+                        <PlayerCard player={card} size="sm" animate={false} />
+                        {isUsed && (
+                          <div className="text-center text-[10px] text-red-400 font-bold mt-1">Déjà placé</div>
+                        )}
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
