@@ -126,7 +126,7 @@ export default function ShareCard() {
           const dw    = img.width  * scale;
           const dh    = img.height * scale;
           const dx    = (W - dw) / 2;
-          const dy    = dh * 0.1 * -1; // Commencer à 10% en dessous du haut
+          const dy = dh * 0.05 * -1; // Commencer à 5% du haut
           ctx.drawImage(img, dx, dy, dw, dh);
           ctx.restore();
           resolve();
