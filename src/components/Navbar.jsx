@@ -39,6 +39,7 @@ const DRAWER_LINKS = [
   { to: "/share",       label: "Partager",     emoji: "📲" },
   { to: "/team", label: "Mon Équipe", emoji: "⚽" },
   { to: "/badges", label: "Badges", emoji: "🏅" },
+  { to: "/share-card", label: "Ma Carte", emoji: "🃏" },
 ];
 
 export default function Navbar() {

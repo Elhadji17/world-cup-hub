@@ -19,6 +19,8 @@ import Team from "./pages/Team";
 import Badges from "./pages/Badges";
 import ShopCoins   from "./pages/ShopCoins";
 import ShopSuccess from "./pages/ShopSuccess";
+import ShareCard from "./pages/ShareCard";
+
 
 
 
@@ -81,6 +83,7 @@ function AnimatedRoutes() {
 
         <Route path="/shop/coins"   element={<PageWrapper><ShopCoins /></PageWrapper>} />
         <Route path="/shop/success" element={<ShopSuccess />} />
+        <Route path="/share-card" element={<PageWrapper><ShareCard /></PageWrapper>} />
         
         
 
