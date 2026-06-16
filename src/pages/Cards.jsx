@@ -1,25 +1,29 @@
 // src/pages/Cards.jsx
-// Système de cartes — Packs + Collection
+// Système de cartes — Packs + Collection + Échange doublons
 
 import { useState, useEffect }     from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate }             from "react-router-dom";
 import { useAuth }                 from "../hooks/useAuth";
 import { useGameStats }            from "../hooks/useGameStats.jsx";
-import { PACKS, openPack, PLAYERS } from "../data/players-cards";
+import { PACKS, openPack }         from "../data/players-cards";
 import PlayerCard                   from "../components/PlayerCard";
 
 const COLLECTION_KEY = "wch_cards";
 const API = import.meta.env.VITE_API_URL ?? "";
+
+// Coins gagnés par échange selon rareté
+const EXCHANGE_COINS = {
+  legendary: 200,
+  gold:      100,
+  silver:    30,
+  bronze:    15,
+};
 
 function loadCollection() {
   try { return JSON.parse(localStorage.getItem(COLLECTION_KEY)) ?? []; }
   catch { return []; }
 }
 
-function saveCollection(cards) {
-  localStorage.setItem(COLLECTION_KEY, JSON.stringify(cards));
-}
 function saveLocal(cards) {
   localStorage.setItem(COLLECTION_KEY, JSON.stringify(cards));
 }
@@ -36,65 +40,59 @@ async function saveToMongoDB(cards) {
   } catch {}
 }
 
-// ── Page principale ───────────────────────────────────────────────────────────
 export default function Cards() {
-  const navigate                  = useNavigate();
-  const { user }                  = useAuth();
-  const { coins, buyItem } = useGameStats();
-  const [tab,         setTab]     = useState("packs"); // packs | collection
+  const { user }           = useAuth();
+  const { coins, buyItem, refresh } = useGameStats();
+  const [tab,         setTab]        = useState("packs");
   const [collection,  setCollection] = useState(loadCollection);
-  const [opening,     setOpening] = useState(null);   // pack en cours d'ouverture
-  const [newCards,    setNewCards] = useState([]);     // cartes tirées
-  const [revealed,    setRevealed] = useState([]);     // cartes révélées une à une
-  const [message,     setMessage] = useState(null);
-  const [syncing, setSyncing] = useState(false);
-
-  // Ajoute après const [syncing, setSyncing] = useState(false);
-
-useEffect(() => {
-  const token = localStorage.getItem("wch_token");
-  if (!token) return;
-  setSyncing(true);
-  fetch(`${API}/api/quiz?action=cards`, {
-    headers: { "Authorization": `Bearer ${token}` },
-  })
-    .then(r => r.json())
-    .then(data => {
-      if (data.cards && data.cards.length > 0) {
-        setCollection(data.cards);
-        saveLocal(data.cards);
-      }
-    })
-    .catch(() => {})
-    .finally(() => setSyncing(false));
-}, []); // ← [] important : se déclenche UNE FOIS au montage
+  const [opening,     setOpening]    = useState(null);
+  const [newCards,    setNewCards]   = useState([]);
+  const [revealed,    setRevealed]   = useState([]);
+  const [message,     setMessage]    = useState(null);
+  const [syncing,     setSyncing]    = useState(false);
+  const [exchanging,  setExchanging] = useState(null); // id carte en cours d'échange
 
   function showMsg(type, text) {
     setMessage({ type, text });
     setTimeout(() => setMessage(null), 3000);
   }
 
+  // Charger collection depuis MongoDB au montage
+  useEffect(() => {
+    const token = localStorage.getItem("wch_token");
+    if (!token) return;
+    setSyncing(true);
+    fetch(`${API}/api/quiz?action=cards`, {
+      headers: { "Authorization": `Bearer ${token}` },
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.cards?.length > 0) {
+          setCollection(data.cards);
+          saveLocal(data.cards);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setSyncing(false));
+  }, []);
+
   async function handleBuyPack(pack) {
     if (!user) { showMsg("error", "Connecte-toi pour acheter un pack !"); return; }
     if (coins < pack.cost) { showMsg("error", `Pas assez de coins ! (${coins}/${pack.cost})`); return; }
 
-    // Déduire les coins via MongoDB
     const result = await buyItem(`pack_${pack.id}`);
     if (!result.success) { showMsg("error", result.error ?? "Erreur achat."); return; }
 
-    // Ouvrir le pack
     setOpening(pack);
     const cards = openPack(pack);
     setNewCards(cards);
     setRevealed([]);
 
-    // Révéler les cartes une par une
     for (let i = 0; i < cards.length; i++) {
       await new Promise(r => setTimeout(r, 800));
       setRevealed(prev => [...prev, i]);
     }
 
-    // Ajouter à la collection + sauvegarder MongoDB
     const newCollection = [...collection, ...cards];
     setCollection(newCollection);
     saveLocal(newCollection);
@@ -107,6 +105,39 @@ useEffect(() => {
     setRevealed([]);
   }
 
+  // Échanger UN doublon contre des coins
+  async function handleExchange(card) {
+    const count = collection.filter(c => c.id === card.id).length;
+    if (count < 2) return;
+
+    setExchanging(card.id);
+
+    // Supprimer UN exemplaire de la collection
+    const idx = collection.findLastIndex(c => c.id === card.id);
+    const newCollection = [...collection];
+    newCollection.splice(idx, 1);
+    setCollection(newCollection);
+    saveLocal(newCollection);
+    saveToMongoDB(newCollection);
+
+    // Ajouter les coins via backend
+    const coinsGained = EXCHANGE_COINS[card.rarity] ?? 15;
+    const token = localStorage.getItem("wch_token");
+    if (token) {
+      try {
+        await fetch(`${API}/api/quiz?action=exchange`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+          body: JSON.stringify({ rarity: card.rarity }),
+        });
+        await refresh(); // Rafraîchir les coins
+      } catch {}
+    }
+
+    showMsg("success", `+${coinsGained} 💰 coins pour ${card.name} en double !`);
+    setExchanging(null);
+  }
+
   // Stats collection
   const collectionByRarity = {
     legendary: collection.filter(c => c.rarity === "legendary").length,
@@ -116,6 +147,7 @@ useEffect(() => {
   };
 
   const uniqueCards = [...new Map(collection.map(c => [c.id, c])).values()];
+  const totalDoublons = collection.length - uniqueCards.length;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-900 via-black to-blue-900 text-white pb-20">
@@ -125,13 +157,15 @@ useEffect(() => {
         <div className="max-w-2xl mx-auto flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold">🃏 Cartes</h1>
-            <p className="text-xs text-gray-400">{uniqueCards.length} cartes uniques · {collection.length} total {syncing ? "· 🔄 Sync..." : "· ✅ Sauvegardé"}</p>
+            <p className="text-xs text-gray-400">
+              {uniqueCards.length} uniques · {collection.length} total
+              {totalDoublons > 0 && <span className="text-yellow-400"> · {totalDoublons} doublon{totalDoublons > 1 ? "s" : ""}</span>}
+              {syncing ? " · 🔄 Sync..." : " · ✅ Sauvegardé"}
+            </p>
           </div>
-          <div className="flex gap-2 items-center">
-            <div className="bg-yellow-500/20 border border-yellow-400/30 rounded-xl px-3 py-1 text-center">
-              <div className="text-sm font-bold text-yellow-400">{coins} 💰</div>
-              <div className="text-xs text-gray-400">coins</div>
-            </div>
+          <div className="bg-yellow-500/20 border border-yellow-400/30 rounded-xl px-3 py-1 text-center">
+            <div className="text-sm font-bold text-yellow-400">{coins} 💰</div>
+            <div className="text-xs text-gray-400">coins</div>
           </div>
         </div>
       </div>
@@ -171,7 +205,6 @@ useEffect(() => {
         {/* ── PACKS ── */}
         {tab === "packs" && (
           <div>
-            {/* Stats raretés */}
             <div className="grid grid-cols-4 gap-2 mb-5">
               {[
                 { label: "💎 Légend.", count: collectionByRarity.legendary, color: "text-purple-400" },
@@ -186,7 +219,14 @@ useEffect(() => {
               ))}
             </div>
 
-            {/* Liste des packs */}
+            {/* Info échange */}
+            <div className="mb-5 bg-yellow-500/10 border border-yellow-400/20 rounded-xl px-4 py-3 text-xs text-yellow-200">
+              💡 Les doublons peuvent être échangés contre des coins dans ta collection !
+              <span className="block mt-1 text-gray-400">
+                🟫 +15 · ⬜ +30 · 🟨 +100 · 💎 +200 coins
+              </span>
+            </div>
+
             <div className="space-y-4">
               {PACKS.map((pack, i) => (
                 <motion.div key={pack.id}
@@ -205,7 +245,7 @@ useEffect(() => {
                     <div className="flex-1">
                       <h3 className="font-black text-white text-lg">{pack.name}</h3>
                       <p className="text-sm text-gray-300 mb-1">{pack.desc}</p>
-                      <div className="flex gap-2 text-xs">
+                      <div className="flex gap-2 text-xs flex-wrap">
                         {Object.entries(pack.probabilities).filter(([,v]) => v > 0).map(([rarity, prob]) => (
                           <span key={rarity} className="bg-black/30 px-2 py-0.5 rounded-full text-gray-300">
                             {rarity === "legendary" ? "💎" : rarity === "gold" ? "🟨" : rarity === "silver" ? "⬜" : "🟫"} {Math.round(prob * 100)}%
@@ -239,7 +279,6 @@ useEffect(() => {
               <div className="text-center py-20">
                 <div className="text-6xl mb-4">🃏</div>
                 <p className="text-gray-400 mb-2">Aucune carte pour l'instant</p>
-                <p className="text-sm text-gray-500">Achète des packs pour obtenir des cartes !</p>
                 <motion.button whileTap={{ scale: 0.97 }} onClick={() => setTab("packs")}
                   className="mt-4 bg-purple-500 hover:bg-purple-400 text-white font-bold px-6 py-3 rounded-xl transition">
                   🎁 Voir les packs
@@ -247,7 +286,13 @@ useEffect(() => {
               </div>
             ) : (
               <div>
-                {/* Groupé par rareté */}
+                {/* Info si doublons */}
+                {totalDoublons > 0 && (
+                  <div className="mb-4 bg-yellow-500/10 border border-yellow-400/20 rounded-xl px-4 py-3 text-xs text-yellow-200">
+                    🔄 Tu as <span className="font-bold">{totalDoublons} doublon{totalDoublons > 1 ? "s" : ""}</span> — clique sur "Échanger" pour les convertir en coins !
+                  </div>
+                )}
+
                 {["legendary", "gold", "silver", "bronze"].map(rarity => {
                   const rarityCards = uniqueCards.filter(c => c.rarity === rarity);
                   if (rarityCards.length === 0) return null;
@@ -255,22 +300,43 @@ useEffect(() => {
                   return (
                     <div key={rarity} className="mb-6">
                       <h3 className="text-sm font-bold text-gray-300 mb-3">{labels[rarity]} ({rarityCards.length})</h3>
-                      <div className="flex flex-wrap gap-3">
-                        {rarityCards.map((card, i) => (
-                          <motion.div key={`${card.id}-${i}`}
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: i * 0.05 }}
-                          >
-                            <PlayerCard player={card} size="sm" />
-                            {/* Nombre d'exemplaires */}
-                            {collection.filter(c => c.id === card.id).length > 1 && (
-                              <div className="text-center text-xs text-yellow-400 font-bold mt-1">
-                                ×{collection.filter(c => c.id === card.id).length}
+                      <div className="grid grid-cols-2 gap-3">
+                        {rarityCards.map((card, i) => {
+                          const count    = collection.filter(c => c.id === card.id).length;
+                          const isDouble = count > 1;
+                          return (
+                            <motion.div key={`${card.id}-${i}`}
+                              initial={{ opacity: 0, scale: 0.8 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              transition={{ delay: i * 0.05 }}
+                              className="flex flex-col items-center"
+                            >
+                              <div className="relative">
+                                <PlayerCard player={card} size="sm" animate={!isDouble} />
+                                {/* Badge doublon */}
+                                {isDouble && (
+                                  <div className="absolute -top-2 -right-2 bg-yellow-400 text-black text-xs font-black w-6 h-6 rounded-full flex items-center justify-center">
+                                    ×{count}
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </motion.div>
-                        ))}
+                              <div className="text-xs text-gray-400 mt-1 text-center truncate w-full">
+                                {card.name.split(" ").pop()}
+                              </div>
+                              {/* Bouton échanger si doublon */}
+                              {isDouble && (
+                                <motion.button
+                                  whileTap={{ scale: 0.95 }}
+                                  onClick={() => handleExchange(card)}
+                                  disabled={exchanging === card.id}
+                                  className="mt-1 bg-yellow-500/20 hover:bg-yellow-500/40 border border-yellow-400/40 text-yellow-300 text-xs font-bold px-3 py-1 rounded-lg transition w-full text-center"
+                                >
+                                  {exchanging === card.id ? "⏳" : `🔄 +${EXCHANGE_COINS[card.rarity]} 💰`}
+                                </motion.button>
+                              )}
+                            </motion.div>
+                          );
+                        })}
                       </div>
                     </div>
                   );
@@ -290,17 +356,13 @@ useEffect(() => {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center px-4"
           >
-            <motion.div
-              initial={{ scale: 0.5, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="text-center mb-8"
-            >
+            <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+              className="text-center mb-8">
               <div className="text-6xl mb-2">{opening.emoji}</div>
               <h2 className="text-2xl font-black text-white">{opening.name}</h2>
               <p className="text-gray-400 text-sm">Tes cartes sont révélées...</p>
             </motion.div>
 
-            {/* Cartes révélées */}
             <div className="flex gap-4 justify-center flex-wrap mb-8">
               {newCards.map((card, i) => (
                 <motion.div key={i}
@@ -324,8 +386,7 @@ useEffect(() => {
 
             {revealed.length === newCards.length && (
               <motion.button
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={closeOpening}
                 className="bg-purple-500 hover:bg-purple-400 text-white font-bold px-8 py-4 rounded-2xl transition text-lg"
