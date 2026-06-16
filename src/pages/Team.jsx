@@ -101,10 +101,12 @@ export default function Team() {
   const filledCount = positions.filter(p => team[p.id]).length;
 
   // Joueurs déjà utilisés (sauf poste en cours de sélection)
-  const usedPlayerIds = Object.entries(team)
-    .filter(([posId]) => posId !== selecting)
-    .map(([, player]) => player?.id)
-    .filter(Boolean);
+  const usedCount = {};
+    Object.entries(team)
+      .filter(([posId]) => posId !== selecting)
+      .forEach(([, player]) => {
+        if (player?.id) usedCount[player.id] = (usedCount[player.id] ?? 0) + 1;
+      });
 
   // Charger collection
   useEffect(() => {
@@ -336,7 +338,9 @@ export default function Team() {
               ) : (
                 <div className="flex gap-3 overflow-x-auto pb-2">
                   {[...uniqueCards].sort((a, b) => b.rating - a.rating).map(card => {
-                    const isUsed = usedPlayerIds.includes(card.id);
+                    const cardCount = collection.filter(c => c.id === card.id).length;
+                    const placedCount = usedCount[card.id] ?? 0;
+                    const isUsed = placedCount >= cardCount;
                     return (
                       <motion.div key={card.id}
                         whileTap={{ scale: isUsed ? 1 : 0.95 }}
