@@ -74,6 +74,17 @@ const FEATURES = [
   btnCls: "bg-green-500 hover:bg-green-400",
   auth:   false,
 },
+{
+  to:     "/cards",
+  emoji:  "🃏",
+  title:  "Cartes Joueurs",
+  desc:   "Ouvre des packs · Collecte des stars · Légendaires rares",
+  color:  "from-purple-600 to-pink-700",
+  border: "border-purple-400/30",
+  btn:    "Ouvrir des packs",
+  btnCls: "bg-purple-500 hover:bg-purple-400",
+  auth:   false,
+},
 ];
 
 const STATS = [

@@ -13,6 +13,7 @@ const BOTTOM_LINKS = [
   { to: "/predictions", label: "Pronostics",emoji: "🔮" },
   { to: "/matches",     label: "Matchs",    emoji: "📅" },
   { to: "/leaderboard", label: "Classement",emoji: "🏆" },
+  { to: "/cards", label: "Cartes", emoji: "🃏" },
 ];
 
 // Liens desktop complets
@@ -24,6 +25,7 @@ const DESKTOP_LINKS = [
   { to: "/leaderboard", label: "Classement" },
   { to: "/share",       label: "Partager"   },
   { to: "/shop",        label: "Shop"       },
+  { to: "/cards", label: "Cartes" },
 ];
 
 export default function Navbar() {

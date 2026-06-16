@@ -10,7 +10,7 @@ import LeaderboardPage from "./pages/Leaderboard";
 import Admin from "./pages/Admin";
 import Share from "./pages/Share";
 import ResetPassword from "./pages/ResetPassword";
-import Hub from './pages/Hub';
+import Cards from "./pages/Cards";
 import QuizHub  from "./pages/QuizHub";
 import QuizPlayers from "./pages/QuizPlayers";
 import Shop           from "./pages/Shop";
@@ -68,8 +68,9 @@ function AnimatedRoutes() {
         <Route path="/share" element={<PageWrapper><Share /></PageWrapper>} />
         <Route path="/reset-password" element={<PageWrapper><ResetPassword /></PageWrapper>} />
         <Route path="/shop"            element={<PageWrapper><Shop /></PageWrapper>} />
+        <Route path="/cards" element={<PageWrapper><Cards /></PageWrapper>} />
         
-        <Route path="/Hub" element={<Hub />} />
+        
         
 
       </Routes>

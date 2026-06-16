@@ -1,73 +1,103 @@
-import React from 'react';
+// src/components/PlayerCard.jsx
+// Carte joueur style FIFA Ultimate Team
 
-const PlayerCard = ({ player }) => {
-  const rarityStyles = {
-    Commun: { border: 'border-slate-500', shadow: 'shadow-md', bgEffect: 'bg-slate-900', text: 'text-slate-400' },
-    Rare: { border: 'border-blue-500', shadow: 'shadow-blue-500/30 shadow-lg', bgEffect: 'bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900', text: 'text-blue-400' },
-    Épique: { border: 'border-purple-500', shadow: 'shadow-purple-500/40 shadow-xl', bgEffect: 'bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900', text: 'text-purple-400' },
-    Légendaire: { border: 'border-amber-400', shadow: 'shadow-amber-500/50 shadow-2xl', bgEffect: 'bg-gradient-to-br from-slate-900 via-amber-950/40 to-slate-900', text: 'text-amber-400' }
-  };
+import { useState } from "react";
+import { motion }   from "framer-motion";
 
-  const styleIcons = { Physique: '⚡', Technique: '🎯', Tactique: '🧠' };
-  const style = rarityStyles[player.rarity] || rarityStyles.Commun;
-
-  return (
-    <div className={`w-[230px] h-[330px] rounded-2xl border-2 ${style.border} ${style.bgEffect} ${style.shadow} flex flex-col justify-between p-3 select-none overflow-hidden text-white transition-all duration-300 hover:scale-105`}>
-      
-      {/* HEADER */}
-      <div className="flex justify-between items-center">
-        <div className="flex flex-col items-center leading-none">
-          <span className="text-[10px] uppercase font-bold text-slate-400">{player.position.substring(0, 3)}.</span>
-          <span className={`text-xl font-black ${style.text}`}>{player.rating}</span>
-        </div>
-        <div className="text-xl filter drop-shadow-md">{player.flag}</div>
-      </div>
-
-      {/* AVATAR (MIS À JOUR AVEC UNE VRAIE IMAGE) */}
-      <div className="relative w-full h-[150px] flex items-center justify-center my-1">
-        <div className="absolute w-[110px] h-[110px] rounded-full bg-slate-800/40 blur-sm border border-white/5" />
-        <img 
-          src={player.imageUrl} 
-          alt={player.name} 
-          className="h-full object-contain z-10 filter drop-shadow-[0_8px_8px_rgba(0,0,0,0.5)] transition-transform duration-300"
-          onError={(e) => { 
-            // Si l'image d'un autre joueur n'existe pas encore, on remet le petit bonhomme de secours
-            e.target.style.display = 'none';
-            const fallback = document.createElement('div');
-            fallback.className = 'text-4xl filter drop-shadow-md z-10';
-            fallback.innerText = '🏃‍♂️';
-            e.target.parentNode.appendChild(fallback);
-          }}
-        />
-      </div>
-
-      {/* IDENTITÉ */}
-      <div className="text-center">
-        <h3 className="text-sm font-black tracking-wider uppercase truncate max-w-full">
-          {player.name}
-        </h3>
-        <span className="text-[10px] uppercase tracking-widest text-slate-400 font-semibold">
-          {player.nation}
-        </span>
-      </div>
-
-      {/* STATS */}
-      <div className="border-t border-white/10 pt-2 flex justify-between items-center px-2 bg-black/20 rounded-lg p-1.5 backdrop-blur-sm">
-        <div className="flex flex-col items-center">
-          <span className="text-[9px] text-slate-400 uppercase font-medium">ATT</span>
-          <span className="text-base font-extrabold text-emerald-400">{player.final_att}</span>
-        </div>
-        <div className="flex flex-col items-center justify-center bg-slate-800/80 w-7 h-7 rounded-full border border-white/10">
-          <span className="text-sm">{styleIcons[player.type]}</span>
-        </div>
-        <div className="flex flex-col items-center">
-          <span className="text-[9px] text-slate-400 uppercase font-medium">DEF</span>
-          <span className="text-base font-extrabold text-rose-400">{player.final_def}</span>
-        </div>
-      </div>
-
-    </div>
-  );
+const RARITY_STYLES = {
+  bronze:    { bg: "from-amber-900 via-amber-700 to-amber-800",    border: "border-amber-500",    text: "text-amber-200",    glow: "0 0 20px rgba(205,127,50,0.6)"  },
+  silver:    { bg: "from-gray-600 via-gray-400 to-gray-500",        border: "border-gray-300",     text: "text-gray-100",     glow: "0 0 20px rgba(192,192,192,0.6)" },
+  gold:      { bg: "from-yellow-700 via-yellow-500 to-amber-600",   border: "border-yellow-300",   text: "text-yellow-100",   glow: "0 0 20px rgba(255,215,0,0.7)"   },
+  legendary: { bg: "from-purple-900 via-purple-600 to-pink-700",    border: "border-purple-300",   text: "text-purple-100",   glow: "0 0 30px rgba(168,85,247,0.8)"  },
 };
 
-export default PlayerCard;
+const STAT_COLORS = {
+  PAC: "text-green-300",
+  TIR: "text-red-300",
+  PAS: "text-blue-300",
+  DRI: "text-yellow-300",
+  DEF: "text-cyan-300",
+  PHY: "text-orange-300",
+};
+
+export default function PlayerCard({ player, size = "md", animate = true, onClick }) {
+  const [imgError, setImgError] = useState(false);
+  const style = RARITY_STYLES[player.rarity] ?? RARITY_STYLES.bronze;
+
+  const sizes = {
+    sm: { card: "w-28 h-40",  img: "h-16", name: "text-xs", rating: "text-lg", stat: "text-[9px]" },
+    md: { card: "w-40 h-56",  img: "h-24", name: "text-sm", rating: "text-2xl", stat: "text-xs"  },
+    lg: { card: "w-56 h-80",  img: "h-36", name: "text-base", rating: "text-3xl", stat: "text-sm" },
+  };
+  const s = sizes[size] ?? sizes.md;
+
+  const card = (
+    <div
+      onClick={onClick}
+      className={`relative ${s.card} rounded-xl border-2 ${style.border} bg-gradient-to-b ${style.bg} overflow-hidden cursor-pointer select-none`}
+      style={{ boxShadow: animate ? style.glow : "none" }}
+    >
+      {/* Badge rareté */}
+      <div className={`absolute top-1.5 left-1.5 text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-black/40 ${style.text}`}>
+        {player.rarity === "legendary" ? "💎 LÉGEND." : player.rarity === "gold" ? "🟨 OR" : player.rarity === "silver" ? "⬜ ARGENT" : "🟫 BRONZE"}
+      </div>
+
+      {/* Note globale */}
+      <div className={`absolute top-1.5 right-1.5 ${s.rating} font-black ${style.text} drop-shadow-lg`}>
+        {player.rating}
+      </div>
+
+      {/* Photo joueur */}
+      <div className={`${s.img} w-full overflow-hidden mt-4`}>
+        {player.image && !imgError ? (
+          <img
+            src={player.image}
+            alt={player.name}
+            onError={() => setImgError(true)}
+            className="w-full h-full object-cover object-top"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-4xl">
+            {player.flag}
+          </div>
+        )}
+      </div>
+
+      {/* Infos joueur */}
+      <div className="px-2 py-1">
+        <div className={`${s.name} font-black text-white text-center truncate drop-shadow`}>
+          {player.name.split(" ").pop()}
+        </div>
+        <div className="flex items-center justify-center gap-1 mb-1">
+          <span className="text-[9px] text-white/70 font-bold">{player.position}</span>
+          <span className="text-[9px]">{player.flag}</span>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-x-2 gap-y-0.5">
+          {Object.entries(player.stats).map(([key, val]) => (
+            <div key={key} className="flex items-center gap-0.5">
+              <span className={`${s.stat} font-black ${STAT_COLORS[key] ?? "text-white"}`}>{val}</span>
+              <span className={`${s.stat} text-white/50 font-semibold`}>{key}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Reflet brillant */}
+      <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent pointer-events-none rounded-xl" />
+    </div>
+  );
+
+  if (!animate) return card;
+
+  return (
+    <motion.div
+      whileHover={{ scale: 1.05, rotateY: 5 }}
+      whileTap={{ scale: 0.97 }}
+      transition={{ type: "spring", stiffness: 300 }}
+    >
+      {card}
+    </motion.div>
+  );
+}
