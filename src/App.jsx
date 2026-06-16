@@ -17,7 +17,8 @@ import Shop           from "./pages/Shop";
 import Profile from "./pages/Profile";
 import Team from "./pages/Team";
 import Badges from "./pages/Badges";
-
+import ShopCoins   from "./pages/ShopCoins";
+import ShopSuccess from "./pages/ShopSuccess";
 
 
 
@@ -76,6 +77,10 @@ function AnimatedRoutes() {
         <Route path="/profile" element={<PageWrapper><Profile /></PageWrapper>} />
         <Route path="/team" element={<PageWrapper><Team /></PageWrapper>} />
         <Route path="/badges" element={<PageWrapper><Badges /></PageWrapper>} />
+        
+
+        <Route path="/shop/coins"   element={<PageWrapper><ShopCoins /></PageWrapper>} />
+        <Route path="/shop/success" element={<ShopSuccess />} />
         
         
 

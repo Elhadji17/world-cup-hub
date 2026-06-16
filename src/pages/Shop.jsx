@@ -273,6 +273,11 @@ export default function Shop() {
             );
           })}
         </div>
+        <Link to="/shop/coins"
+          className="block mb-5 bg-yellow-500/20 border border-yellow-400/30 rounded-2xl px-5 py-4 text-center hover:bg-yellow-500/30 transition">
+          <div className="text-lg font-black text-yellow-400">💳 Acheter des coins</div>
+          <div className="text-xs text-gray-400">Paiement sécurisé · CB · Apple Pay · Google Pay</div>
+        </Link>
 
         {/* Comment gagner des coins */}
         <div className="mt-8 bg-white/5 rounded-2xl p-5 border border-white/10">
