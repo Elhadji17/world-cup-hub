@@ -49,6 +49,26 @@ export default function Cards() {
   const [message,     setMessage] = useState(null);
   const [syncing, setSyncing] = useState(false);
 
+  // Ajoute après const [syncing, setSyncing] = useState(false);
+
+useEffect(() => {
+  const token = localStorage.getItem("wch_token");
+  if (!token) return;
+  setSyncing(true);
+  fetch(`${API}/api/quiz?action=cards`, {
+    headers: { "Authorization": `Bearer ${token}` },
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data.cards && data.cards.length > 0) {
+        setCollection(data.cards);
+        saveLocal(data.cards);
+      }
+    })
+    .catch(() => {})
+    .finally(() => setSyncing(false));
+}, []); // ← [] important : se déclenche UNE FOIS au montage
+
   function showMsg(type, text) {
     setMessage({ type, text });
     setTimeout(() => setMessage(null), 3000);
