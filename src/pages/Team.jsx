@@ -310,7 +310,7 @@ export default function Team() {
                   <p className="text-sm font-bold text-white">
                     Poste : <span className="text-green-400">{positions.find(p => p.id === selecting)?.label}</span>
                   </p>
-                  <p className="text-xs text-gray-400">{uniqueCards.length} cartes · {usedPlayerIds.length} déjà placés</p>
+                  <p className="text-xs text-gray-400">{uniqueCards.length} cartes · {Object.values(usedCount).reduce((a, b) => a + b, 0)} déjà placés</p>
                 </div>
                 <div className="flex gap-2">
                   {team[selecting] && (
