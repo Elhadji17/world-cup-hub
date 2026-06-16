@@ -61,7 +61,7 @@ export default function ShopCoins() {
 
     try {
       const token = localStorage.getItem("wch_token");
-      const res   = await fetch(`${API}/api/stripe/checkout`, {
+      const res   = await fetch(`${API}/api/quiz?action=stripe-checkout`, {
         method:  "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body:    JSON.stringify({ packId: pack.id }),
