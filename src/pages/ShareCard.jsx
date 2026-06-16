@@ -82,9 +82,11 @@ export default function ShareCard() {
     setGenerating(true);
     const canvas = canvasRef.current;
     const ctx    = canvas.getContext("2d");
+    const SCALE = 3; // Haute résolution
     const W = 300, H = 460;
-    canvas.width  = W;
-    canvas.height = H;
+    canvas.width  = W * SCALE;
+    canvas.height = H * SCALE;
+    ctx.scale(SCALE, SCALE);
 
     // ── Fond carte dégradé FIFA ───────────────────────────────────────────
     const bgGrad = ctx.createLinearGradient(0, 0, W, H);
