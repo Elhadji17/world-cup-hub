@@ -1,271 +1,228 @@
 // src/pages/ShareCard.jsx
-// Carte de partage personnalisée — canvas HTML → image téléchargeable
+// Carte de partage style FIFA Ultimate Team
 
-import { useState, useEffect, useRef } from "react";
-import { motion }                       from "framer-motion";
-import { useAuth }                      from "../hooks/useAuth";
-import { useGameStats }                 from "../hooks/useGameStats.jsx";
+import { useState, useRef }          from "react";
+import { motion, AnimatePresence }   from "framer-motion";
+import { useAuth }                   from "../hooks/useAuth";
+import { useGameStats }              from "../hooks/useGameStats.jsx";
 
-const API            = import.meta.env.VITE_API_URL ?? "";
 const COLLECTION_KEY = "wch_cards";
 const TEAM_KEY       = "wch_team";
 
 const MEDALS = [
-  { min: 0,    emoji: "⚽", label: "Débutant"   },
-  { min: 100,  emoji: "🥉", label: "Confirmé"   },
-  { min: 300,  emoji: "🥈", label: "Expert"     },
-  { min: 700,  emoji: "🥇", label: "Champion"   },
-  { min: 1500, emoji: "👑", label: "Légendaire" },
+  { min: 0,    emoji: "⚽", label: "Débutant",   color: "#94a3b8", rarity: "bronze"    },
+  { min: 100,  emoji: "🥉", label: "Confirmé",   color: "#cd7f32", rarity: "bronze"    },
+  { min: 300,  emoji: "🥈", label: "Expert",     color: "#c0c0c0", rarity: "silver"    },
+  { min: 700,  emoji: "🥇", label: "Champion",   color: "#ffd700", rarity: "gold"      },
+  { min: 1500, emoji: "👑", label: "Légendaire", color: "#a855f7", rarity: "legendary" },
 ];
+
+const RARITY_STYLES = {
+  bronze:    { bg1: "#78350f", bg2: "#92400e", bg3: "#b45309", accent: "#fbbf24", cardBg: "#451a03" },
+  silver:    { bg1: "#374151", bg2: "#4b5563", bg3: "#6b7280", accent: "#e5e7eb", cardBg: "#1f2937" },
+  gold:      { bg1: "#713f12", bg2: "#92400e", bg3: "#d97706", accent: "#fcd34d", cardBg: "#422006" },
+  legendary: { bg1: "#4c1d95", bg2: "#6d28d9", bg3: "#8b5cf6", accent: "#c4b5fd", cardBg: "#2e1065" },
+};
 
 function getMedal(pts) {
   return [...MEDALS].reverse().find(m => pts >= m.min) ?? MEDALS[0];
 }
 
-// Trouver le pronostic Sénégal
-const SENEGAL_MATCH_IDS = [25, 26, 27, 28, 29, 30]; // IDs matchs Sénégal
-
-export default function ShareCard() {
-  const canvasRef               = useRef(null);
-  const { user }                = useAuth();
-  const { coins, totalPoints, lives } = useGameStats();
-  const [pronos,   setPronos]   = useState([]);
-  const [loading,  setLoading]  = useState(true);
-  const [generated, setGenerated] = useState(false);
-  const [imageUrl, setImageUrl] = useState(null);
-
-  const collection = (() => {
-    try { return JSON.parse(localStorage.getItem(COLLECTION_KEY)) ?? []; }
-    catch { return []; }
-  })();
-
-  const team = (() => {
-    try { return JSON.parse(localStorage.getItem(TEAM_KEY)) ?? {}; }
-    catch { return {}; }
-  })();
-
-  const teamRating = (() => {
+function calcTeamRating() {
+  try {
+    const team    = JSON.parse(localStorage.getItem(TEAM_KEY)) ?? {};
     const players = Object.values(team).filter(Boolean);
     if (players.length === 0) return 0;
     return Math.round(players.reduce((s, p) => s + (p?.rating ?? 0), 0) / players.length);
-  })();
+  } catch { return 0; }
+}
 
+export default function ShareCard() {
+  const canvasRef    = useRef(null);
+  const fileRef      = useRef(null);
+  const { user }     = useAuth();
+  const { coins, totalPoints, lives } = useGameStats();
+
+  const [userPhoto,   setUserPhoto]   = useState(null);
+  const [supportMsg,  setSupportMsg]  = useState("Allez les Lions ! 🦁🇸🇳");
+  const [imageUrl,    setImageUrl]    = useState(null);
+  const [generating,  setGenerating]  = useState(false);
+
+  const collection  = (() => { try { return JSON.parse(localStorage.getItem(COLLECTION_KEY)) ?? []; } catch { return []; } })();
+  const teamRating  = calcTeamRating();
   const medal       = getMedal(totalPoints);
-  const uniqueCards = [...new Map(collection.map(c => [c.id, c])).values()];
-  const goldCards   = collection.filter(c => c.rarity === "gold" || c.rarity === "legendary").length;
+  const style       = RARITY_STYLES[medal.rarity];
+  const uniqueCards = [...new Map(collection.map(c => [c.id, c])).values()].length;
 
-  // Charger pronostics
-  useEffect(() => {
-    const token = localStorage.getItem("wch_token");
-    if (!token) { setLoading(false); return; }
-    fetch(`${API}/api/predictions/me`, {
-      headers: { "Authorization": `Bearer ${token}` },
-    }).then(r => r.json())
-      .then(data => setPronos(data.predictions ?? []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [user]);
+  // Stats affichées sur la carte
+  const CARD_STATS = [
+    { label: "PTS",  value: Math.min(totalPoints, 99) },
+    { label: "QUI",  value: Math.min(Math.round(totalPoints / 10), 99) },
+    { label: "CAR",  value: Math.min(uniqueCards * 5, 99) },
+    { label: "EQU",  value: Math.min(teamRating, 99) },
+    { label: "COI",  value: Math.min(Math.round(coins / 10), 99) },
+    { label: "VIE",  value: Math.min(lives * 15, 99) },
+  ];
 
-  // Trouver pronostic Sénégal
-  const senegalProno = pronos.find(p =>
-    SENEGAL_MATCH_IDS.includes(p.matchId) ||
-    p.teamA?.includes("Sénégal") || p.teamB?.includes("Sénégal")
+  // Note globale carte
+  const cardRating = Math.min(
+    Math.round((totalPoints / 20) + (uniqueCards * 2) + (teamRating / 3)),
+    99
   );
 
-  // Générer la carte canvas
-  function generateCard() {
-    const canvas  = canvasRef.current;
-    const ctx     = canvas.getContext("2d");
-    const W = 400, H = 700;
+  function handlePhotoUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => setUserPhoto(ev.target.result);
+    reader.readAsDataURL(file);
+  }
+
+  async function generateCard() {
+    setGenerating(true);
+    const canvas = canvasRef.current;
+    const ctx    = canvas.getContext("2d");
+    const W = 320, H = 480;
     canvas.width  = W;
     canvas.height = H;
 
-    // Fond dégradé
-    const grad = ctx.createLinearGradient(0, 0, 0, H);
-    grad.addColorStop(0,   "#0f172a");
-    grad.addColorStop(0.4, "#1e3a5f");
-    grad.addColorStop(1,   "#0f172a");
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, W, H);
-
-    // Bordure verte
-    ctx.strokeStyle = "#22c55e";
-    ctx.lineWidth   = 3;
-    ctx.strokeRect(8, 8, W - 16, H - 16);
-
-    // Header
-    ctx.fillStyle   = "#22c55e";
-    ctx.font        = "bold 14px Arial";
-    ctx.textAlign   = "center";
-    ctx.fillText("⚽ WORLD CUP HUB 2026", W / 2, 40);
-
-    // Ligne séparatrice
-    ctx.strokeStyle = "#22c55e44";
-    ctx.lineWidth   = 1;
-    ctx.beginPath();
-    ctx.moveTo(30, 52); ctx.lineTo(W - 30, 52);
-    ctx.stroke();
-
-    // Avatar cercle
-    const avatarX = W / 2, avatarY = 100, avatarR = 40;
-    const avatarGrad = ctx.createRadialGradient(avatarX, avatarY, 0, avatarX, avatarY, avatarR);
-    avatarGrad.addColorStop(0, "#22c55e");
-    avatarGrad.addColorStop(1, "#1e40af");
-    ctx.fillStyle = avatarGrad;
-    ctx.beginPath();
-    ctx.arc(avatarX, avatarY, avatarR, 0, Math.PI * 2);
+    // ── Fond carte ────────────────────────────────────────────────────────
+    const bgGrad = ctx.createLinearGradient(0, 0, W, H);
+    bgGrad.addColorStop(0,   style.bg1);
+    bgGrad.addColorStop(0.5, style.bg2);
+    bgGrad.addColorStop(1,   style.bg3);
+    ctx.fillStyle = bgGrad;
+    roundRect(ctx, 0, 0, W, H, 20);
     ctx.fill();
 
-    // Initiale avatar
-    ctx.fillStyle = "white";
-    ctx.font      = "bold 36px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText(
-      user ? user.username.charAt(0).toUpperCase() : "?",
-      avatarX, avatarY + 13
-    );
+    // Effet brillant
+    const shineGrad = ctx.createLinearGradient(0, 0, W, H / 2);
+    shineGrad.addColorStop(0, "rgba(255,255,255,0.15)");
+    shineGrad.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = shineGrad;
+    roundRect(ctx, 0, 0, W, H, 20);
+    ctx.fill();
 
-    // Nom joueur
+    // Bordure
+    ctx.strokeStyle = style.accent;
+    ctx.lineWidth   = 2;
+    roundRect(ctx, 2, 2, W - 4, H - 4, 18);
+    ctx.stroke();
+
+    // ── Note globale (haut gauche) ────────────────────────────────────────
+    ctx.fillStyle = style.accent;
+    ctx.font      = "bold 42px Arial";
+    ctx.textAlign = "left";
+    ctx.fillText(cardRating, 20, 58);
+
+    // Position (haut gauche sous la note)
+    ctx.fillStyle = style.accent;
+    ctx.font      = "bold 14px Arial";
+    ctx.fillText(medal.label.toUpperCase().slice(0, 3), 20, 80);
+
+    // Flag Sénégal (haut droite)
+    ctx.font      = "32px Arial";
+    ctx.textAlign = "right";
+    ctx.fillText("🇸🇳", W - 15, 55);
+
+    // ── Photo joueur ──────────────────────────────────────────────────────
+    const photoY = 30, photoH = 200;
+
+    if (userPhoto) {
+      await new Promise(resolve => {
+        const img = new Image();
+        img.onload = () => {
+          // Clipper en forme ovale
+          ctx.save();
+          ctx.beginPath();
+          ctx.ellipse(W / 2, photoY + photoH / 2, 90, 100, 0, 0, Math.PI * 2);
+          ctx.clip();
+          ctx.drawImage(img, W / 2 - 90, photoY, 180, photoH);
+          ctx.restore();
+          resolve();
+        };
+        img.src = userPhoto;
+      });
+    } else {
+      // Avatar avec initiale
+      const avatarGrad = ctx.createRadialGradient(W/2, photoY + photoH/2, 0, W/2, photoY + photoH/2, 90);
+      avatarGrad.addColorStop(0, style.bg3);
+      avatarGrad.addColorStop(1, style.bg1);
+      ctx.fillStyle = avatarGrad;
+      ctx.beginPath();
+      ctx.ellipse(W / 2, photoY + photoH / 2, 90, 100, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = style.accent;
+      ctx.font      = "bold 80px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(
+        user ? user.username.charAt(0).toUpperCase() : "?",
+        W / 2, photoY + photoH / 2 + 28
+      );
+    }
+
+    // Dégradé bas photo
+    const fadeGrad = ctx.createLinearGradient(0, photoY + photoH / 2, 0, photoY + photoH + 20);
+    fadeGrad.addColorStop(0,   "rgba(0,0,0,0)");
+    fadeGrad.addColorStop(1,   style.bg1);
+    ctx.fillStyle = fadeGrad;
+    ctx.fillRect(0, photoY + photoH / 2, W, photoH / 2 + 20);
+
+    // ── Nom joueur ────────────────────────────────────────────────────────
     ctx.fillStyle = "white";
     ctx.font      = "bold 22px Arial";
-    ctx.fillText(user?.username ?? "Joueur", W / 2, 165);
+    ctx.textAlign = "center";
+    ctx.fillText((user?.username ?? "JOUEUR").toUpperCase(), W / 2, 258);
 
-    // Médaille
-    ctx.fillStyle = "#fbbf24";
-    ctx.font      = "14px Arial";
-    ctx.fillText(`${medal.emoji} ${medal.label} · ${totalPoints} pts`, W / 2, 188);
+    // Message de soutien
+    ctx.fillStyle = style.accent;
+    ctx.font      = "italic 11px Arial";
+    ctx.fillText(supportMsg.slice(0, 30), W / 2, 276);
 
-    // Ligne séparatrice
-    ctx.strokeStyle = "#ffffff22";
+    // ── Ligne séparatrice ─────────────────────────────────────────────────
+    ctx.strokeStyle = style.accent + "88";
     ctx.lineWidth   = 1;
     ctx.beginPath();
-    ctx.moveTo(30, 205); ctx.lineTo(W - 30, 205);
+    ctx.moveTo(20, 285); ctx.lineTo(W - 20, 285);
     ctx.stroke();
 
-    // ── Section pronostic Sénégal ──────────────────────────────────────────
-    ctx.fillStyle = "#94a3b8";
-    ctx.font      = "bold 11px Arial";
-    ctx.fillText("🔮 MON PRONOSTIC SÉNÉGAL", W / 2, 228);
+    // ── Stats (grille 3x2) ────────────────────────────────────────────────
+    const statsY  = 300;
+    const colW    = (W - 40) / 3;
 
-    if (senegalProno) {
-      // Fond pronostic
-      ctx.fillStyle = "#1e3a5f88";
-      roundRect(ctx, 30, 238, W - 60, 70, 12);
-      ctx.fill();
+    CARD_STATS.forEach((stat, i) => {
+      const col = i % 3;
+      const row = Math.floor(i / 3);
+      const x   = 20 + col * colW + colW / 2;
+      const y   = statsY + row * 45;
 
-      ctx.fillStyle = "white";
-      ctx.font      = "bold 18px Arial";
-      ctx.fillText(
-        `🇸🇳 Sénégal  ${senegalProno.scoreA} - ${senegalProno.scoreB}  ${getOpponentFlag(senegalProno)}`,
-        W / 2, 270
-      );
-      ctx.fillStyle = "#94a3b8";
-      ctx.font      = "12px Arial";
-      ctx.fillText(
-        senegalProno.isJoker ? "⭐ Joker posé sur ce match !" : "Match du groupe",
-        W / 2, 295
-      );
-    } else {
-      ctx.fillStyle = "#64748b";
-      ctx.font      = "13px Arial";
-      ctx.fillText("Aucun pronostic encore", W / 2, 268);
-      ctx.fillStyle = "#22c55e";
-      ctx.font      = "bold 12px Arial";
-      ctx.fillText("→ Rejoins et pronostique !", W / 2, 288);
-    }
-
-    // Ligne séparatrice
-    ctx.strokeStyle = "#ffffff22";
-    ctx.lineWidth   = 1;
-    ctx.beginPath();
-    ctx.moveTo(30, 322); ctx.lineTo(W - 30, 322);
-    ctx.stroke();
-
-    // ── Stats ──────────────────────────────────────────────────────────────
-    ctx.fillStyle = "#94a3b8";
-    ctx.font      = "bold 11px Arial";
-    ctx.fillText("📊 MES STATS", W / 2, 345);
-
-    const stats = [
-      { label: "Points Quiz",  value: totalPoints, color: "#fbbf24", x: W/4     },
-      { label: "Coins",        value: coins,        color: "#fbbf24", x: W/2     },
-      { label: "Cartes",       value: uniqueCards.length, color: "#a78bfa", x: 3*W/4 },
-    ];
-
-    stats.forEach(({ label, value, color, x }) => {
-      ctx.fillStyle = color;
-      ctx.font      = "bold 24px Arial";
+      ctx.fillStyle = style.accent;
+      ctx.font      = "bold 20px Arial";
       ctx.textAlign = "center";
-      ctx.fillText(value, x, 380);
-      ctx.fillStyle = "#94a3b8";
-      ctx.font      = "11px Arial";
-      ctx.fillText(label, x, 398);
+      ctx.fillText(stat.value, x, y + 20);
+
+      ctx.fillStyle = "rgba(255,255,255,0.6)";
+      ctx.font      = "bold 9px Arial";
+      ctx.fillText(stat.label, x, y + 33);
     });
 
-    // Note équipe
-    if (teamRating > 0) {
-      ctx.fillStyle = "#1e3a5f88";
-      roundRect(ctx, 30, 415, W - 60, 50, 12);
-      ctx.fill();
-      ctx.fillStyle = "#22c55e";
-      ctx.font      = "bold 28px Arial";
-      ctx.textAlign = "center";
-      ctx.fillText(`⚽ Note équipe : ${teamRating}`, W / 2, 448);
-    }
+    // ── Footer ────────────────────────────────────────────────────────────
+    ctx.fillStyle = "rgba(0,0,0,0.3)";
+    roundRect(ctx, 10, H - 45, W - 20, 35, 10);
+    ctx.fill();
 
-    // Cartes or/légendaires
-    if (goldCards > 0) {
-      ctx.fillStyle = "#fbbf2488";
-      roundRect(ctx, 30, 475, W - 60, 40, 10);
-      ctx.fill();
-      ctx.fillStyle = "#fbbf24";
-      ctx.font      = "bold 14px Arial";
-      ctx.fillText(`🟨 ${goldCards} carte${goldCards > 1 ? "s" : ""} Or/Légendaire${goldCards > 1 ? "s" : ""}`, W / 2, 500);
-    }
-
-    // Ligne séparatrice
-    ctx.strokeStyle = "#ffffff22";
-    ctx.lineWidth   = 1;
-    ctx.beginPath();
-    ctx.moveTo(30, 535); ctx.lineTo(W - 30, 535);
-    ctx.stroke();
-
-    // ── Appel à l'action ───────────────────────────────────────────────────
-    ctx.fillStyle = "#94a3b8";
-    ctx.font      = "12px Arial";
+    ctx.fillStyle = style.accent;
+    ctx.font      = "bold 10px Arial";
     ctx.textAlign = "center";
-    ctx.fillText("Rejoins-moi sur", W / 2, 565);
+    ctx.fillText("⚽ WORLD CUP HUB 2026", W / 2, H - 25);
+    ctx.fillStyle = "rgba(255,255,255,0.5)";
+    ctx.font      = "9px Arial";
+    ctx.fillText("worldcuphub2026.vercel.app", W / 2, H - 12);
 
-    ctx.fillStyle   = "#22c55e";
-    ctx.font        = "bold 16px Arial";
-    ctx.fillText("worldcuphub2026.vercel.app", W / 2, 590);
-
-    ctx.fillStyle = "#64748b";
-    ctx.font      = "11px Arial";
-    ctx.fillText("Quiz · Pronostics · Cartes · Équipe", W / 2, 612);
-
-    // Hashtags
-    ctx.fillStyle = "#1e40af";
-    ctx.font      = "bold 12px Arial";
-    ctx.fillText("#Sénégal #WorldCup2026 #LionsdelaTéranga", W / 2, 645);
-
-    // Footer
-    ctx.fillStyle = "#22c55e44";
-    ctx.fillRect(0, H - 50, W, 50);
-    ctx.fillStyle = "#22c55e";
-    ctx.font      = "bold 13px Arial";
-    ctx.fillText("⚽ WORLD CUP HUB 2026", W / 2, H - 20);
-
-    // Convertir en image
     const url = canvas.toDataURL("image/png");
     setImageUrl(url);
-    setGenerated(true);
-  }
-
-  function getOpponentFlag(prono) {
-    if (!prono) return "";
-    if (prono.teamA?.includes("Sénégal")) return prono.flagB ?? "🏳️";
-    return prono.flagA ?? "🏳️";
+    setGenerating(false);
   }
 
   function roundRect(ctx, x, y, w, h, r) {
@@ -285,132 +242,141 @@ export default function ShareCard() {
   function handleDownload() {
     const a    = document.createElement("a");
     a.href     = imageUrl;
-    a.download = `worldcuphub-${user?.username ?? "joueur"}.png`;
+    a.download = `wch-${user?.username ?? "joueur"}.png`;
     a.click();
   }
 
   function handleShare() {
     if (navigator.share) {
-      fetch(imageUrl)
-        .then(r => r.blob())
-        .then(blob => {
-          const file = new File([blob], "worldcuphub.png", { type: "image/png" });
-          navigator.share({
-            title: "World Cup Hub 2026",
-            text:  `Mon pronostic Sénégal sur worldcuphub2026.vercel.app 🦁🇸🇳`,
-            files: [file],
-          });
-        });
+      fetch(imageUrl).then(r => r.blob()).then(blob => {
+        const file = new File([blob], "worldcuphub.png", { type: "image/png" });
+        navigator.share({
+          title: "World Cup Hub 2026",
+          text:  `${supportMsg}\n👉 worldcuphub2026.vercel.app`,
+          files: [file],
+        }).catch(() => handleDownload());
+      });
     } else {
       handleDownload();
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-green-900 via-black to-blue-900 text-white pb-20">
+    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-black to-purple-900 text-white pb-20">
 
       {/* Header */}
       <div className="sticky top-0 z-20 bg-black/60 backdrop-blur-md border-b border-white/10 px-4 py-3">
         <div className="max-w-xl mx-auto">
-          <h1 className="text-2xl font-bold">📲 Ma Carte</h1>
-          <p className="text-xs text-gray-400">Génère ta carte et partage-la !</p>
+          <h1 className="text-2xl font-bold">🃏 Ma Carte de Fan</h1>
+          <p className="text-xs text-gray-400">Style FIFA · Partage sur WhatsApp</p>
         </div>
       </div>
 
-      <div className="max-w-xl mx-auto px-4 pt-6">
+      <canvas ref={canvasRef} className="hidden" />
 
-        {/* Canvas caché */}
-        <canvas ref={canvasRef} className="hidden" />
+      <div className="max-w-xl mx-auto px-4 pt-5 space-y-4">
 
-        {/* Aperçu carte */}
-        {!generated ? (
-          <div className="text-center py-10">
-            <div className="text-6xl mb-4">🃏</div>
-            <p className="text-gray-400 mb-6">
-              Génère ta carte personnalisée avec ton pronostic Sénégal, tes stats et ton équipe !
-            </p>
+        {/* Aperçu rareté */}
+        <div className={`rounded-2xl p-3 text-center border`}
+          style={{ background: style.bg1, borderColor: style.accent + "66" }}>
+          <p className="text-xs font-bold" style={{ color: style.accent }}>
+            {medal.emoji} Ta rareté : {medal.label} — {totalPoints} pts
+          </p>
+          <p className="text-xs text-gray-400 mt-0.5">Plus tu joues, plus ta carte est rare !</p>
+        </div>
 
-            {/* Aperçu infos */}
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-5 mb-6 text-left space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400 text-sm">👤 Joueur</span>
-                <span className="font-bold">{user?.username ?? "Non connecté"}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400 text-sm">🏆 Médaille</span>
-                <span className="font-bold">{medal.emoji} {medal.label}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400 text-sm">🔮 Pronostic Sénégal</span>
-                <span className="font-bold">
-                  {senegalProno ? `${senegalProno.scoreA}-${senegalProno.scoreB}` : "Aucun"}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400 text-sm">⚽ Note équipe</span>
-                <span className="font-bold">{teamRating > 0 ? teamRating : "—"}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400 text-sm">🃏 Cartes</span>
-                <span className="font-bold">{uniqueCards.length}</span>
+        {/* Upload photo */}
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+          <p className="text-sm font-bold text-white mb-3">📷 Ta photo (optionnel)</p>
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+
+          {userPhoto ? (
+            <div className="flex items-center gap-3">
+              <img src={userPhoto} alt="photo" className="w-16 h-16 rounded-full object-cover border-2 border-yellow-400" />
+              <div className="flex-1">
+                <p className="text-xs text-green-400 font-bold">✅ Photo ajoutée !</p>
+                <button onClick={() => setUserPhoto(null)} className="text-xs text-red-400 mt-1">Supprimer</button>
               </div>
             </div>
-
-            <motion.button
-              whileTap={{ scale: 0.97 }}
-              onClick={generateCard}
-              disabled={loading}
-              className="w-full bg-green-500 hover:bg-green-400 text-white font-black py-4 rounded-2xl text-lg transition"
-            >
-              {loading ? "⏳ Chargement..." : "🎨 Générer ma carte"}
+          ) : (
+            <motion.button whileTap={{ scale: 0.97 }}
+              onClick={() => fileRef.current.click()}
+              className="w-full bg-white/10 hover:bg-white/20 border border-dashed border-white/30 rounded-xl py-4 text-gray-300 text-sm transition">
+              📷 Ajouter ma photo
             </motion.button>
+          )}
+        </div>
+
+        {/* Message de soutien */}
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+          <p className="text-sm font-bold text-white mb-3">💬 Message de soutien</p>
+          <input
+            type="text"
+            value={supportMsg}
+            onChange={e => setSupportMsg(e.target.value)}
+            maxLength={30}
+            className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-yellow-400"
+            placeholder="Allez les Lions ! 🦁🇸🇳"
+          />
+          <p className="text-xs text-gray-500 mt-1 text-right">{supportMsg.length}/30</p>
+        </div>
+
+        {/* Stats sur la carte */}
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+          <p className="text-sm font-bold text-white mb-3">📊 Stats sur ta carte</p>
+          <div className="grid grid-cols-3 gap-2">
+            {CARD_STATS.map(({ label, value }) => (
+              <div key={label} className="text-center bg-white/5 rounded-xl py-2">
+                <div className="font-black text-yellow-400 text-lg">{value}</div>
+                <div className="text-[10px] text-gray-400">{label}</div>
+              </div>
+            ))}
           </div>
+        </div>
+
+        {/* Générer */}
+        {!imageUrl ? (
+          <motion.button whileTap={{ scale: 0.97 }}
+            onClick={generateCard}
+            disabled={generating}
+            className="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-black py-4 rounded-2xl text-lg transition">
+            {generating ? "⏳ Génération..." : "🎨 Générer ma carte FIFA"}
+          </motion.button>
         ) : (
-          <div>
-            {/* Image générée */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="flex justify-center mb-6"
-            >
-              <img src={imageUrl} alt="Ma carte" className="rounded-2xl shadow-2xl max-w-[300px] w-full" />
+          <div className="space-y-3">
+            {/* Carte générée */}
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+              className="flex justify-center">
+              <img src={imageUrl} alt="Ma carte" className="rounded-2xl shadow-2xl max-w-[240px] w-full" />
             </motion.div>
 
-            {/* Boutons partage */}
-            <div className="space-y-3">
-              <motion.button whileTap={{ scale: 0.97 }} onClick={handleShare}
-                className="w-full bg-green-500 hover:bg-green-400 text-white font-bold py-4 rounded-2xl transition flex items-center justify-center gap-2">
-                📲 Partager sur WhatsApp
-              </motion.button>
+            <motion.button whileTap={{ scale: 0.97 }} onClick={handleShare}
+              className="w-full bg-green-500 hover:bg-green-400 text-white font-bold py-4 rounded-2xl transition">
+              📲 Partager sur WhatsApp
+            </motion.button>
 
-              <motion.button whileTap={{ scale: 0.97 }} onClick={handleDownload}
-                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-2xl transition">
-                💾 Télécharger l'image
-              </motion.button>
+            <motion.button whileTap={{ scale: 0.97 }} onClick={handleDownload}
+              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-2xl transition">
+              💾 Télécharger
+            </motion.button>
 
-              <motion.button whileTap={{ scale: 0.97 }} onClick={() => setGenerated(false)}
-                className="w-full bg-white/10 hover:bg-white/20 text-white font-bold py-4 rounded-2xl transition">
-                🔄 Regénérer
-              </motion.button>
-            </div>
+            <motion.button whileTap={{ scale: 0.97 }} onClick={() => setImageUrl(null)}
+              className="w-full bg-white/10 hover:bg-white/20 text-white font-bold py-4 rounded-2xl transition">
+              🔄 Modifier et regénérer
+            </motion.button>
 
-            {/* Message WhatsApp prêt */}
-            <div className="mt-5 bg-green-500/10 border border-green-400/20 rounded-xl p-4">
-              <p className="text-xs text-gray-400 mb-2 font-bold">📋 Message à copier :</p>
-              <p className="text-sm text-white">
-                🦁 Allez les Lions ! 🇸🇳{"\n"}
-                Je pronostique {senegalProno ? `Sénégal ${senegalProno.scoreA}-${senegalProno.scoreB}` : "une victoire du Sénégal"} !{"\n"}
-                Rejoins-moi sur worldcuphub2026.vercel.app 🏆{"\n"}
+            {/* Message à copier */}
+            <div className="bg-green-500/10 border border-green-400/20 rounded-xl p-4">
+              <p className="text-xs text-gray-400 mb-2 font-bold">📋 Message WhatsApp :</p>
+              <p className="text-sm text-white leading-relaxed">
+                {supportMsg} {"\n"}
+                🏆 Rejoins-moi sur worldcuphub2026.vercel.app{"\n"}
+                Quiz · Pronostics · Cartes FIFA{"\n"}
                 #Sénégal #WorldCup2026
               </p>
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(
-                    `🦁 Allez les Lions ! 🇸🇳\nJe pronostique ${senegalProno ? `Sénégal ${senegalProno.scoreA}-${senegalProno.scoreB}` : "une victoire du Sénégal"} !\nRejoins-moi sur worldcuphub2026.vercel.app 🏆\n#Sénégal #WorldCup2026`
-                  );
-                }}
-                className="mt-2 text-xs text-green-400 font-bold hover:text-green-300"
-              >
+              <button onClick={() => navigator.clipboard.writeText(
+                `${supportMsg}\n🏆 Rejoins-moi sur worldcuphub2026.vercel.app\nQuiz · Pronostics · Cartes FIFA\n#Sénégal #WorldCup2026`
+              )} className="mt-2 text-xs text-green-400 font-bold">
                 📋 Copier le message
               </button>
             </div>
