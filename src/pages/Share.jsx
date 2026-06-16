@@ -7,6 +7,7 @@ import { useAuth } from "../hooks/useAuth";
 import { MATCHES, FLAGS } from "../data/matches";
 import { getMedal, agreesWithAI } from "../utils/scoring";
 import { AI_PREDICTIONS } from "../data/aiPredictions";
+import { useNavigate } from "react-router-dom";
 
 const STORAGE_KEY = "wch_predictions";
 
@@ -25,6 +26,7 @@ export default function Share() {
   const { user }       = useAuth();
   const cardRef        = useRef(null);
   const [copied, setCopied] = useState(false);
+  const navigate = useNavigate();
 
   const playerName  = user?.username ?? localStorage.getItem("playerName") ?? "Joueur";
   const predictions = loadPredictions();
@@ -71,7 +73,7 @@ export default function Share() {
       `${lines}\n\n` +
       `${savedCount} matchs pronostiqués · ${stats.withAI} accords avec l'IA\n` +
       `🔥 Rejoins-moi sur World Cup Hub !\n` +
-      `https://world-cup-hub-kappa.vercel.app`;
+      `https://worldcuphub2026.vercel.app`;
 
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   }
@@ -81,13 +83,13 @@ export default function Share() {
     const text =
       `⚽ Je pronostique la Coupe du Monde 2026 sur @WorldCupHub !\n` +
       `${savedCount} matchs pronostiqués ${medal.emoji}\n` +
-      `world-cup-hub-kappa.vercel.app`;
+      `worldcuphub2026.vercel.app`;
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, "_blank");
   }
 
   // Copier le lien
   function copyLink() {
-    navigator.clipboard.writeText("https://world-cup-hub-kappa.vercel.app");
+    navigator.clipboard.writeText("https://worldcuphub2026.vercel.app");
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
@@ -214,6 +216,16 @@ export default function Share() {
           >
             <span className="text-2xl">𝕏</span>
             Partager sur X / Twitter
+          </motion.button>
+
+          {/* Générer sa carte FIFA */}
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={() => navigate("/share-card")}
+            className="w-full flex items-center justify-center gap-3 bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-4 rounded-2xl transition"
+          >
+            <span className="text-2xl">🃏</span>
+            Générer ma carte de fan FIFA
           </motion.button>
 
           {/* Copier le lien */}
