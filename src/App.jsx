@@ -14,6 +14,7 @@ import Cards from "./pages/Cards";
 import QuizHub  from "./pages/QuizHub";
 import QuizPlayers from "./pages/QuizPlayers";
 import Shop           from "./pages/Shop";
+import Profile from "./pages/Profile";
 
 
 
@@ -69,6 +70,7 @@ function AnimatedRoutes() {
         <Route path="/reset-password" element={<PageWrapper><ResetPassword /></PageWrapper>} />
         <Route path="/shop"            element={<PageWrapper><Shop /></PageWrapper>} />
         <Route path="/cards" element={<PageWrapper><Cards /></PageWrapper>} />
+        <Route path="/profile" element={<PageWrapper><Profile /></PageWrapper>} />
         
         
         

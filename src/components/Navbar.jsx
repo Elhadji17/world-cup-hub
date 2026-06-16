@@ -26,6 +26,7 @@ const DESKTOP_LINKS = [
   { to: "/share",       label: "Partager"   },
   { to: "/shop",        label: "Shop"       },
   { to: "/cards", label: "Cartes" },
+  { to: "/profile", label: "Profil" },
 ];
 
 export default function Navbar() {
@@ -62,15 +63,12 @@ export default function Navbar() {
             })}
           </nav>
 
-          {/* Coins + Vies — toujours visible */}
-          <div className="flex items-center gap-2">
-            <Link to="/shop" className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl px-3 py-1.5 transition">
-              <span className="text-red-400 text-sm font-bold">❤️ {lives}</span>
-              <span className="text-white/20">|</span>
-              <span className="text-yellow-400 text-sm font-bold">{coins} C</span>
-            </Link>
-          </div>
-        </div>
+          {/* Profile */}
+          <Link to="/profile" className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl px-3 py-1.5 transition">
+            <span className="text-red-400 text-sm font-bold">❤️ {lives}</span>
+            <span className="text-white/20">|</span>
+            <span className="text-yellow-400 text-sm font-bold">{coins} C</span>
+          </Link>
       </header>
 
       {/* ── BOTTOM NAV — mobile seulement ───────────────────────────────── */}
