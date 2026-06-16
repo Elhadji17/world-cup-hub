@@ -69,6 +69,7 @@ export default function Navbar() {
             <span className="text-white/20">|</span>
             <span className="text-yellow-400 text-sm font-bold">{coins} C</span>
           </Link>
+          </div>
       </header>
 
       {/* ── BOTTOM NAV — mobile seulement ───────────────────────────────── */}
