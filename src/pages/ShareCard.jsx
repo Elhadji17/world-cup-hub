@@ -84,7 +84,7 @@ export default function ShareCard() {
     const canvas = canvasRef.current;
     const ctx    = canvas.getContext("2d");
 
-    const SCALE = 3;
+    const SCALE = 7;
     const W = 300, H = 460;
     canvas.width  = W * SCALE;
     canvas.height = H * SCALE;
