@@ -82,143 +82,190 @@ export default function ShareCard() {
     setGenerating(true);
     const canvas = canvasRef.current;
     const ctx    = canvas.getContext("2d");
-    const W = 320, H = 480;
+    const W = 300, H = 460;
     canvas.width  = W;
     canvas.height = H;
 
-    // ── Fond carte ────────────────────────────────────────────────────────
+    // ── Fond carte dégradé FIFA ───────────────────────────────────────────
     const bgGrad = ctx.createLinearGradient(0, 0, W, H);
     bgGrad.addColorStop(0,   style.bg1);
-    bgGrad.addColorStop(0.5, style.bg2);
+    bgGrad.addColorStop(0.6, style.bg2);
     bgGrad.addColorStop(1,   style.bg3);
     ctx.fillStyle = bgGrad;
-    roundRect(ctx, 0, 0, W, H, 20);
+    roundRect(ctx, 0, 0, W, H, 16);
     ctx.fill();
 
-    // Effet brillant
-    const shineGrad = ctx.createLinearGradient(0, 0, W, H / 2);
-    shineGrad.addColorStop(0, "rgba(255,255,255,0.15)");
+    // Reflet lumineux haut
+    const shineGrad = ctx.createLinearGradient(0, 0, W * 0.6, H * 0.5);
+    shineGrad.addColorStop(0, "rgba(255,255,255,0.12)");
     shineGrad.addColorStop(1, "rgba(255,255,255,0)");
     ctx.fillStyle = shineGrad;
-    roundRect(ctx, 0, 0, W, H, 20);
+    roundRect(ctx, 0, 0, W, H, 16);
     ctx.fill();
 
-    // Bordure
+    // Bordure dorée
     ctx.strokeStyle = style.accent;
-    ctx.lineWidth   = 2;
-    roundRect(ctx, 2, 2, W - 4, H - 4, 18);
+    ctx.lineWidth   = 2.5;
+    roundRect(ctx, 2, 2, W - 4, H - 4, 14);
     ctx.stroke();
 
-    // ── Note globale (haut gauche) ────────────────────────────────────────
-    ctx.fillStyle = style.accent;
-    ctx.font      = "bold 42px Arial";
-    ctx.textAlign = "left";
-    ctx.fillText(cardRating, 20, 58);
-
-    // Position (haut gauche sous la note)
-    ctx.fillStyle = style.accent;
-    ctx.font      = "bold 14px Arial";
-    ctx.fillText(medal.label.toUpperCase().slice(0, 3), 20, 80);
-
-    // Flag Sénégal (haut droite)
-    ctx.font      = "32px Arial";
-    ctx.textAlign = "right";
-    ctx.fillText("🇸🇳", W - 15, 55);
-
-    // ── Photo joueur ──────────────────────────────────────────────────────
-    const photoY = 30, photoH = 200;
+    // ── PHOTO — occupe toute la hauteur supérieure ────────────────────────
+    const photoH = 300;
 
     if (userPhoto) {
       await new Promise(resolve => {
         const img = new Image();
         img.onload = () => {
-          // Clipper en forme ovale
           ctx.save();
-          ctx.beginPath();
-          ctx.ellipse(W / 2, photoY + photoH / 2, 90, 100, 0, 0, Math.PI * 2);
+          roundRect(ctx, 0, 0, W, photoH, 14);
           ctx.clip();
-          ctx.drawImage(img, W / 2 - 90, photoY, 180, photoH);
+          // Centrer et couvrir
+          const scale = Math.max(W / img.width, photoH / img.height);
+          const dw    = img.width  * scale;
+          const dh    = img.height * scale;
+          const dx    = (W - dw) / 2;
+          const dy    = (photoH - dh) / 2;
+          ctx.drawImage(img, dx, dy, dw, dh);
           ctx.restore();
           resolve();
         };
         img.src = userPhoto;
       });
     } else {
-      // Avatar avec initiale
-      const avatarGrad = ctx.createRadialGradient(W/2, photoY + photoH/2, 0, W/2, photoY + photoH/2, 90);
-      avatarGrad.addColorStop(0, style.bg3);
+      // Grand avatar initiale
+      const avatarGrad = ctx.createLinearGradient(0, 0, W, photoH);
+      avatarGrad.addColorStop(0, style.bg3 + "cc");
       avatarGrad.addColorStop(1, style.bg1);
       ctx.fillStyle = avatarGrad;
+      ctx.save();
+      roundRect(ctx, 0, 0, W, photoH, 14);
+      ctx.clip();
+      ctx.fillRect(0, 0, W, photoH);
+      ctx.restore();
+
+      ctx.fillStyle = style.accent + "33";
       ctx.beginPath();
-      ctx.ellipse(W / 2, photoY + photoH / 2, 90, 100, 0, 0, Math.PI * 2);
+      ctx.arc(W / 2, photoH * 0.45, 80, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.fillStyle = style.accent;
-      ctx.font      = "bold 80px Arial";
+      ctx.font      = "bold 90px Arial";
       ctx.textAlign = "center";
       ctx.fillText(
         user ? user.username.charAt(0).toUpperCase() : "?",
-        W / 2, photoY + photoH / 2 + 28
+        W / 2, photoH * 0.45 + 32
       );
     }
 
-    // Dégradé bas photo
-    const fadeGrad = ctx.createLinearGradient(0, photoY + photoH / 2, 0, photoY + photoH + 20);
-    fadeGrad.addColorStop(0,   "rgba(0,0,0,0)");
-    fadeGrad.addColorStop(1,   style.bg1);
+    // Dégradé bas photo → fond carte
+    const fadeGrad = ctx.createLinearGradient(0, photoH - 80, 0, photoH);
+    fadeGrad.addColorStop(0, "rgba(0,0,0,0)");
+    fadeGrad.addColorStop(1, style.bg1);
     ctx.fillStyle = fadeGrad;
-    ctx.fillRect(0, photoY + photoH / 2, W, photoH / 2 + 20);
+    ctx.fillRect(0, photoH - 80, W, 80);
 
-    // ── Nom joueur ────────────────────────────────────────────────────────
+    // ── NOTE + POSITION sur la photo (haut gauche) ───────────────────────
+    ctx.fillStyle = style.accent;
+    ctx.font      = "bold 44px Arial";
+    ctx.textAlign = "left";
+    ctx.shadowColor = "rgba(0,0,0,0.8)";
+    ctx.shadowBlur  = 6;
+    ctx.fillText(cardRating, 14, 52);
+
+    ctx.font      = "bold 13px Arial";
+    ctx.fillText(medal.label.toUpperCase().slice(0, 3), 14, 70);
+    ctx.shadowBlur = 0;
+
+    // Flag + WCH (haut droite)
+    ctx.font      = "28px Arial";
+    ctx.textAlign = "right";
+    ctx.shadowColor = "rgba(0,0,0,0.8)";
+    ctx.shadowBlur  = 4;
+    ctx.fillText("🇸🇳", W - 12, 45);
+    ctx.fillStyle = style.accent;
+    ctx.font      = "bold 9px Arial";
+    ctx.fillText("WCH 2026", W - 12, 60);
+    ctx.shadowBlur = 0;
+
+    // ── SECTION BAS — fond opaque ─────────────────────────────────────────
+    ctx.fillStyle = style.cardBg + "ee";
+    ctx.fillRect(0, photoH, W, H - photoH);
+
+    // Nom joueur
     ctx.fillStyle = "white";
-    ctx.font      = "bold 22px Arial";
+    ctx.font      = "bold 20px Arial";
     ctx.textAlign = "center";
-    ctx.fillText((user?.username ?? "JOUEUR").toUpperCase(), W / 2, 258);
+    ctx.fillText((user?.username ?? "JOUEUR").toUpperCase(), W / 2, photoH + 22);
 
     // Message de soutien
     ctx.fillStyle = style.accent;
-    ctx.font      = "italic 11px Arial";
-    ctx.fillText(supportMsg.slice(0, 30), W / 2, 276);
+    ctx.font      = "italic 10px Arial";
+    ctx.fillText(supportMsg.slice(0, 30), W / 2, photoH + 37);
 
-    // ── Ligne séparatrice ─────────────────────────────────────────────────
-    ctx.strokeStyle = style.accent + "88";
+    // Ligne séparatrice
+    ctx.strokeStyle = style.accent + "66";
     ctx.lineWidth   = 1;
     ctx.beginPath();
-    ctx.moveTo(20, 285); ctx.lineTo(W - 20, 285);
+    ctx.moveTo(15, photoH + 46); ctx.lineTo(W - 15, photoH + 46);
     ctx.stroke();
 
-    // ── Stats (grille 3x2) ────────────────────────────────────────────────
-    const statsY  = 300;
-    const colW    = (W - 40) / 3;
+    // ── Stats 3+3 style FIFA ──────────────────────────────────────────────
+    const statsTop = photoH + 52;
+    const col3W    = (W - 30) / 3;
 
-    CARD_STATS.forEach((stat, i) => {
-      const col = i % 3;
-      const row = Math.floor(i / 3);
-      const x   = 20 + col * colW + colW / 2;
-      const y   = statsY + row * 45;
-
+    // Ligne 1
+    CARD_STATS.slice(0, 3).forEach((stat, i) => {
+      const x = 15 + i * col3W + col3W / 2;
       ctx.fillStyle = style.accent;
-      ctx.font      = "bold 20px Arial";
+      ctx.font      = "bold 18px Arial";
       ctx.textAlign = "center";
-      ctx.fillText(stat.value, x, y + 20);
-
-      ctx.fillStyle = "rgba(255,255,255,0.6)";
-      ctx.font      = "bold 9px Arial";
-      ctx.fillText(stat.label, x, y + 33);
+      ctx.fillText(stat.value, x, statsTop + 16);
+      ctx.fillStyle = "rgba(255,255,255,0.55)";
+      ctx.font      = "bold 8px Arial";
+      ctx.fillText(stat.label, x, statsTop + 27);
     });
 
-    // ── Footer ────────────────────────────────────────────────────────────
-    ctx.fillStyle = "rgba(0,0,0,0.3)";
-    roundRect(ctx, 10, H - 45, W - 20, 35, 10);
-    ctx.fill();
+    // Separateur vertical entre les 3
+    [col3W, col3W * 2].forEach(xOff => {
+      ctx.strokeStyle = style.accent + "44";
+      ctx.lineWidth   = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(15 + xOff, statsTop + 4);
+      ctx.lineTo(15 + xOff, statsTop + 30);
+      ctx.stroke();
+    });
 
+    // Ligne entre les 2 rangées
+    ctx.strokeStyle = style.accent + "44";
+    ctx.lineWidth   = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(15, statsTop + 35); ctx.lineTo(W - 15, statsTop + 35);
+    ctx.stroke();
+
+    // Ligne 2
+    CARD_STATS.slice(3, 6).forEach((stat, i) => {
+      const x = 15 + i * col3W + col3W / 2;
+      ctx.fillStyle = style.accent;
+      ctx.font      = "bold 18px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(stat.value, x, statsTop + 51);
+      ctx.fillStyle = "rgba(255,255,255,0.55)";
+      ctx.font      = "bold 8px Arial";
+      ctx.fillText(stat.label, x, statsTop + 62);
+    });
+
+    // Ligne séparatrice finale
+    ctx.strokeStyle = style.accent + "66";
+    ctx.lineWidth   = 1;
+    ctx.beginPath();
+    ctx.moveTo(15, statsTop + 70); ctx.lineTo(W - 15, statsTop + 70);
+    ctx.stroke();
+
+    // Footer
     ctx.fillStyle = style.accent;
-    ctx.font      = "bold 10px Arial";
+    ctx.font      = "bold 9px Arial";
     ctx.textAlign = "center";
-    ctx.fillText("⚽ WORLD CUP HUB 2026", W / 2, H - 25);
-    ctx.fillStyle = "rgba(255,255,255,0.5)";
-    ctx.font      = "9px Arial";
-    ctx.fillText("worldcuphub2026.vercel.app", W / 2, H - 12);
+    ctx.fillText("⚽ WORLD CUP HUB 2026  ·  worldcuphub2026.vercel.app", W / 2, statsTop + 84);
 
     const url = canvas.toDataURL("image/png");
     setImageUrl(url);
