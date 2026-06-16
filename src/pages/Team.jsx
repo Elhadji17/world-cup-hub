@@ -137,6 +137,27 @@ export default function Team() {
 
   // Joueurs uniques dans la collection
   const uniqueCards = [...new Map(collection.map(c => [c.id, c])).values()];
+  // Joueurs déjà dans l'équipe (sauf le poste en cours de sélection)
+  const usedPlayerIds = Object.entries(team)
+    .filter(([posId]) => posId !== selecting)
+    .map(([, player]) => player?.id)
+    .filter(Boolean);
+
+    {[...uniqueCards].sort((a, b) => b.rating - a.rating).map((card) => {
+      const isUsed = usedPlayerIds.includes(card.id);
+      return (
+        <motion.div key={card.id}
+          whileTap={{ scale: isUsed ? 1 : 0.95 }}
+          onClick={() => !isUsed && handleSelectPlayer(card)}
+          className={`shrink-0 ${isUsed ? "opacity-30 cursor-not-allowed" : "cursor-pointer"}`}
+        >
+          <PlayerCard player={card} size="sm" animate={false} />
+          {isUsed && (
+            <div className="text-center text-xs text-red-400 font-bold mt-1">Déjà placé</div>
+          )}
+        </motion.div>
+      );
+    })}
 
   if (!user) {
     return (
