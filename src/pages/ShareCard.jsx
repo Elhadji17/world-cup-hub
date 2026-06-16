@@ -126,7 +126,7 @@ export default function ShareCard() {
           const dw    = img.width  * scale;
           const dh    = img.height * scale;
           const dx    = (W - dw) / 2;
-          const dy    = (photoH - dh) / 2;
+          const dy = (photoH - dh) / 2;
           ctx.drawImage(img, dx, dy, dw, dh);
           ctx.restore();
           resolve();
