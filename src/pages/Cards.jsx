@@ -31,6 +31,7 @@ export default function Cards() {
   const [newCards,    setNewCards] = useState([]);     // cartes tirées
   const [revealed,    setRevealed] = useState([]);     // cartes révélées une à une
   const [message,     setMessage] = useState(null);
+  const [syncing, setSyncing] = useState(false);
 
   function showMsg(type, text) {
     setMessage({ type, text });
