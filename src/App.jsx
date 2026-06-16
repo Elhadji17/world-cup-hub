@@ -16,6 +16,8 @@ import QuizPlayers from "./pages/QuizPlayers";
 import Shop           from "./pages/Shop";
 import Profile from "./pages/Profile";
 import Team from "./pages/Team";
+import Badges from "./pages/Badges";
+
 
 
 
@@ -73,6 +75,7 @@ function AnimatedRoutes() {
         <Route path="/cards" element={<PageWrapper><Cards /></PageWrapper>} />
         <Route path="/profile" element={<PageWrapper><Profile /></PageWrapper>} />
         <Route path="/team" element={<PageWrapper><Team /></PageWrapper>} />
+        <Route path="/badges" element={<PageWrapper><Badges /></PageWrapper>} />
         
         
 

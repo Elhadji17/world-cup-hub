@@ -190,6 +190,9 @@ export default function Profile() {
             </div>
           ))}
         </motion.div>
+        <Link to="/badges" className="block mt-4 bg-yellow-500/10 border border-yellow-400/20 rounded-xl px-4 py-3 text-center">
+  <span className="text-yellow-400 font-bold">🏅 Voir mes badges</span>
+</Link>
 
         {/* ── Quiz ── */}
         <motion.div 
