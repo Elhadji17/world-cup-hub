@@ -19,6 +19,9 @@ function loadCollection() {
 function saveCollection(cards) {
   localStorage.setItem(COLLECTION_KEY, JSON.stringify(cards));
 }
+function saveLocal(cards) {
+  localStorage.setItem(COLLECTION_KEY, JSON.stringify(cards));
+}
 
 // ── Page principale ───────────────────────────────────────────────────────────
 export default function Cards() {
