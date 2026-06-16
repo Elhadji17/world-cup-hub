@@ -24,7 +24,7 @@ function saveCollection(cards) {
 export default function Cards() {
   const navigate                  = useNavigate();
   const { user }                  = useAuth();
-  const { coins, buyItem, safeSet } = useGameStats();
+  const { coins, buyItem } = useGameStats();
   const [tab,         setTab]     = useState("packs"); // packs | collection
   const [collection,  setCollection] = useState(loadCollection);
   const [opening,     setOpening] = useState(null);   // pack en cours d'ouverture
@@ -41,16 +41,15 @@ export default function Cards() {
     if (!user) { showMsg("error", "Connecte-toi pour acheter un pack !"); return; }
     if (coins < pack.cost) { showMsg("error", `Pas assez de coins ! (${coins}/${pack.cost})`); return; }
 
-    // Déduire les coins localement
+    // Déduire les coins via MongoDB
+    const result = await buyItem(`pack_${pack.id}`);
+    if (!result.success) { showMsg("error", result.error ?? "Erreur achat."); return; }
+
+    // Ouvrir le pack
     setOpening(pack);
     const cards = openPack(pack);
     setNewCards(cards);
     setRevealed([]);
-
-    // Simuler déduction coins (à connecter au backend plus tard)
-    // Pour l'instant on utilise localStorage
-    const currentCoins = parseInt(localStorage.getItem("wch_coins") || coins);
-    localStorage.setItem("wch_coins", currentCoins - pack.cost);
 
     // Révéler les cartes une par une
     for (let i = 0; i < cards.length; i++) {
