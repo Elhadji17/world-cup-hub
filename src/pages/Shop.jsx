@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGameStats } from "../hooks/useGameStats.jsx";
 import { useAuth }      from "../hooks/useAuth";
+import { Link } from "react-router-dom";
 
 const MAX_LIVES = 5;
 
