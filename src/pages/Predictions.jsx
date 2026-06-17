@@ -171,6 +171,7 @@ export default function Predictions() {
                 onSave={savePrediction}
                 onJoker={handleSetJoker}
                 result={getResult(match.id)}
+                user={user}  // ← ajoute ça
               />
             ))}
           </AnimatePresence>

@@ -11,7 +11,7 @@ import {
   formatLocalTime, formatLocalDate, timeUntilMatch
 } from "../utils/dateUtils";
 
-export default function MatchCard({ match, prediction, isJoker, onSave, onJoker, result }) {
+export default function MatchCard({ match, prediction, isJoker, onSave, onJoker, result, user }) {
   const ai       = AI_PREDICTIONS[match.id];
   const status   = getMatchStatus(match.date, match.time, match.stadium);
   const editable = isMatchEditable(match.date, match.time, match.stadium);
@@ -35,6 +35,10 @@ export default function MatchCard({ match, prediction, isJoker, onSave, onJoker,
 
   function handleSave() {
     if (!hasInput || !editable) return;
+    if (!user) {
+      alert("💡 Connecte-toi pour sauvegarder ton pronostic et apparaître au classement !");
+      return;
+    }
     onSave(match.id, { scoreA: Number(scoreA), scoreB: Number(scoreB) });
     setSaved(true);
   }
