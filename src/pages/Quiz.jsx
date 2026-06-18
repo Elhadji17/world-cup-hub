@@ -53,24 +53,22 @@ export default function Quiz() {
   const [shuffledQ] = useState(() => {
     const seenKey = `wch_seen_${category.id}`;
     const seen    = JSON.parse(localStorage.getItem(seenKey)) ?? [];
-    
-    // Questions pas encore vues
-    let unseen = allQ.filter((_, i) => !seen.includes(i));
-    
+
+    // Filtrer par ID unique
+    let unseen = allQ.filter(q => !seen.includes(q.id));
+
     // Si toutes vues → reset
     if (unseen.length < category.count) {
       localStorage.removeItem(seenKey);
       unseen = allQ;
     }
-    
-    // Choisir N questions parmi les non vues
+
     const selected = shuffle(unseen).slice(0, category.count);
-    
+
     // Sauvegarder les IDs vus
-    const selectedIndexes = selected.map(q => allQ.indexOf(q));
-    const newSeen = [...new Set([...seen, ...selectedIndexes])];
+    const newSeen = [...new Set([...seen, ...selected.map(q => q.id)])];
     localStorage.setItem(seenKey, JSON.stringify(newSeen));
-    
+
     return selected;
   });
   const [current,          setCurrent]          = useState(0);
@@ -89,6 +87,11 @@ export default function Quiz() {
   const [coinsEarned,      setCoinsEarned]      = useState(0);
   const [localCoins, setLocalCoins] = useState(coins); // coins affichés en temps réel
   const [wrongAnswers,     setWrongAnswers]      = useState(0);
+
+  const {
+    coins, lives: globalLives, maxLives,
+    submitResult, useLife,
+  } = useGameStats();
 
   const question = shuffledQ[current];
   const totalQ   = shuffledQ.length;
@@ -129,8 +132,8 @@ export default function Quiz() {
       setLivesUsed(p => p + 1);
       setWrongAnswers(p => p + 1);
       setStreak(0);
+      useLife(); // ← déduire en temps réel sur MongoDB
       if (nl <= 0) { setTimeout(() => finishQuiz(score), 1800); return; }
-      // ← Ne pas appeler goNext() — rester sur la question
       setTimeout(() => {
         setShowResult(false);
         setSelectedAnswer(null);
@@ -145,6 +148,7 @@ export default function Quiz() {
     setSelectedAnswer(null); setIsCorrect(false); setShowResult(true); setStreak(0);
     const nl = lives - 1;
     setLives(nl); setLivesUsed(p => p + 1); setWrongAnswers(p => p + 1);
+    useLife();
     if (nl <= 0) { setTimeout(() => finishQuiz(score), 1800); return; }
     setTimeout(() => {
     setShowResult(false);
@@ -187,7 +191,7 @@ export default function Quiz() {
     wrong:       wrongAnswers,
     streak:      streak,
     fastAnswers: fastAnswers,
-    livesUsed: 1, // vrai nombre de vies utilisées
+    livesUsed: 0, // vrai nombre de vies utilisées
     });
     setCoinsEarned(result.coinsEarned ?? 0);
 
