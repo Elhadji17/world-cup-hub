@@ -129,7 +129,7 @@ export default function Quiz() {
       setLivesUsed(p => p + 1);
       setWrongAnswers(p => p + 1);
       setStreak(0);
-      useLife(); // ← déduire en temps réel sur MongoDB
+      
       if (nl <= 0) { setTimeout(() => finishQuiz(score), 1800); return; }
       setTimeout(() => {
         setShowResult(false);
@@ -145,7 +145,7 @@ export default function Quiz() {
     setSelectedAnswer(null); setIsCorrect(false); setShowResult(true); setStreak(0);
     const nl = lives - 1;
     setLives(nl); setLivesUsed(p => p + 1); setWrongAnswers(p => p + 1);
-    useLife();
+    
     if (nl <= 0) { setTimeout(() => finishQuiz(score), 1800); return; }
     setTimeout(() => {
     setShowResult(false);
