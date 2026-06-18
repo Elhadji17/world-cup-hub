@@ -174,8 +174,8 @@ export default function Quiz() {
 
   function btnClass(option) {
     if (!showResult) return "bg-white/10 hover:bg-white/20 border-white/20";
-    if (option === question.answer) return "bg-green-500/80 border-green-400";
-    if (option === selectedAnswer)  return "bg-red-500/80 border-red-400";
+    if (isCorrect && option === question.answer) return "bg-green-500/80 border-green-400"; // vert seulement si correct
+    if (option === selectedAnswer && !isCorrect) return "bg-red-500/80 border-red-400"; // rouge si mauvaise
     return "bg-white/5 border-white/10 opacity-50";
   }
 
@@ -276,7 +276,7 @@ export default function Quiz() {
               🧠 Changer de catégorie
             </motion.button>
             <a href={`https://wa.me/?text=${encodeURIComponent(
-              `🧠 J'ai obtenu ${score}/${totalQ} au Quiz ${category.title} ! +${coinsEarned}🪙\n${medal.emoji} ${medal.label}\n🔥 https://world-cup-hub-kappa.vercel.app/quiz`
+              `🧠 J'ai obtenu ${score}/${totalQ} au Quiz ${category.title} ! +${coinsEarned}🪙\n${medal.emoji} ${medal.label}\n🔥 https://worldcuphub2026.vercel.app/quiz`
             )}`} target="_blank" rel="noopener noreferrer">
               <motion.button whileTap={{ scale: 0.97 }}
                 className="w-full bg-green-500 hover:bg-green-400 text-white font-bold py-4 rounded-2xl transition mt-3">
@@ -443,8 +443,7 @@ export default function Quiz() {
                     </span>
                   ) : (
                     <span>
-                      ❌ {selectedAnswer === null ? "Temps écoulé" : "Mauvaise réponse"}
-                      {" — "}Réponse : <span className="text-white">{question.answer}</span>
+                      ❌ {selectedAnswer === null ? "Temps écoulé !" : "Mauvaise réponse ! Réessaie 🔄"}
                     </span>
                   )}
                 </motion.div>
