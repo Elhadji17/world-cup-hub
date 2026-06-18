@@ -107,6 +107,12 @@ export default function Quiz() {
       setWrongAnswers(p => p + 1);
       setStreak(0);
       if (nl <= 0) { setTimeout(() => finishQuiz(score), 1800); return; }
+      // ← Ne pas appeler goNext() — rester sur la question
+      setTimeout(() => {
+        setShowResult(false);
+        setSelectedAnswer(null);
+      }, 1800);
+      return;
     }
     setTimeout(() => goNext(correct), 1800);
   }
@@ -117,7 +123,11 @@ export default function Quiz() {
     const nl = lives - 1;
     setLives(nl); setLivesUsed(p => p + 1); setWrongAnswers(p => p + 1);
     if (nl <= 0) { setTimeout(() => finishQuiz(score), 1800); return; }
-    setTimeout(() => goNext(false), 1800);
+    setTimeout(() => {
+    setShowResult(false);
+    setSelectedAnswer(null);
+    setTimeLeft(TIMER_MAX); // Remettre le timer
+  }, 1800);
   }
 
   function goNext(wasCorrect) {
