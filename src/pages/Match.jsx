@@ -167,6 +167,19 @@ export default function MatchGame() {
           const coins = won ? 100 : draw ? 40 : 15;
           setReward(coins);
           setPhase("result");
+          // Créditer les coins via backend
+          const token = localStorage.getItem("wch_token");
+          if (token) {
+            await fetch(`${import.meta.env.VITE_API_URL ?? ""}/api/quiz?action=submit`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+              body: JSON.stringify({
+                correct: won ? coinsWon / 10 : draw ? 4 : 1,
+                wrong: 0, streak: 0, fastAnswers: 0, livesUsed: 0,
+              }),
+            });
+            await refresh(); // Rafraîchir les coins dans le context
+          }
         }, 1000);
       }
     }, 200);
