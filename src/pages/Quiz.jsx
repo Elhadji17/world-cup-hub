@@ -43,7 +43,7 @@ export default function Quiz() {
   const { user }       = useAuth();
   const {
     coins, lives: globalLives, maxLives,
-    submitResult,
+    submitResult, useLife,
   } = useGameStats();
 
   const category   = getCategoryById(categoryId) ?? getCategoryById("world-cup");
