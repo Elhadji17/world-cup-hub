@@ -53,7 +53,7 @@ export default function Quiz() {
   const [shuffledQ]      = useState(() => shuffle(allQ).slice(0, category.count));
   const [current,          setCurrent]          = useState(0);
   const [score,            setScore]            = useState(0);
-  const [lives, setLives] = useState(Math.max(globalLives, 0));
+  const [lives, setLives] = useState(() => Math.max(globalLives, 0));
   const [timeLeft,         setTimeLeft]         = useState(TIMER_MAX);
   const [selectedAnswer,   setSelectedAnswer]   = useState(null);
   const [showResult,       setShowResult]       = useState(false);
@@ -164,7 +164,7 @@ export default function Quiz() {
     wrong:       wrongAnswers,
     streak:      streak,
     fastAnswers: fastAnswers,
-    livesUsed:   1,
+    livesUsed: Math.min(livesUsed, globalLives), // vrai nombre de vies utilisées
     });
     setCoinsEarned(result.coinsEarned ?? 0);
 
