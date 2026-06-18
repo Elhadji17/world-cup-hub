@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useEffect, useCallback } from "rea
 const API           = import.meta.env.VITE_API_URL ?? "";
 const LOCAL_KEY     = "wch_gamestats";
 const MAX_LIVES     = 5;
-const LIFE_REGEN_MS = 60 * 60 * 1000;
+const LIFE_REGEN_MS = 30 * 60 * 1000; // 30 min
 
 const DEFAULT = {
   coins: 0, lives: MAX_LIVES, totalCoins: 0, totalPoints: 0,

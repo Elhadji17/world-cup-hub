@@ -188,7 +188,7 @@ export default function Quiz() {
     wrong:       wrongAnswers,
     streak:      streak,
     fastAnswers: fastAnswers,
-    livesUsed: 0, // vrai nombre de vies utilisées
+    livesUsed: livesUsed, // vrai nombre perdu pendant la partie
     });
     setCoinsEarned(result.coinsEarned ?? 0);
 
