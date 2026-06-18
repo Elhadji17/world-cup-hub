@@ -1,7 +1,7 @@
 // src/pages/Quiz.jsx
 // Quiz par catégorie — coins + vies intégrés via useGameStats
 
-import { useState, useEffect }          from "react";
+
 import { motion, AnimatePresence }       from "framer-motion";
 import { useNavigate, useParams }        from "react-router-dom";
 import { useAuth }                       from "../hooks/useAuth";
