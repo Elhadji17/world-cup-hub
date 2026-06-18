@@ -108,7 +108,7 @@ function generateEvents(myGoals, aiGoals, myPlayers, aiPlayers) {
 
 export default function MatchGame() {
   const { user }           = useAuth();
-  const { coins, buyItem, refresh } = useGameStats();
+  const { coins, lives: globalLives, useLife, refresh } = useGameStats();
 
   const [myTeam,      setMyTeam]      = useState([]);
   const [selectedAI,  setSelectedAI]  = useState(null);
@@ -148,6 +148,14 @@ export default function MatchGame() {
     setCurrentMin(0);
     setPhase("playing");
 
+
+  // Vérifier les vies
+  if (globalLives <= 0) {
+    alert("💔 Plus de vies ! Attends la régénération ou achète des vies au Shop.");
+    return;
+  }
+  useLife(); // Déduire 1 vie
+
     // Animer le match minute par minute
     let min = 0;
     intervalRef.current = setInterval(() => {
@@ -164,7 +172,7 @@ export default function MatchGame() {
           // Calculer la récompense
           const won  = myGoals > aiGoals;
           const draw = myGoals === aiGoals;
-          const coins = won ? 100 : draw ? 40 : 15;
+          const coins = won ? 50 : draw ? 20 : 5;
           setReward(coins);
           setPhase("result");
           // Créditer les coins via backend
@@ -234,7 +242,7 @@ export default function MatchGame() {
             <p className="text-xs text-gray-400">Note équipe : {myRating} · {myTeam.length} joueurs</p>
           </div>
           <div className="bg-yellow-500/20 border border-yellow-400/30 rounded-xl px-3 py-1 text-center">
-            <div className="text-sm font-bold text-yellow-400">{coins} 💰</div>
+            <div className="text-sm font-bold text-yellow-400">{coins} 💰 · ❤️ {globalLives}</div>
           </div>
         </div>
       </div>
