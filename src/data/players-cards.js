@@ -223,6 +223,79 @@ export const PLAYERS = [
     image: null,
     stats: { PAC: 95, TIR: 72, PAS: 78, DRI: 83, DEF: 79, PHY: 78 },
   },
+  // ── JOUEURS SÉNÉGALAIS ───────────────────────────────────────────────────
+  {
+    id: "mane",
+    name: "Sadio Mané",
+    country: "Sénégal", flag: "🇸🇳",
+    position: "ATT", rating: 90,
+    rarity: "gold",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Sadio_Mane_Al-Nassr.jpg/330px-Sadio_Mane_Al-Nassr.jpg",
+    stats: { PAC: 95, TIR: 87, PAS: 82, DRI: 91, DEF: 45, PHY: 85 },
+  },
+  {
+    id: "koulibaly",
+    name: "Kalidou Koulibaly",
+    country: "Sénégal", flag: "🇸🇳",
+    position: "DEF", rating: 86,
+    rarity: "silver",
+    image: null,
+    stats: { PAC: 78, TIR: 43, PAS: 62, DRI: 65, DEF: 90, PHY: 93 },
+  },
+  {
+    id: "isarr",
+    name: "Ismaïla Sarr",
+    country: "Sénégal", flag: "🇸🇳",
+    position: "ATT", rating: 82,
+    rarity: "silver",
+    image: null,
+    stats: { PAC: 95, TIR: 78, PAS: 72, DRI: 85, DEF: 32, PHY: 74 },
+  },
+  {
+    id: "gana",
+    name: "Idrissa Gana Gueye",
+    country: "Sénégal", flag: "🇸🇳",
+    position: "MIL", rating: 82,
+    rarity: "silver",
+    image: null,
+    stats: { PAC: 80, TIR: 68, PAS: 78, DRI: 76, DEF: 85, PHY: 88 },
+  },
+  {
+    id: "psarr",
+    name: "Pape Sarr",
+    country: "Sénégal", flag: "🇸🇳",
+    position: "MIL", rating: 78,
+    rarity: "bronze",
+    image: null,
+    stats: { PAC: 82, TIR: 72, PAS: 80, DRI: 79, DEF: 68, PHY: 80 },
+  },
+  {
+    id: "njackson",
+    name: "Nicolas Jackson",
+    country: "Sénégal", flag: "🇸🇳",
+    position: "ATT", rating: 80,
+    rarity: "bronze",
+    image: null,
+    stats: { PAC: 88, TIR: 80, PAS: 68, DRI: 82, DEF: 30, PHY: 82 },
+  },
+  {
+    id: "mendy",
+    name: "Édouard Mendy",
+    country: "Sénégal", flag: "🇸🇳",
+    position: "GK", rating: 84,
+    rarity: "silver",
+    image: null,
+    stats: { PAC: 55, TIR: 20, PAS: 45, DRI: 30, DEF: 88, PHY: 85 },
+  },
+  {
+    id: "lcamara",
+    name: "Lamine Camara",
+    country: "Sénégal", flag: "🇸🇳",
+    position: "MIL", rating: 76,
+    rarity: "bronze",
+    image: null,
+    stats: { PAC: 80, TIR: 70, PAS: 78, DRI: 78, DEF: 65, PHY: 78 },
+  },
 ];
 
 // Packs disponibles
@@ -249,6 +322,19 @@ export const PACKS = [
     color: "from-gray-500 to-gray-400",
     border: "border-gray-400/40",
     badge: "🔥 Populaire",
+  },
+  {
+    id:    "senegal",
+    name:  "Pack Lions 🇸🇳",
+    emoji: "🦁",
+    cost:  200,
+    cards: 3,
+    desc:  "3 cartes · 100% joueurs sénégalais",
+    probabilities: { bronze: 0.40, silver: 0.45, gold: 0.15, legendary: 0 },
+    color: "from-green-700 to-yellow-700",
+    border: "border-green-400/40",
+    badge: "🇸🇳 Exclusif",
+    senegalOnly: true,
   },
   {
     id:    "gold",
@@ -283,11 +369,34 @@ export function drawCard(probabilities) {
   return bronze[Math.floor(Math.random() * bronze.length)];
 }
 
+// Tirer une carte sénégalaise
+export function drawSenegalCard(probabilities) {
+  const rand  = Math.random();
+  let cumul   = 0;
+  const order = ["gold", "silver", "bronze"];
+  const senegalPlayers = PLAYERS.filter(p => p.country === "Sénégal");
+
+  for (const rarity of order) {
+    cumul += probabilities[rarity] ?? 0;
+    if (rand <= cumul) {
+      const pool = senegalPlayers.filter(p => p.rarity === rarity);
+      if (pool.length === 0) continue;
+      return pool[Math.floor(Math.random() * pool.length)];
+    }
+  }
+  const fallback = senegalPlayers.filter(p => p.rarity === "bronze");
+  return fallback[Math.floor(Math.random() * fallback.length)];
+}
+
 // Ouvrir un pack — retourne N cartes
 export function openPack(pack) {
   const cards = [];
   for (let i = 0; i < pack.cards; i++) {
-    cards.push(drawCard(pack.probabilities));
+    if (pack.senegalOnly) {
+      cards.push(drawSenegalCard(pack.probabilities));
+    } else {
+      cards.push(drawCard(pack.probabilities));
+    }
   }
   return cards;
 }
