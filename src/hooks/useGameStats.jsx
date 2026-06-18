@@ -68,8 +68,7 @@ export function GameStatsProvider({ children }) {
       ...prev,
       coins:      prev.coins + earned,
       totalCoins: prev.totalCoins + earned,
-      lives:      Math.max(0, prev.lives - (livesUsed ?? 0)),
-      lastLifeAt: (livesUsed ?? 0) > 0 ? Date.now() : prev.lastLifeAt,
+      
     }));
 
     if (!token) return { coinsEarned: earned };

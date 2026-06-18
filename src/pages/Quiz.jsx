@@ -43,7 +43,7 @@ export default function Quiz() {
   const { user }       = useAuth();
   const {
     coins, lives: globalLives, maxLives,
-    submitResult, useLife,
+    submitResult, refresh,
   } = useGameStats();
 
   const category   = getCategoryById(categoryId) ?? getCategoryById("world-cup");
@@ -190,8 +190,8 @@ export default function Quiz() {
     fastAnswers: fastAnswers,
     livesUsed: livesUsed, // vrai nombre perdu pendant la partie
     });
+    await refresh(); // ← resynchroniser depuis MongoDB
     setCoinsEarned(result.coinsEarned ?? 0);
-
     setScore(finalScore);
     setFinished(true);
   }
