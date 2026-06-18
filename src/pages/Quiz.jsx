@@ -165,7 +165,7 @@ export default function Quiz() {
     wrong:       wrongAnswers,
     streak:      streak,
     fastAnswers: fastAnswers,
-    livesUsed: Math.min(livesUsed, startLives), // vrai nombre de vies utilisées
+    livesUsed: 1, // vrai nombre de vies utilisées
     });
     setCoinsEarned(result.coinsEarned ?? 0);
 
