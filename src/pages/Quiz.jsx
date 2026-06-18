@@ -15,6 +15,9 @@ import questionsFR       from "../data/questions-france.json";
 import questionsUCL      from "../data/questions-ucl.json";
 import questionsDaily    from "../data/questions-daily.json";
 import questionsBD       from "../data/questions-ballon-dor.json";
+import { useState, useEffect, useRef } from "react";
+
+
 
 const QUESTIONS_MAP = {
   "world-cup":        questionsWC,
@@ -95,6 +98,8 @@ export default function Quiz() {
   const progress = ((current + 1) / totalQ) * 100;
   const xp       = score * 10;
   const level    = Math.floor(xp / 100) + 1;
+  // Après les autres states :
+  const livesUsedRef = useRef(0);
 
   useEffect(() => {
     setLocalCoins(coins);
@@ -127,6 +132,7 @@ export default function Quiz() {
       const nl = lives - 1;
       setLives(nl);
       setLivesUsed(p => p + 1);
+      livesUsedRef.current += 1;
       setWrongAnswers(p => p + 1);
       setStreak(0);
       
@@ -188,7 +194,7 @@ export default function Quiz() {
     wrong:       wrongAnswers,
     streak:      streak,
     fastAnswers: fastAnswers,
-    livesUsed: livesUsed, // vrai nombre perdu pendant la partie
+    livesUsed:   livesUsedRef.current, // ← valeur réelle
     });
     await refresh(); // ← resynchroniser depuis MongoDB
     setCoinsEarned(result.coinsEarned ?? 0);
