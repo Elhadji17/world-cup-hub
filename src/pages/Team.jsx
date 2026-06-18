@@ -369,6 +369,11 @@ export default function Team() {
             </Link>
           </div>
         )}
+        <Link to="/match">
+          <button className="w-full bg-green-500 hover:bg-green-400 text-white font-bold py-4 rounded-2xl transition mt-4">
+            ⚽ Jouer un match avec cette équipe
+          </button>
+        </Link>
       </div>
     </div>
   );

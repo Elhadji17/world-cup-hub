@@ -40,6 +40,7 @@ const DRAWER_LINKS = [
   { to: "/team", label: "Mon Équipe", emoji: "⚽" },
   { to: "/badges", label: "Badges", emoji: "🏅" },
   { to: "/share-card", label: "Ma Carte", emoji: "🃏" },
+  { to: "/match", label: "Match", emoji: "🆚" },
 ];
 
 export default function Navbar() {

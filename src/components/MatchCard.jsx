@@ -256,7 +256,7 @@ export default function MatchCard({ match, prediction, isJoker, onSave, onJoker,
             `⚽ Mon pronostic WC 2026 :\n` +
             `${FLAGS[match.teamA] ?? ""} ${match.teamA} ${scoreA}–${scoreB} ${match.teamB} ${FLAGS[match.teamB] ?? ""}` +
             `${isJoker ? " ⭐ JOKER" : ""}\n` +
-            `🔥 https://world-cup-hub-kappa.vercel.app/`
+            `🔥 https://worldcuphub2026.vercel.app/`
           )}`}
           target="_blank" rel="noopener noreferrer"
           className="mt-3 flex items-center justify-center gap-2 text-xs text-green-400 hover:text-green-300 transition"
