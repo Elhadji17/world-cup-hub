@@ -160,7 +160,7 @@ export default function MatchGame() {
 
       if (min >= 90) {
         clearInterval(intervalRef.current);
-        setTimeout(() => {
+        setTimeout(async () => {
           // Calculer la récompense
           const won  = myGoals > aiGoals;
           const draw = myGoals === aiGoals;
