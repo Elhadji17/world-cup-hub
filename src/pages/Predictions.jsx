@@ -2,6 +2,7 @@
 // Version finale — useBackendPredictions (MongoDB) + localStorage fallback
 
 import { useMemo } from "react";
+import AuthModal from "../components/AuthModal";
 import { motion, AnimatePresence } from "framer-motion";
 import { MATCHES, getUpcomingMatches } from "../data/matches";
 import { useResults } from "../hooks/useResults";
@@ -12,6 +13,7 @@ import { useAuth } from "../hooks/useAuth";
 import MatchCard from "../components/MatchCard";
 import Leaderboard from "../components/Leaderboard";
 import { useState } from "react";
+
 
 export default function Predictions() {
   const { user } = useAuth();
@@ -42,6 +44,9 @@ export default function Predictions() {
   }, [activeGroup]);
 
   const groups = ["ALL", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"];
+  const [showAuth, setShowAuth] = useState(false);
+
+
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-900 via-black to-purple-900 text-white pb-16">
@@ -172,6 +177,7 @@ export default function Predictions() {
                 onJoker={handleSetJoker}
                 result={getResult(match.id)}
                 user={user}  // ← ajoute ça
+                onAuthRequired={() => setShowAuth(true)}
               />
             ))}
           </AnimatePresence>
@@ -188,6 +194,11 @@ export default function Predictions() {
         
 
       </div>
+
+<AnimatePresence>
+  {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
+</AnimatePresence>
+
     </div>
   );
 }
