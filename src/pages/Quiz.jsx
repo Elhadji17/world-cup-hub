@@ -50,7 +50,29 @@ export default function Quiz() {
   const allQ       = QUESTIONS_MAP[category.id] ?? questionsWC;
   const playerName = user?.username ?? localStorage.getItem("playerName") ?? "Joueur";
 
-  const [shuffledQ]      = useState(() => shuffle(allQ).slice(0, category.count));
+  const [shuffledQ] = useState(() => {
+    const seenKey = `wch_seen_${category.id}`;
+    const seen    = JSON.parse(localStorage.getItem(seenKey)) ?? [];
+    
+    // Questions pas encore vues
+    let unseen = allQ.filter((_, i) => !seen.includes(i));
+    
+    // Si toutes vues → reset
+    if (unseen.length < category.count) {
+      localStorage.removeItem(seenKey);
+      unseen = allQ;
+    }
+    
+    // Choisir N questions parmi les non vues
+    const selected = shuffle(unseen).slice(0, category.count);
+    
+    // Sauvegarder les IDs vus
+    const selectedIndexes = selected.map(q => allQ.indexOf(q));
+    const newSeen = [...new Set([...seen, ...selectedIndexes])];
+    localStorage.setItem(seenKey, JSON.stringify(newSeen));
+    
+    return selected;
+  });
   const [current,          setCurrent]          = useState(0);
   const [score,            setScore]            = useState(0);
   const [lives, setLives] = useState(() => Math.max(globalLives, 0));
