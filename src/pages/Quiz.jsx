@@ -88,10 +88,7 @@ export default function Quiz() {
   const [localCoins, setLocalCoins] = useState(coins); // coins affichés en temps réel
   const [wrongAnswers,     setWrongAnswers]      = useState(0);
 
-  const {
-    coins, lives: globalLives, maxLives,
-    submitResult, useLife,
-  } = useGameStats();
+
 
   const question = shuffledQ[current];
   const totalQ   = shuffledQ.length;
