@@ -54,6 +54,7 @@ export default function Quiz() {
   const [current,          setCurrent]          = useState(0);
   const [score,            setScore]            = useState(0);
   const [lives, setLives] = useState(() => Math.max(globalLives, 0));
+  const [startLives] = useState(() => Math.max(globalLives, 0)); // snapshot au début
   const [timeLeft,         setTimeLeft]         = useState(TIMER_MAX);
   const [selectedAnswer,   setSelectedAnswer]   = useState(null);
   const [showResult,       setShowResult]       = useState(false);
@@ -164,7 +165,7 @@ export default function Quiz() {
     wrong:       wrongAnswers,
     streak:      streak,
     fastAnswers: fastAnswers,
-    livesUsed: Math.min(livesUsed, globalLives), // vrai nombre de vies utilisées
+    livesUsed: Math.min(livesUsed, startLives), // vrai nombre de vies utilisées
     });
     setCoinsEarned(result.coinsEarned ?? 0);
 
@@ -289,7 +290,7 @@ export default function Quiz() {
     );
   }
 
-  if (globalLives <= 0 && !finished) {
+  if (startLives <= 0 && !finished) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-900 via-black to-red-900 text-white flex items-center justify-center px-4">
         <div className="text-center max-w-sm">
