@@ -9,7 +9,7 @@ export const CATEGORIES = [
     color:       "from-green-600 to-emerald-800",
     border:      "border-green-500/40",
     difficulty:  "Moyen",
-    count:       10,
+    count:       20,
   },
   {
     id:          "senegal",
