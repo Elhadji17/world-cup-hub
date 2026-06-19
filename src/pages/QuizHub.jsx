@@ -5,6 +5,19 @@ import { motion }        from "framer-motion";
 import { CATEGORIES }    from "../data/quiz-categories";
 import { useAuth }       from "../hooks/useAuth";
 import { useGameStats }  from "../hooks/useGameStats.jsx";
+import questionsWC  from "../data/questions-world-cup.json";
+import questionsSN  from "../data/questions-senegal.json";
+import questionsFR  from "../data/questions-france.json";
+import questionsUCL from "../data/questions-ucl.json";
+import questionsBD  from "../data/questions-ballon-dor.json";
+
+const QUESTIONS_COUNT = {
+  "world-cup":        questionsWC.length,
+  "senegal":          questionsSN.length,
+  "france":           questionsFR.length,
+  "champions-league": questionsUCL.length,
+  "ballon-dor":       questionsBD.length,
+};
 
 const DIFFICULTY_COLOR = {
   "Facile":    "text-green-400  bg-green-400/10  border-green-400/30",
@@ -27,9 +40,15 @@ export default function QuizHub() {
   const history = JSON.parse(localStorage.getItem("history")) || [];
 
   function handleSelect(cat) {
-    if (cat.isDaily && dailyDone) return;
+    const catDone = !cat.isDaily && !cat.isPlayers && isCategoryDone(cat.id);
+    if ((cat.isDaily && dailyDone) || catDone) return;
     if (cat.isPlayers) { navigate("/quiz/players"); return; }
     navigate(`/quiz/${cat.id}`);
+  }
+
+  function isCategoryDone(catId) {
+    const seen = JSON.parse(localStorage.getItem(`wch_seen_${catId}`)) ?? [];
+    return seen.length >= (QUESTIONS_COUNT[catId] ?? 999);
   }
 
   return (
@@ -81,7 +100,8 @@ export default function QuizHub() {
         {/* Grille catégories */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {CATEGORIES.map((cat, i) => {
-            const locked = cat.isDaily && dailyDone;
+            const catDone = !cat.isDaily && !cat.isPlayers && isCategoryDone(cat.id);
+            const locked  = (cat.isDaily && dailyDone) || catDone;
             return (
               <motion.div
                 key={cat.id}
@@ -97,8 +117,8 @@ export default function QuizHub() {
                 }`}
               >
                 {locked && (
-                  <div className="absolute top-3 right-3 bg-gray-600 text-gray-300 text-xs px-2 py-0.5 rounded-full">
-                    ✅ Fait aujourd'hui
+                  <div className="absolute top-3 right-3 bg-gray-600 text-white text-xs px-2 py-0.5 rounded-full">
+                    {catDone ? "✅ Terminé !" : "✅ Fait aujourd'hui"}
                   </div>
                 )}
                 <div className="text-4xl mb-3">{cat.emoji}</div>

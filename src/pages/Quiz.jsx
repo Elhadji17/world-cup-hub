@@ -61,7 +61,8 @@ export default function Quiz() {
     let unseen = allQ.filter(q => !seen.includes(q.id));
 
     // Si toutes vues → reset
-    if (unseen.length < category.count) {
+    if (unseen.length === 0) {
+      // Toutes les questions vues — reset pour rejouer
       localStorage.removeItem(seenKey);
       unseen = allQ;
     }
