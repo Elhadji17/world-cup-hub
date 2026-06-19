@@ -57,23 +57,15 @@ export default function Quiz() {
     const seenKey = `wch_seen_${category.id}`;
     const seen    = JSON.parse(localStorage.getItem(seenKey)) ?? [];
 
-    // Filtrer par ID unique
     let unseen = allQ.filter(q => !seen.includes(q.id));
 
-    // Si toutes vues → reset
     if (unseen.length === 0) {
-      // Toutes les questions vues — reset pour rejouer
       localStorage.removeItem(seenKey);
       unseen = allQ;
     }
 
-    const selected = shuffle(unseen).slice(0, category.count);
-
-    // Sauvegarder les IDs vus
-    const newSeen = [...new Set([...seen, ...selected.map(q => q.id)])];
-    localStorage.setItem(seenKey, JSON.stringify(newSeen));
-
-    return selected;
+    // Sélectionner les questions mais NE PAS sauvegarder encore
+    return shuffle(unseen).slice(0, category.count);
   });
   const [current,          setCurrent]          = useState(0);
   const [score,            setScore]            = useState(0);
@@ -172,6 +164,13 @@ export default function Quiz() {
   async function finishQuiz(finalScore) {
     if (ending) return;
     setEnding(true);
+
+    // Sauvegarder seulement les questions effectivement jouées
+    const seenKey = `wch_seen_${category.id}`;
+    const seen    = JSON.parse(localStorage.getItem(seenKey)) ?? [];
+    const played  = shuffledQ.slice(0, current + 1).map(q => q.id);
+    const newSeen = [...new Set([...seen, ...played])];
+    localStorage.setItem(seenKey, JSON.stringify(newSeen));
 
     // Sauvegarder localement
     const best = Number(localStorage.getItem("bestScore")) || 0;
