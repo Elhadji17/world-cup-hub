@@ -21,6 +21,7 @@ import ShopCoins   from "./pages/ShopCoins";
 import ShopSuccess from "./pages/ShopSuccess";
 import ShareCard from "./pages/ShareCard";
 import MatchGame from "./pages/Match";
+import Challenge from "./pages/Challenge";
 
 
 
@@ -87,6 +88,7 @@ function AnimatedRoutes() {
         <Route path="/shop/success" element={<ShopSuccess />} />
         <Route path="/share-card" element={<PageWrapper><ShareCard /></PageWrapper>} />
         <Route path="/match" element={<PageWrapper><MatchGame /></PageWrapper>} />
+        <Route path="/challenge" element={<PageWrapper><Challenge /></PageWrapper>} />
         
 
       </Routes>
