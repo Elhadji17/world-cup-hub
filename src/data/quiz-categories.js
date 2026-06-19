@@ -9,7 +9,7 @@ export const CATEGORIES = [
     color:       "from-green-600 to-emerald-800",
     border:      "border-green-500/40",
     difficulty:  "Moyen",
-    count:       20,
+    count: 20, // on garde 20 par partie mais il y a 50 questions au total
   },
   {
     id:          "senegal",
@@ -19,7 +19,7 @@ export const CATEGORIES = [
     color:       "from-yellow-600 to-green-700",
     border:      "border-yellow-500/40",
     difficulty:  "Facile",
-    count:       20,
+    count: 20, // on garde 20 par partie mais il y a 50 questions au total
   },
   {
     id:          "france",
