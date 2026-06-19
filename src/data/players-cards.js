@@ -63,7 +63,7 @@ export const PLAYERS = [
     country: "Sénégal", flag: "🇸🇳",
     position: "ATT", rating: 90,
     rarity: "gold",
-    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Sadio_Mane_Al-Nassr.jpg/330px-Sadio_Mane_Al-Nassr.jpg",
+    image: "/players/Sadio.jpg",
     stats: { PAC: 95, TIR: 87, PAS: 82, DRI: 91, DEF: 45, PHY: 85 },
   },
   {
