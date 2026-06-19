@@ -230,7 +230,7 @@ export const PLAYERS = [
     country: "Sénégal", flag: "🇸🇳",
     position: "ATT", rating: 90,
     rarity: "gold",
-    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Sadio_Mane_Al-Nassr.jpg/330px-Sadio_Mane_Al-Nassr.jpg",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Esteghlal_F.C._v_Al_Nassr_FC%2C_3_March_2025%2C_Sadio_Man%C3%A9_%28cropped%29.jpg/440px-Esteghlal_F.C._v_Al_Nassr_FC%2C_3_March_2025%2C_Sadio_Man%C3%A9_%28cropped%29.jpg",
     stats: { PAC: 95, TIR: 87, PAS: 82, DRI: 91, DEF: 45, PHY: 85 },
   },
   {
@@ -239,7 +239,7 @@ export const PLAYERS = [
     country: "Sénégal", flag: "🇸🇳",
     position: "DEF", rating: 86,
     rarity: "silver",
-    image: null,
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/thirty/Kalidou_Koulibaly.jpg/440px-Kalidou_Koulibaly.jpg",
     stats: { PAC: 78, TIR: 43, PAS: 62, DRI: 65, DEF: 90, PHY: 93 },
   },
   {
@@ -248,7 +248,7 @@ export const PLAYERS = [
     country: "Sénégal", flag: "🇸🇳",
     position: "ATT", rating: 82,
     rarity: "silver",
-    image: null,
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/Ismaila_Sarr_2019.jpg/440px-Ismaila_Sarr_2019.jpg",
     stats: { PAC: 95, TIR: 78, PAS: 72, DRI: 85, DEF: 32, PHY: 74 },
   },
   {
@@ -257,7 +257,7 @@ export const PLAYERS = [
     country: "Sénégal", flag: "🇸🇳",
     position: "MIL", rating: 82,
     rarity: "silver",
-    image: null,
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/Idrissa_Gana_Gueye.jpg/440px-Idrissa_Gana_Gueye.jpg",
     stats: { PAC: 80, TIR: 68, PAS: 78, DRI: 76, DEF: 85, PHY: 88 },
   },
   {
@@ -284,7 +284,7 @@ export const PLAYERS = [
     country: "Sénégal", flag: "🇸🇳",
     position: "GK", rating: 84,
     rarity: "silver",
-    image: null,
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b6/%C3%89douard_Mendy.jpg/440px-%C3%89douard_Mendy.jpg",
     stats: { PAC: 55, TIR: 20, PAS: 45, DRI: 30, DEF: 88, PHY: 85 },
   },
   {
