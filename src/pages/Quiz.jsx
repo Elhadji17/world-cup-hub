@@ -287,7 +287,7 @@ export default function Quiz() {
 
           <div className="space-y-3">
             <motion.button whileTap={{ scale: 0.97 }}
-              onClick={() => navigate(`/quiz/${category.id}`)}
+              onClick={() => navigate(0)}
               className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-4 rounded-2xl transition">
               ▶ Niveau suivant
             </motion.button>
