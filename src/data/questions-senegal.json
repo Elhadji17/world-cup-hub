@@ -138,5 +138,217 @@
     "options": ["El Hadji Diouf", "Aliou Cissé", "Henri Camara", "Salif Diao"],
     "answer": "Aliou Cissé",
     "category": "Quiz Sénégal"
+  },
+
+  {
+    "id": "sn021",
+    "question": "En quelle année le Sénégal a-t-il remporté sa première CAN ?",
+    "options": ["2019", "2021", "2022", "2023"],
+    "answer": "2022",
+    "category": "Sénégal"
+  },
+  {
+    "id": "sn022",
+    "question": "Qui était le capitaine du Sénégal lors de la CAN 2022 ?",
+    "options": ["Koulibaly", "Gana Gueye", "Sadio Mané", "Mendy"],
+    "answer": "Sadio Mané",
+    "category": "Sénégal"
+  },
+  {
+    "id": "sn023",
+    "question": "Contre quelle équipe le Sénégal a-t-il remporté la CAN 2022 en finale ?",
+    "options": ["Nigeria", "Maroc", "Égypte", "Cameroun"],
+    "answer": "Égypte",
+    "category": "Sénégal"
+  },
+  {
+    "id": "sn024",
+    "question": "Où s'est déroulée la CAN 2022 remportée par le Sénégal ?",
+    "options": ["Sénégal", "Cameroun", "Côte d'Ivoire", "Ghana"],
+    "answer": "Cameroun",
+    "category": "Sénégal"
+  },
+  {
+    "id": "sn025",
+    "question": "Quel club anglais Sadio Mané a-t-il rejoint en 2022 ?",
+    "options": ["Manchester City", "Chelsea", "Bayern Munich", "Arsenal"],
+    "answer": "Bayern Munich",
+    "category": "Sénégal"
+  },
+  {
+    "id": "sn026",
+    "question": "En quelle année le Sénégal a-t-il atteint les quarts de finale de la Coupe du Monde pour la première fois ?",
+    "options": ["1998", "2002", "2006", "2010"],
+    "answer": "2002",
+    "category": "Sénégal"
+  },
+  {
+    "id": "sn027",
+    "question": "Contre quelle équipe le Sénégal a-t-il créé la surprise en 2002 en battant le champion du monde ?",
+    "options": ["Brésil", "France", "Allemagne", "Italie"],
+    "answer": "France",
+    "category": "Sénégal"
+  },
+  {
+    "id": "sn028",
+    "question": "Quel sélectionneur a mené le Sénégal à la CAN 2022 ?",
+    "options": ["Aliou Cissé", "Bruno Metsu", "Lamine N'Diaye", "Amara Traoré"],
+    "answer": "Aliou Cissé",
+    "category": "Sénégal"
+  },
+  {
+    "id": "sn029",
+    "question": "Quel club Sadio Mané a-t-il rejoint en Arabie Saoudite ?",
+    "options": ["Al-Hilal", "Al-Nassr", "Al-Ittihad", "Al-Ahli"],
+    "answer": "Al-Nassr",
+    "category": "Sénégal"
+  },
+  {
+    "id": "sn030",
+    "question": "Combien de fois Sadio Mané a-t-il été élu meilleur joueur africain ?",
+    "options": ["1", "2", "3", "4"],
+    "answer": "3",
+    "category": "Sénégal"
+  },
+  {
+    "id": "sn031",
+    "question": "Dans quelle ville sénégalaise est né Sadio Mané ?",
+    "options": ["Dakar", "Thiès", "Sedhiou", "Ziguinchor"],
+    "answer": "Sedhiou",
+    "category": "Sénégal"
+  },
+  {
+    "id": "sn032",
+    "question": "Quel surnom porte l'équipe nationale du Sénégal ?",
+    "options": ["Les Éléphants", "Les Lions de la Téranga", "Les Aigles", "Les Léopards"],
+    "answer": "Les Lions de la Téranga",
+    "category": "Sénégal"
+  },
+  {
+    "id": "sn033",
+    "question": "Quel club Kalidou Koulibaly a-t-il rejoint en 2022 ?",
+    "options": ["Arsenal", "Chelsea", "Liverpool", "Tottenham"],
+    "answer": "Chelsea",
+    "category": "Sénégal"
+  },
+  {
+    "id": "sn034",
+    "question": "Quel est le stade national du Sénégal ?",
+    "options": ["Stade Léopold Sédar Senghor", "Stade Lat Dior", "Stade Demba Diop", "Stade du Sénégal"],
+    "answer": "Stade Léopold Sédar Senghor",
+    "category": "Sénégal"
+  },
+  {
+    "id": "sn035",
+    "question": "Quel joueur sénégalais évolue à Chelsea en Premier League ?",
+    "options": ["Ismaïla Sarr", "Nicolas Jackson", "Pape Sarr", "Lamine Camara"],
+    "answer": "Nicolas Jackson",
+    "category": "Sénégal"
+  },
+  {
+    "id": "sn036",
+    "question": "Dans quel groupe était le Sénégal lors de la Coupe du Monde 2022 ?",
+    "options": ["Groupe A", "Groupe H", "Groupe C", "Groupe E"],
+    "answer": "Groupe A",
+    "category": "Sénégal"
+  },
+  {
+    "id": "sn037",
+    "question": "Contre quelle équipe le Sénégal a-t-il été éliminé en 8e de finale de la Coupe du Monde 2022 ?",
+    "options": ["France", "Angleterre", "Brésil", "Portugal"],
+    "answer": "Angleterre",
+    "category": "Sénégal"
+  },
+  {
+    "id": "sn038",
+    "question": "Quel club Idrissa Gana Gueye a-t-il rejoint après le PSG ?",
+    "options": ["Everton", "Aston Villa", "Besiktas", "Al-Qadsiah"],
+    "answer": "Everton",
+    "category": "Sénégal"
+  },
+  {
+    "id": "sn039",
+    "question": "En combien d'éditions de la CAN le Sénégal a-t-il participé avant 2022 ?",
+    "options": ["8", "10", "12", "15"],
+    "answer": "10",
+    "category": "Sénégal"
+  },
+  {
+    "id": "sn040",
+    "question": "Quel joueur sénégalais évolue à Watford en Championship ?",
+    "options": ["Nicolas Jackson", "Ismaïla Sarr", "Pape Sarr", "Cheikhou Kouyaté"],
+    "answer": "Ismaïla Sarr",
+    "category": "Sénégal"
+  },
+  {
+    "id": "sn041",
+    "question": "Quel était le score de la finale de la CAN 2022 entre le Sénégal et l'Égypte ?",
+    "options": ["1-0", "0-0 (4-2 aux tirs au but)", "2-1", "0-0 (3-1 aux tirs au but)"],
+    "answer": "0-0 (4-2 aux tirs au but)",
+    "category": "Sénégal"
+  },
+  {
+    "id": "sn042",
+    "question": "Quel joueur sénégalais a remporté la Ligue des Champions avec Liverpool ?",
+    "options": ["Koulibaly", "Gana Gueye", "Sadio Mané", "Cheikhou Kouyaté"],
+    "answer": "Sadio Mané",
+    "category": "Sénégal"
+  },
+  {
+    "id": "sn043",
+    "question": "En quelle année Aliou Cissé est-il devenu sélectionneur du Sénégal ?",
+    "options": ["2012", "2015", "2016", "2018"],
+    "answer": "2015",
+    "category": "Sénégal"
+  },
+  {
+    "id": "sn044",
+    "question": "Quel joueur sénégalais évolue à Monaco en Ligue 1 ?",
+    "options": ["Pape Sarr", "Lamine Camara", "Nicolas Jackson", "Ismaïla Sarr"],
+    "answer": "Lamine Camara",
+    "category": "Sénégal"
+  },
+  {
+    "id": "sn045",
+    "question": "Combien de buts Sadio Mané a-t-il marqués avec Liverpool en Premier League ?",
+    "options": ["90", "100", "111", "120"],
+    "answer": "111",
+    "category": "Sénégal"
+  },
+  {
+    "id": "sn046",
+    "question": "Dans quel club Édouard Mendy joue-t-il actuellement ?",
+    "options": ["Chelsea", "Al-Ahli", "Nottingham Forest", "Real Madrid"],
+    "answer": "Al-Ahli",
+    "category": "Sénégal"
+  },
+  {
+    "id": "sn047",
+    "question": "Quel sélectionneur a mené le Sénégal au quart de finale de la Coupe du Monde 2002 ?",
+    "options": ["Aliou Cissé", "Bruno Metsu", "Lamine N'Diaye", "Peter Schnittger"],
+    "answer": "Bruno Metsu",
+    "category": "Sénégal"
+  },
+  {
+    "id": "sn048",
+    "question": "Quel joueur sénégalais a été sacré champion d'Angleterre avec Manchester City ?",
+    "options": ["Sadio Mané", "Koulibaly", "Cheikhou Kouyaté", "Mamadou Sakho"],
+    "answer": "Koulibaly",
+    "category": "Sénégal"
+  },
+  {
+    "id": "sn049",
+    "question": "Quel est le classement FIFA du Sénégal en Afrique ?",
+    "options": ["1er", "2ème", "3ème", "4ème"],
+    "answer": "1er",
+    "category": "Sénégal"
+  },
+  {
+    "id": "sn050",
+    "question": "Quel joueur sénégalais a marqué contre l'Angleterre lors de la Coupe du Monde 2022 ?",
+    "options": ["Koulibaly", "Ismaïla Sarr", "Boulaye Dia", "Famara Diédhiou"],
+    "answer": "Boulaye Dia",
+    "category": "Sénégal"
   }
+
 ]

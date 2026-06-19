@@ -138,5 +138,216 @@
     "options": ["Brésil", "Allemagne", "Pays-Bas", "Espagne"],
     "answer": "Espagne",
     "category": "Coupe du Monde"
+  },
+
+  {
+    "id": "wc021",
+    "question": "Combien de buts Miroslav Klose a-t-il marqués en Coupe du Monde ?",
+    "options": ["14", "15", "16", "17"],
+    "answer": "16",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc022",
+    "question": "Quel pays a organisé la Coupe du Monde 2018 ?",
+    "options": ["Russie", "Ukraine", "Pologne", "Turquie"],
+    "answer": "Russie",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc023",
+    "question": "Qui a remporté la Coupe du Monde 2006 ?",
+    "options": ["Brésil", "France", "Italie", "Allemagne"],
+    "answer": "Italie",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc024",
+    "question": "Quel joueur a été expulsé en finale de la Coupe du Monde 2006 ?",
+    "options": ["Ronaldo", "Zidane", "Buffon", "Cannavaro"],
+    "answer": "Zidane",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc025",
+    "question": "Quelle est la seule équipe d'Amérique du Nord à avoir atteint les demi-finales d'une Coupe du Monde ?",
+    "options": ["Mexique", "Costa Rica", "USA", "Canada"],
+    "answer": "USA",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc026",
+    "question": "En quelle année la Corée du Sud a-t-elle atteint les demi-finales de la Coupe du Monde ?",
+    "options": ["1998", "2002", "2006", "2010"],
+    "answer": "2002",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc027",
+    "question": "Quel pays a remporté la première Coupe du Monde de l'histoire ?",
+    "options": ["Brésil", "Argentine", "Uruguay", "Italie"],
+    "answer": "Uruguay",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc028",
+    "question": "Combien de fois l'Italie a-t-elle remporté la Coupe du Monde ?",
+    "options": ["3", "4", "5", "2"],
+    "answer": "4",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc029",
+    "question": "Quel stade a accueilli la finale de la Coupe du Monde 1998 en France ?",
+    "options": ["Parc des Princes", "Stade de France", "Vélodrome", "Gerland"],
+    "answer": "Stade de France",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc030",
+    "question": "Qui a marqué le but en or lors de la finale de la Coupe du Monde 1998 ?",
+    "options": ["Zidane", "Petit", "Desailly", "Thuram"],
+    "answer": "Petit",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc031",
+    "question": "Quel pays a organisé la Coupe du Monde 2014 ?",
+    "options": ["Argentine", "Chili", "Brésil", "Colombie"],
+    "answer": "Brésil",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc032",
+    "question": "Qui a remporté le Ballon d'Or de la Coupe du Monde 2014 ?",
+    "options": ["Müller", "Robben", "Messi", "Neuer"],
+    "answer": "Messi",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc033",
+    "question": "Combien de buts l'Allemagne a-t-elle marqués contre le Brésil en 2014 ?",
+    "options": ["5", "6", "7", "8"],
+    "answer": "7",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc034",
+    "question": "Quel joueur a remporté le Soulier d'Or de la Coupe du Monde 2014 ?",
+    "options": ["Müller", "Messi", "Neymar", "Robben"],
+    "answer": "Müller",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc035",
+    "question": "Quel pays a organisé la Coupe du Monde 2010 ?",
+    "options": ["Nigeria", "Afrique du Sud", "Maroc", "Égypte"],
+    "answer": "Afrique du Sud",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc036",
+    "question": "Quel instrument sonore est devenu célèbre lors de la Coupe du Monde 2010 ?",
+    "options": ["Djembé", "Vuvuzela", "Kora", "Balafon"],
+    "answer": "Vuvuzela",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc037",
+    "question": "Qui a marqué le but vainqueur en finale de la Coupe du Monde 2010 ?",
+    "options": ["Villa", "Torres", "Iniesta", "Xavi"],
+    "answer": "Iniesta",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc038",
+    "question": "Quel pays a remporté la Coupe du Monde 2002 ?",
+    "options": ["Argentine", "Allemagne", "Brésil", "France"],
+    "answer": "Brésil",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc039",
+    "question": "Quelle est la capacité du stade Lusail qui a accueilli la finale 2022 ?",
+    "options": ["80 000", "88 966", "92 000", "75 000"],
+    "answer": "88 966",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc040",
+    "question": "Combien d'équipes participaient à la Coupe du Monde avant 2026 ?",
+    "options": ["24", "28", "32", "36"],
+    "answer": "32",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc041",
+    "question": "Quel pays a été le premier à remporter deux Coupes du Monde consécutives ?",
+    "options": ["Brésil", "Italie", "Allemagne", "Argentine"],
+    "answer": "Italie",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc042",
+    "question": "Qui a remporté le prix du meilleur gardien à la Coupe du Monde 2022 ?",
+    "options": ["Lloris", "Courtois", "Martinez", "Alisson"],
+    "answer": "Martinez",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc043",
+    "question": "Quel pays a organisé la Coupe du Monde 2002 conjointement avec le Japon ?",
+    "options": ["Chine", "Corée du Sud", "Thaïlande", "Australie"],
+    "answer": "Corée du Sud",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc044",
+    "question": "Combien de fois l'Argentine a-t-elle remporté la Coupe du Monde ?",
+    "options": ["2", "3", "4", "1"],
+    "answer": "3",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc045",
+    "question": "Quel joueur français a inscrit un triplé en finale de la Coupe du Monde 2022 ?",
+    "options": ["Griezmann", "Giroud", "Mbappé", "Dembélé"],
+    "answer": "Mbappé",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc046",
+    "question": "Quel pays a remporté la Coupe du Monde 1994 aux USA ?",
+    "options": ["Italie", "Brésil", "Suède", "Bulgarie"],
+    "answer": "Brésil",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc047",
+    "question": "Qui a raté le penalty décisif en finale de la Coupe du Monde 1994 ?",
+    "options": ["Maldini", "Baggio", "Baresi", "Albertini"],
+    "answer": "Baggio",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc048",
+    "question": "Quel pays a organisé la Coupe du Monde 1990 ?",
+    "options": ["Espagne", "Mexique", "Italie", "France"],
+    "answer": "Italie",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc049",
+    "question": "Combien de Coupes du Monde l'Allemagne a-t-elle remportées ?",
+    "options": ["3", "4", "5", "2"],
+    "answer": "4",
+    "category": "Coupe du Monde"
+  },
+  {
+    "id": "wc050",
+    "question": "Quel pays africain a atteint les quarts de finale de la Coupe du Monde 2010 ?",
+    "options": ["Nigeria", "Ghana", "Côte d'Ivoire", "Cameroun"],
+    "answer": "Ghana",
+    "category": "Coupe du Monde"
   }
 ]
