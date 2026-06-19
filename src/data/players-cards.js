@@ -202,7 +202,7 @@ export const PLAYERS = [
     country: "Nigeria", flag: "🇳🇬",
     position: "ATT", rating: 86,
     rarity: "bronze",
-    image: "/Players/osimhen.jpg",
+    image: null,
     stats: { PAC: 91, TIR: 87, PAS: 65, DRI: 83, DEF: 35, PHY: 88 },
   },
   {
