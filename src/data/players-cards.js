@@ -16,7 +16,7 @@ export const PLAYERS = [
     country: "Argentine", flag: "🇦🇷",
     position: "ATT", rating: 99,
     rarity: "legendary",
-    image: "https://upload.wikimedia.org/wikipedia/commons/c/c1/Lionel_Messi_20180626.jpg",
+    image: "/Players/Messi.jpg",
     stats: { PAC: 85, TIR: 98, PAS: 97, DRI: 99, DEF: 40, PHY: 70 },
   },
   {
@@ -25,7 +25,7 @@ export const PLAYERS = [
     country: "Portugal", flag: "🇵🇹",
     position: "ATT", rating: 98,
     rarity: "legendary",
-    image: "https://upload.wikimedia.org/wikipedia/commons/8/8c/Cristiano_Ronaldo_2018.jpg",
+    image: "/Players/Cristiano.jpg",
     stats: { PAC: 87, TIR: 98, PAS: 83, DRI: 95, DEF: 35, PHY: 95 },
   },
 
@@ -36,7 +36,7 @@ export const PLAYERS = [
     country: "France", flag: "🇫🇷",
     position: "ATT", rating: 95,
     rarity: "gold",
-    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Picture_with_Mbapp%C3%A9_%28cropped_and_rotated%29.jpg/330px-Picture_with_Mbapp%C3%A9_%28cropped_and_rotated%29.jpg",
+    image: "/Players/Mbappe.jpg",
     stats: { PAC: 99, TIR: 93, PAS: 85, DRI: 96, DEF: 42, PHY: 80 },
   },
   {
@@ -45,7 +45,7 @@ export const PLAYERS = [
     country: "Brésil", flag: "🇧🇷",
     position: "ATT", rating: 94,
     rarity: "gold",
-    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c6/2023_05_06_Final_de_la_Copa_del_Rey_-_52879242230_%28cropped%29.jpg/330px-2023_05_06_Final_de_la_Copa_del_Rey_-_52879242230_%28cropped%29.jpg",
+    image: "/Players/Vinicius.jpg",
     stats: { PAC: 97, TIR: 88, PAS: 82, DRI: 97, DEF: 30, PHY: 75 },
   },
   {
@@ -63,7 +63,7 @@ export const PLAYERS = [
     country: "Sénégal", flag: "🇸🇳",
     position: "ATT", rating: 90,
     rarity: "gold",
-    image: "/players/Sadio.jpg",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Sadio_Mane_Al-Nassr.jpg/330px-Sadio_Mane_Al-Nassr.jpg",
     stats: { PAC: 95, TIR: 87, PAS: 82, DRI: 91, DEF: 45, PHY: 85 },
   },
   {
@@ -184,7 +184,7 @@ export const PLAYERS = [
     country: "Espagne", flag: "🇪🇸",
     position: "MIL", rating: 85,
     rarity: "bronze",
-    image: null,
+    image: "/Players/Pedri.jpg",
     stats: { PAC: 78, TIR: 74, PAS: 88, DRI: 88, DEF: 67, PHY: 65 },
   },
   {
@@ -202,7 +202,7 @@ export const PLAYERS = [
     country: "Nigeria", flag: "🇳🇬",
     position: "ATT", rating: 86,
     rarity: "bronze",
-    image: null,
+    image: "/Players/osimhen.jpg",
     stats: { PAC: 91, TIR: 87, PAS: 65, DRI: 83, DEF: 35, PHY: 88 },
   },
   {
