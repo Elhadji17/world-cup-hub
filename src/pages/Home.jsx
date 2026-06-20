@@ -39,19 +39,6 @@ export default function Home() {
 
   const isIOS = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
 
-  // Destination intelligente : /team si équipe incomplète (< 5 joueurs), sinon /match
-  function getMatchDestination() {
-    try {
-      const team = JSON.parse(localStorage.getItem("wch_team")) ?? {};
-      const filledCount = Object.values(team).filter(Boolean).length;
-      return filledCount >= 5 ? "/match" : "/team";
-    } catch {
-      return "/team";
-    }
-  }
-  const [matchDestination, setMatchDestination] = useState("/team");
-  useEffect(() => { setMatchDestination(getMatchDestination()); }, []);
-
   async function handleInstallClick() {
     if (isIOS) {
       alert("Pour installer : appuie sur Partager ⬆️ en bas de Safari, puis \"Sur l'écran d'accueil\"");
@@ -136,20 +123,14 @@ export default function Home() {
           transition={{ delay: 0.3 }}
         >
           {user ? (
-            <Link to={matchDestination}>
+            <Link to="/team">
               <motion.div whileTap={{ scale: 0.98 }}
                 className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-green-500 to-emerald-700 p-5 flex items-center gap-4 shadow-lg shadow-green-500/20"
               >
                 <div className="text-4xl shrink-0">⚽</div>
                 <div className="flex-1 min-w-0">
-                  <h2 className="font-black text-white text-lg">
-                    {matchDestination === "/match" ? "Jouer un match" : "Composer mon équipe"}
-                  </h2>
-                  <p className="text-xs text-green-100 mt-0.5">
-                    {matchDestination === "/match"
-                      ? "Tactiques · Mi-temps · Rôles de joueurs"
-                      : "5 joueurs minimum pour jouer un match"}
-                  </p>
+                  <h2 className="font-black text-white text-lg">Jouer un match</h2>
+                  <p className="text-xs text-green-100 mt-0.5">Compose ton équipe et lance-toi</p>
                 </div>
                 <div className="text-2xl shrink-0 text-white/80">→</div>
               </motion.div>
