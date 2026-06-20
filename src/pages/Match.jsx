@@ -166,7 +166,7 @@ function generateHalfEvents(myGoals, aiGoals, myPlayers, aiPlayers, minuteOffset
 
   // Actions clés non décisives — 3 à 5 par mi-temps, réparties entre les deux équipes
   const actionTypes = Object.keys(KEY_ACTIONS);
-  const keyActionCount = 3 + Math.floor(Math.random() * 3); // 3 à 5
+  const keyActionCount = 5 + Math.floor(Math.random() * 4); // 5 à 8
   for (let i = 0; i < keyActionCount; i++) {
     const team = Math.random() < 0.5 ? "me" : "ai";
     const pool = team === "me" ? (myPlayers.length ? myPlayers : attackers) : aiPlayers;
@@ -229,7 +229,7 @@ export default function MatchGame() {
     let min = offset;
     const target = offset + 45;
     intervalRef.current = setInterval(() => {
-      min += 2;
+      min += 1;
       setCurrentMin(Math.min(min, target));
       setVisibleEvents(events.filter(e => e.minute <= min));
 
@@ -267,7 +267,7 @@ export default function MatchGame() {
           }
         }, 1000);
       }
-    }, 400);
+    }, 600);
   }
 
   function startFirstHalf() {
