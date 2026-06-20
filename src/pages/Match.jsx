@@ -154,7 +154,7 @@ function generateHalfEvents(myGoals, aiGoals, myPlayers, aiPlayers, minuteOffset
 
 export default function MatchGame() {
   const { user }                    = useAuth();
-  const { coins, lives, useLife: spendLife, refresh } = useGameStats();
+  const { coins, lives, submitResult, refresh } = useGameStats();
 
   const [myTeam,        setMyTeam]        = useState([]);
   const [selectedAI,    setSelectedAI]    = useState(null);
@@ -208,7 +208,7 @@ export default function MatchGame() {
 
       if (min >= target) {
         clearInterval(intervalRef.current);
-        setTimeout(() => {
+        setTimeout(async () => {
           if (half === 1) {
             setMyScore(myGoals);
             setAiScore(aiGoals);
@@ -223,8 +223,19 @@ export default function MatchGame() {
 
             const won  = finalMy > finalAi;
             const draw = finalMy === finalAi;
-            const coinsWon = won ? 50 : draw ? 20 : 5;
-            setReward(coinsWon);
+            // Mapping vers la formule backend: pointsBase = correct*10 + fastAnswers*10 + bonus_streak
+            // On veut 50/20/5 coins → correct = 5/2/0.5, donc on passe directement en "correct" arrondi
+            // pour rester compatible avec le endpoint partagé avec le Quiz.
+            const correctEquiv = won ? 5 : draw ? 2 : 1;
+            const result = await submitResult({
+              correct:     correctEquiv,
+              wrong:       0,
+              streak:      0,
+              fastAnswers: 0,
+              livesUsed:   1, // 1 vie consommée par match, déduite côté backend
+            });
+            await refresh();
+            setReward(result?.coinsEarned ?? (won ? 50 : draw ? 20 : 5));
             setPhase("result");
           }
         }, 1000);
@@ -233,7 +244,6 @@ export default function MatchGame() {
   }
 
   function startFirstHalf() {
-    spendLife?.();
     playHalf(1, tactic);
   }
 
