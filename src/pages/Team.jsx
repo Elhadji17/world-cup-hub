@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link }                    from "react-router-dom";
 import { useAuth }                 from "../hooks/useAuth";
 import PlayerCard                   from "../components/PlayerCard";
+import { ROLES, getDefaultRole, getRoleById } from "../data/player-roles";
 
 const COLLECTION_KEY = "wch_cards";
 const TEAM_KEY       = "wch_team";
@@ -123,7 +124,9 @@ export default function Team() {
 
   function handleSelectPlayer(player) {
     if (!selecting) return;
-    const newTeam = { ...team, [selecting]: player };
+    const defaultRole = getDefaultRole(player);
+    const playerWithRole = { ...player, role: defaultRole.id };
+    const newTeam = { ...team, [selecting]: playerWithRole };
     setTeam(newTeam);
     saveTeam(newTeam);
     setSelecting(null);
@@ -134,6 +137,14 @@ export default function Team() {
   function handleRemovePlayer(posId) {
     const newTeam = { ...team };
     delete newTeam[posId];
+    setTeam(newTeam);
+    saveTeam(newTeam);
+  }
+
+  function handleChangeRole(posId, roleId) {
+    const player = team[posId];
+    if (!player) return;
+    const newTeam = { ...team, [posId]: { ...player, role: roleId } };
     setTeam(newTeam);
     saveTeam(newTeam);
   }
@@ -241,6 +252,11 @@ export default function Team() {
                       <div className="absolute -bottom-1 -right-1 bg-black text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center">
                         {player.rating}
                       </div>
+                      {player.role && (
+                        <div className="absolute -top-1 -left-1 bg-gray-900 border border-white/30 text-[9px] w-4 h-4 rounded-full flex items-center justify-center">
+                          {getRoleById(pos.role, player.role).emoji}
+                        </div>
+                      )}
                     </div>
                     <div className="text-white text-[9px] font-bold mt-0.5 bg-black/60 px-1 rounded whitespace-nowrap max-w-[60px] truncate text-center">
                       {player.name.split(" ").pop()}
@@ -323,6 +339,34 @@ export default function Team() {
                   </button>
                 </div>
               </div>
+
+              {/* Sélecteur de rôle — visible si un joueur occupe déjà ce poste */}
+              {team[selecting] && (
+                <div className="mb-4 bg-white/5 border border-white/10 rounded-xl p-3">
+                  <p className="text-xs text-gray-400 mb-2">🎭 Rôle de {team[selecting].name?.split(" ").pop()}</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(ROLES[positions.find(p => p.id === selecting)?.role] ?? ROLES.MIL).map(role => {
+                      const isActive = team[selecting].role === role.id;
+                      return (
+                        <button key={role.id}
+                          onClick={() => handleChangeRole(selecting, role.id)}
+                          className={`text-left p-2 rounded-lg border transition ${
+                            isActive
+                              ? "border-green-400 bg-green-500/20"
+                              : "border-white/10 bg-white/5 hover:bg-white/10"
+                          }`}
+                        >
+                          <div className="text-xs font-bold text-white flex items-center gap-1">
+                            {role.emoji} {role.name}
+                            {isActive && <span className="text-green-400 ml-auto">✓</span>}
+                          </div>
+                          <div className="text-[10px] text-gray-400 mt-0.5">{role.desc}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {uniqueCards.length === 0 ? (
                 <div className="text-center py-6">

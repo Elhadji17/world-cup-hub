@@ -7,6 +7,8 @@ import { Link }                         from "react-router-dom";
 import { useAuth }                      from "../hooks/useAuth";
 import { useGameStats }                 from "../hooks/useGameStats.jsx";
 import PlayerCard                        from "../components/PlayerCard";
+import { applyRoleBoost }                from "../data/player-roles";
+import { getPlayerCondition, getConditionMultiplier, recordMatchPlayed, CONDITION_INFO } from "../data/player-fatigue";
 
 const TEAM_KEY       = "wch_team";
 
@@ -95,11 +97,15 @@ const AI_TEAMS = [
   },
 ];
 
-// Calculer les stats moyennes d'une équipe
+// Calculer les stats moyennes d'une équipe — applique les boosts de rôle si présents
 function calcTeamStats(players) {
   if (!players || players.length === 0) return { ATT: 50, MIL: 50, DEF: 50, PHY: 50, rating: 50 };
   const total = players.length;
-  const avg   = key => Math.round(players.reduce((s, p) => s + (p.stats?.[key] ?? 60), 0) / total);
+  const effectiveStats = key => players.reduce((s, p) => {
+    const stats = p.role ? applyRoleBoost(p, p.role) : (p.stats ?? {});
+    return s + (stats[key] ?? 60);
+  }, 0) / total;
+  const avg = key => Math.round(effectiveStats(key));
   return {
     ATT:    Math.round((avg("TIR") + avg("PAC") + avg("DRI")) / 3),
     MIL:    Math.round((avg("PAS") + avg("DRI")) / 2),
