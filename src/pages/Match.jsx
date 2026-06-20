@@ -133,25 +133,47 @@ function applyTactic(stats, tactic) {
   };
 }
 
-// Générer les événements d'une demi
+// Banque d'actions clés non décisives — ajoute du rythme entre les buts
+const KEY_ACTIONS = {
+  miss:   { emoji: "😬", label: "rate une occasion en or" },
+  save:   { emoji: "🧤", label: "sort une parade décisive" },
+  corner: { emoji: "🚩", label: "obtient un corner dangereux" },
+  yellow: { emoji: "🟨", label: "reçoit un carton jaune" },
+};
+
+// Générer les événements d'une demi — buts + actions clés non décisives
 function generateHalfEvents(myGoals, aiGoals, myPlayers, aiPlayers, minuteOffset) {
   const events = [];
   const minutes = new Set();
 
-  const addEvent = (team, player, minute) => {
+  const addEvent = (team, player, minute, type = "goal") => {
     while (minutes.has(minute)) minute = Math.min(minuteOffset + 45, minute + 1);
     minutes.add(minute);
-    events.push({ team, player, minute });
+    events.push({ team, player, minute, type });
   };
 
   const attackers = myPlayers.filter(p => p.position === "ATT" || p.position === "MIL");
+  const aiAttackers = aiPlayers; // équipes IA n'ont pas de positions détaillées partout
+
   for (let i = 0; i < myGoals; i++) {
     const scorer = attackers[Math.floor(Math.random() * Math.max(attackers.length, 1))];
-    addEvent("me", scorer?.name?.split(" ").pop() ?? "Joueur", minuteOffset + Math.floor(Math.random() * 43) + 1);
+    addEvent("me", scorer?.name?.split(" ").pop() ?? "Joueur", minuteOffset + Math.floor(Math.random() * 43) + 1, "goal");
   }
   for (let i = 0; i < aiGoals; i++) {
-    const scorer = aiPlayers[Math.floor(Math.random() * Math.max(aiPlayers.length, 1))];
-    addEvent("ai", scorer?.name ?? "Adversaire", minuteOffset + Math.floor(Math.random() * 43) + 1);
+    const scorer = aiAttackers[Math.floor(Math.random() * Math.max(aiAttackers.length, 1))];
+    addEvent("ai", scorer?.name ?? "Adversaire", minuteOffset + Math.floor(Math.random() * 43) + 1, "goal");
+  }
+
+  // Actions clés non décisives — 3 à 5 par mi-temps, réparties entre les deux équipes
+  const actionTypes = Object.keys(KEY_ACTIONS);
+  const keyActionCount = 3 + Math.floor(Math.random() * 3); // 3 à 5
+  for (let i = 0; i < keyActionCount; i++) {
+    const team = Math.random() < 0.5 ? "me" : "ai";
+    const pool = team === "me" ? (myPlayers.length ? myPlayers : attackers) : aiPlayers;
+    const actor = pool[Math.floor(Math.random() * Math.max(pool.length, 1))];
+    const actionType = actionTypes[Math.floor(Math.random() * actionTypes.length)];
+    const name = team === "me" ? (actor?.name?.split(" ").pop() ?? "Joueur") : (actor?.name ?? "Adversaire");
+    addEvent(team, name, minuteOffset + Math.floor(Math.random() * 43) + 1, actionType);
   }
 
   return events.sort((a, b) => a.minute - b.minute);
@@ -207,7 +229,7 @@ export default function MatchGame() {
     let min = offset;
     const target = offset + 45;
     intervalRef.current = setInterval(() => {
-      min += 3;
+      min += 2;
       setCurrentMin(Math.min(min, target));
       setVisibleEvents(events.filter(e => e.minute <= min));
 
@@ -245,7 +267,7 @@ export default function MatchGame() {
           }
         }, 1000);
       }
-    }, 200);
+    }, 400);
   }
 
   function startFirstHalf() {
@@ -486,24 +508,32 @@ export default function MatchGame() {
 
             <div className="space-y-2">
               <AnimatePresence>
-                {visibleEvents.map((event, i) => (
-                  <motion.div key={i}
-                    initial={{ opacity: 0, x: event.team === "me" ? -20 : 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className={`flex items-center gap-3 px-4 py-2 rounded-xl ${
-                      event.team === "me"
-                        ? "bg-green-500/20 border border-green-400/30"
-                        : "bg-red-500/20 border border-red-400/30"
-                    }`}
-                  >
-                    <span className="text-xl">⚽</span>
-                    <span className="text-xs text-gray-400 font-bold w-8">{event.minute}'</span>
-                    <span className="text-sm font-bold text-white">{event.player}</span>
-                    <span className="text-xs ml-auto">
-                      {event.team === "me" ? "✅ But pour toi !" : "❌ But adverse"}
-                    </span>
-                  </motion.div>
-                ))}
+                {visibleEvents.map((event, i) => {
+                  const isGoal = event.type === "goal";
+                  const action = !isGoal ? KEY_ACTIONS[event.type] : null;
+                  return (
+                    <motion.div key={i}
+                      initial={{ opacity: 0, x: event.team === "me" ? -20 : 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className={`flex items-center gap-3 px-4 py-2 rounded-xl ${
+                        isGoal
+                          ? event.team === "me"
+                            ? "bg-green-500/20 border border-green-400/30"
+                            : "bg-red-500/20 border border-red-400/30"
+                          : "bg-white/5 border border-white/10"
+                      }`}
+                    >
+                      <span className="text-xl">{isGoal ? "⚽" : action.emoji}</span>
+                      <span className="text-xs text-gray-400 font-bold w-8">{event.minute}'</span>
+                      <span className={`text-sm font-bold ${isGoal ? "text-white" : "text-gray-300"}`}>{event.player}</span>
+                      <span className="text-xs ml-auto">
+                        {isGoal
+                          ? (event.team === "me" ? "✅ But pour toi !" : "❌ But adverse")
+                          : action.label}
+                      </span>
+                    </motion.div>
+                  );
+                })}
               </AnimatePresence>
 
               {visibleEvents.length === 0 && (
@@ -627,7 +657,7 @@ export default function MatchGame() {
             <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-5">
               <h3 className="font-bold text-white mb-3">📋 Résumé du match</h3>
               <div className="space-y-2">
-                {allEvents.map((event, i) => (
+                {allEvents.filter(e => e.type === "goal").map((event, i) => (
                   <div key={i} className={`flex items-center gap-3 text-sm ${
                     event.team === "me" ? "text-green-300" : "text-red-300"
                   }`}>
@@ -639,8 +669,13 @@ export default function MatchGame() {
                     </span>
                   </div>
                 ))}
-                {allEvents.length === 0 && (
+                {allEvents.filter(e => e.type === "goal").length === 0 && (
                   <p className="text-gray-400 text-sm text-center">0-0 · Aucun but</p>
+                )}
+                {allEvents.filter(e => e.type !== "goal").length > 0 && (
+                  <p className="text-xs text-gray-500 text-center pt-2 border-t border-white/5 mt-2">
+                    + {allEvents.filter(e => e.type !== "goal").length} autres actions clés pendant le match
+                  </p>
                 )}
               </div>
             </div>
