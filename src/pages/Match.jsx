@@ -1,5 +1,5 @@
 // src/pages/Match.jsx
-// Match simulé — ton équipe vs IA
+// Match simulé — ton équipe vs IA, avec tactiques et mi-temps
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence }      from "framer-motion";
@@ -9,7 +9,43 @@ import { useGameStats }                 from "../hooks/useGameStats.jsx";
 import PlayerCard                        from "../components/PlayerCard";
 
 const TEAM_KEY       = "wch_team";
-const COLLECTION_KEY = "wch_cards";
+
+// ── Tactiques ────────────────────────────────────────────────────────────
+const TACTICS = [
+  {
+    id:    "balanced",
+    name:  "Formation équilibrée",
+    emoji: "⚖️",
+    desc:  "Aucun bonus ni malus — un style solide en toutes circonstances",
+    attMult: 1.0, defMult: 1.0, oppAttMult: 1.0,
+    color: "from-blue-600 to-blue-800",
+  },
+  {
+    id:    "attack",
+    name:  "Attaque totale",
+    emoji: "🔥",
+    desc:  "+25% d'attaque mais -20% de défense — tout pour marquer",
+    attMult: 1.25, defMult: 0.8, oppAttMult: 1.1,
+    color: "from-red-600 to-orange-700",
+  },
+  {
+    id:    "press",
+    name:  "Pressing haut",
+    emoji: "⚡",
+    desc:  "+15% attaque et défense si ton équipe est physique, sinon ça fatigue",
+    attMult: 1.15, defMult: 1.1, oppAttMult: 1.0,
+    color: "from-yellow-500 to-amber-700",
+    requiresPHY: true,
+  },
+  {
+    id:    "defense",
+    name:  "Défense solide",
+    emoji: "🛡️",
+    desc:  "+25% défense mais -20% attaque — bloquer puis contre-attaquer",
+    attMult: 0.8, defMult: 1.25, oppAttMult: 0.85,
+    color: "from-gray-600 to-gray-800",
+  },
+];
 
 // Équipes IA adverses
 const AI_TEAMS = [
@@ -61,136 +97,149 @@ const AI_TEAMS = [
 
 // Calculer les stats moyennes d'une équipe
 function calcTeamStats(players) {
-  if (!players || players.length === 0) return { ATT: 50, MIL: 50, DEF: 50, rating: 50 };
+  if (!players || players.length === 0) return { ATT: 50, MIL: 50, DEF: 50, PHY: 50, rating: 50 };
   const total = players.length;
   const avg   = key => Math.round(players.reduce((s, p) => s + (p.stats?.[key] ?? 60), 0) / total);
   return {
     ATT:    Math.round((avg("TIR") + avg("PAC") + avg("DRI")) / 3),
     MIL:    Math.round((avg("PAS") + avg("DRI")) / 2),
     DEF:    Math.round((avg("DEF") + avg("PHY")) / 2),
+    PHY:    avg("PHY"),
     rating: Math.round(players.reduce((s, p) => s + (p.rating ?? 70), 0) / total),
   };
 }
 
-// Simuler le score d'une équipe
-function simulateGoals(attackStrength, defenseStrength) {
-  const diff    = (attackStrength - defenseStrength) / 20;
-  const base    = Math.max(0, diff + (Math.random() * 2 - 0.5));
-  return Math.round(Math.min(base, 6));
+// Simuler le score d'une demi (45 min) avec tactique appliquée
+function simulateHalfGoals(attackStrength, defenseStrength) {
+  const diff = (attackStrength - defenseStrength) / 28;
+  const base = Math.max(0, diff + (Math.random() * 1.3 - 0.3));
+  return Math.round(Math.min(base, 4));
 }
 
-// Générer les événements du match
-function generateEvents(myGoals, aiGoals, myPlayers, aiPlayers) {
+// Appliquer une tactique aux stats d'équipe
+function applyTactic(stats, tactic) {
+  let attMult = tactic.attMult;
+  if (tactic.requiresPHY && stats.PHY < 78) {
+    attMult = 0.95;
+  }
+  return {
+    ATT: Math.round(stats.ATT * attMult),
+    DEF: Math.round(stats.DEF * tactic.defMult),
+  };
+}
+
+// Générer les événements d'une demi
+function generateHalfEvents(myGoals, aiGoals, myPlayers, aiPlayers, minuteOffset) {
   const events = [];
   const minutes = new Set();
 
-  const addEvent = (type, team, player, minute) => {
-    while (minutes.has(minute)) minute = Math.min(90, minute + 1);
+  const addEvent = (team, player, minute) => {
+    while (minutes.has(minute)) minute = Math.min(minuteOffset + 45, minute + 1);
     minutes.add(minute);
-    events.push({ type, team, player, minute });
+    events.push({ team, player, minute });
   };
 
-  // Buts de mon équipe
   const attackers = myPlayers.filter(p => p.position === "ATT" || p.position === "MIL");
   for (let i = 0; i < myGoals; i++) {
     const scorer = attackers[Math.floor(Math.random() * Math.max(attackers.length, 1))];
-    addEvent("goal", "me", scorer?.name?.split(" ").pop() ?? "Joueur", Math.floor(Math.random() * 85) + 1);
+    addEvent("me", scorer?.name?.split(" ").pop() ?? "Joueur", minuteOffset + Math.floor(Math.random() * 43) + 1);
   }
-
-  // Buts adverses
   for (let i = 0; i < aiGoals; i++) {
     const scorer = aiPlayers[Math.floor(Math.random() * Math.max(aiPlayers.length, 1))];
-    addEvent("goal", "ai", scorer?.name ?? "Adversaire", Math.floor(Math.random() * 85) + 1);
+    addEvent("ai", scorer?.name ?? "Adversaire", minuteOffset + Math.floor(Math.random() * 43) + 1);
   }
 
   return events.sort((a, b) => a.minute - b.minute);
 }
 
 export default function MatchGame() {
-  const { user }           = useAuth();
-  const { coins, lives: globalLives, useLife, refresh } = useGameStats();
+  const { user }                    = useAuth();
+  const { coins, lives, useLife: spendLife, refresh } = useGameStats();
 
-  const [myTeam,      setMyTeam]      = useState([]);
-  const [selectedAI,  setSelectedAI]  = useState(null);
-  const [phase,       setPhase]       = useState("select"); // select | playing | result
-  const [events,      setEvents]      = useState([]);
+  const [myTeam,        setMyTeam]        = useState([]);
+  const [selectedAI,    setSelectedAI]    = useState(null);
+  const [phase,         setPhase]         = useState("select"); // select | tactic | playing | halftime | playing2 | result
+  const [tactic,        setTactic]        = useState(TACTICS[0]);
   const [visibleEvents, setVisibleEvents] = useState([]);
-  const [myScore,     setMyScore]     = useState(0);
-  const [aiScore,     setAiScore]     = useState(0);
-  const [currentMin,  setCurrentMin]  = useState(0);
-  const [reward,      setReward]      = useState(0);
+  const [myScore,       setMyScore]       = useState(0);
+  const [aiScore,       setAiScore]       = useState(0);
+  const [currentMin,    setCurrentMin]    = useState(0);
+  const [reward,        setReward]        = useState(0);
+  const [allEvents,     setAllEvents]     = useState([]);
   const intervalRef = useRef(null);
 
   // Charger mon équipe
   useEffect(() => {
     const team = (() => { try { return JSON.parse(localStorage.getItem(TEAM_KEY)) ?? {}; } catch { return {}; } })();
-    const collection = (() => { try { return JSON.parse(localStorage.getItem(COLLECTION_KEY)) ?? []; } catch { return []; } })();
     const players = Object.values(team).filter(Boolean);
     setMyTeam(players);
   }, []);
 
-  const myStats = calcTeamStats(myTeam);
+  const myStats  = calcTeamStats(myTeam);
   const myRating = myStats.rating;
 
-  function startMatch(aiTeam) {
+  function chooseOpponent(aiTeam) {
     setSelectedAI(aiTeam);
-    const aiStats = calcTeamStats(aiTeam.players);
-
-    // Simuler les buts
-    const myGoals = simulateGoals(myStats.ATT, aiStats.DEF);
-    const aiGoals = simulateGoals(aiStats.ATT, myStats.DEF);
-
-    const matchEvents = generateEvents(myGoals, aiGoals, myTeam, aiTeam.players);
-    setEvents(matchEvents);
-    setMyScore(myGoals);
-    setAiScore(aiGoals);
-    setVisibleEvents([]);
-    setCurrentMin(0);
-    setPhase("playing");
-
-
-  // Vérifier les vies
-  if (globalLives <= 0) {
-    alert("💔 Plus de vies ! Attends la régénération ou achète des vies au Shop.");
-    return;
+    setTactic(TACTICS[0]);
+    setPhase("tactic");
   }
-  useLife(); // Déduire 1 vie
 
-    // Animer le match minute par minute
-    let min = 0;
+  function playHalf(half, currentTactic) {
+    const aiStats = calcTeamStats(selectedAI.players);
+    const myAdjusted = applyTactic(myStats, currentTactic);
+    const aiAttack    = Math.round(aiStats.ATT * currentTactic.oppAttMult);
+
+    const myGoals = simulateHalfGoals(myAdjusted.ATT, aiStats.DEF);
+    const aiGoals = simulateHalfGoals(aiAttack, myAdjusted.DEF);
+
+    const offset = half === 1 ? 0 : 45;
+    const events  = generateHalfEvents(myGoals, aiGoals, myTeam, selectedAI.players, offset);
+
+    setVisibleEvents([]);
+    setCurrentMin(offset);
+    setPhase(half === 1 ? "playing" : "playing2");
+
+    let min = offset;
+    const target = offset + 45;
     intervalRef.current = setInterval(() => {
       min += 3;
-      setCurrentMin(min);
+      setCurrentMin(Math.min(min, target));
+      setVisibleEvents(events.filter(e => e.minute <= min));
 
-      // Révéler les événements au fur et à mesure
-      const newEvents = matchEvents.filter(e => e.minute <= min);
-      setVisibleEvents(newEvents);
-
-      if (min >= 90) {
+      if (min >= target) {
         clearInterval(intervalRef.current);
-        setTimeout(async () => {
-          // Calculer la récompense
-          const won  = myGoals > aiGoals;
-          const draw = myGoals === aiGoals;
-          const coins = won ? 50 : draw ? 20 : 5;
-          setReward(coins);
-          setPhase("result");
-          // Créditer les coins via backend
-          const token = localStorage.getItem("wch_token");
-          if (token) {
-            await fetch(`${import.meta.env.VITE_API_URL ?? ""}/api/quiz?action=submit`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-              body: JSON.stringify({
-                correct: won ? coinsWon / 10 : draw ? 4 : 1,
-                wrong: 0, streak: 0, fastAnswers: 0, livesUsed: 0,
-              }),
-            });
-            await refresh(); // Rafraîchir les coins dans le context
+        setTimeout(() => {
+          if (half === 1) {
+            setMyScore(myGoals);
+            setAiScore(aiGoals);
+            setAllEvents(events);
+            setPhase("halftime");
+          } else {
+            const finalMy = myScore + myGoals;
+            const finalAi = aiScore + aiGoals;
+            setMyScore(finalMy);
+            setAiScore(finalAi);
+            setAllEvents(prev => [...prev, ...events]);
+
+            const won  = finalMy > finalAi;
+            const draw = finalMy === finalAi;
+            const coinsWon = won ? 50 : draw ? 20 : 5;
+            setReward(coinsWon);
+            setPhase("result");
           }
         }, 1000);
       }
     }, 200);
+  }
+
+  function startFirstHalf() {
+    spendLife?.();
+    playHalf(1, tactic);
+  }
+
+  function startSecondHalf(newTactic) {
+    setTactic(newTactic);
+    playHalf(2, newTactic);
   }
 
   useEffect(() => () => clearInterval(intervalRef.current), []);
@@ -198,9 +247,11 @@ export default function MatchGame() {
   function resetMatch() {
     setPhase("select");
     setSelectedAI(null);
-    setEvents([]);
+    setAllEvents([]);
     setVisibleEvents([]);
     setCurrentMin(0);
+    setMyScore(0);
+    setAiScore(0);
   }
 
   if (!user) {
@@ -231,6 +282,22 @@ export default function MatchGame() {
     );
   }
 
+  if (lives <= 0 && phase === "select") {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-900 via-black to-red-900 text-white flex items-center justify-center px-4">
+        <div className="text-center max-w-sm">
+          <div className="text-7xl mb-4">💔</div>
+          <h1 className="text-2xl font-bold mb-2">Plus de vies !</h1>
+          <p className="text-gray-400 mb-6">Tes vies se régénèrent automatiquement, ou achète-en au Shop.</p>
+          <div className="flex gap-3 justify-center">
+            <Link to="/shop"><button className="bg-yellow-500 text-black font-bold px-6 py-3 rounded-xl">🛒 Shop ({coins} 🪙)</button></Link>
+            <Link to="/"><button className="bg-white/10 text-white font-bold px-6 py-3 rounded-xl">← Retour</button></Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-900 via-black to-blue-900 text-white pb-20">
 
@@ -242,7 +309,7 @@ export default function MatchGame() {
             <p className="text-xs text-gray-400">Note équipe : {myRating} · {myTeam.length} joueurs</p>
           </div>
           <div className="bg-yellow-500/20 border border-yellow-400/30 rounded-xl px-3 py-1 text-center">
-            <div className="text-sm font-bold text-yellow-400">{coins} 💰 · ❤️ {globalLives}</div>
+            <div className="text-sm font-bold text-yellow-400">{coins} 💰</div>
           </div>
         </div>
       </div>
@@ -252,7 +319,6 @@ export default function MatchGame() {
         {/* ── SÉLECTION ADVERSAIRE ─────────────────────────────────────── */}
         {phase === "select" && (
           <div>
-            {/* Mon équipe */}
             <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-5">
               <h3 className="font-bold text-white mb-3">👥 Ton équipe</h3>
               <div className="flex gap-2 overflow-x-auto pb-2">
@@ -272,20 +338,19 @@ export default function MatchGame() {
               </div>
             </div>
 
-            {/* Choisir adversaire */}
             <h3 className="font-bold text-white mb-3">🎯 Choisis ton adversaire</h3>
             <div className="space-y-3">
               {AI_TEAMS.map((team, i) => {
                 const diff      = myRating - team.rating;
                 const difficulty = diff > 5 ? "Facile 🟢" : diff > -5 ? "Moyen 🟡" : "Difficile 🔴";
-                const reward    = diff > 5 ? 50 : diff > -5 ? 100 : 200;
+                const rewardEst = diff > 5 ? 30 : diff > -5 ? 50 : 90;
 
                 return (
                   <motion.div key={i}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.08 }}
-                    className={`relative rounded-2xl border border-white/10 overflow-hidden`}
+                    className="relative rounded-2xl border border-white/10 overflow-hidden"
                   >
                     <div className={`absolute inset-0 bg-gradient-to-r ${team.color} opacity-20`} />
                     <div className="relative flex items-center gap-4 p-4">
@@ -293,7 +358,7 @@ export default function MatchGame() {
                       <div className="flex-1">
                         <div className="font-bold text-white">{team.name}</div>
                         <div className="text-xs text-gray-400 mt-0.5">
-                          Note {team.rating} · {difficulty} · +{reward} 💰 si victoire
+                          Note {team.rating} · {difficulty} · +{rewardEst} 💰 si victoire
                         </div>
                         <div className="flex gap-1 mt-1">
                           {team.players.map(p => (
@@ -304,9 +369,9 @@ export default function MatchGame() {
                         </div>
                       </div>
                       <motion.button whileTap={{ scale: 0.95 }}
-                        onClick={() => startMatch(team)}
+                        onClick={() => chooseOpponent(team)}
                         className="bg-green-500 hover:bg-green-400 text-white font-bold px-4 py-2 rounded-xl shrink-0 transition">
-                        Jouer
+                        Choisir
                       </motion.button>
                     </div>
                   </motion.div>
@@ -316,17 +381,64 @@ export default function MatchGame() {
           </div>
         )}
 
-        {/* ── MATCH EN COURS ───────────────────────────────────────────── */}
-        {phase === "playing" && selectedAI && (
+        {/* ── CHOIX TACTIQUE AVANT MATCH ──────────────────────────────────── */}
+        {phase === "tactic" && selectedAI && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+            <div className="text-center mb-5">
+              <div className="text-3xl mb-2">🎯</div>
+              <h2 className="text-xl font-bold">Choisis ta tactique</h2>
+              <p className="text-sm text-gray-400">Contre {selectedAI.emoji} {selectedAI.name} (note {selectedAI.rating})</p>
+            </div>
+
+            <div className="space-y-3 mb-5">
+              {TACTICS.map(t => {
+                const isLocked = t.requiresPHY && myStats.PHY < 78;
+                const selected = tactic.id === t.id;
+                return (
+                  <motion.button key={t.id} whileTap={{ scale: 0.97 }}
+                    onClick={() => setTactic(t)}
+                    className={`w-full text-left rounded-2xl border p-4 transition relative overflow-hidden ${
+                      selected ? "border-green-400 bg-green-500/10" : "border-white/10 bg-white/5"
+                    }`}
+                  >
+                    <div className={`absolute inset-0 bg-gradient-to-r ${t.color} opacity-10`} />
+                    <div className="relative flex items-start gap-3">
+                      <div className="text-2xl">{t.emoji}</div>
+                      <div className="flex-1">
+                        <div className="font-bold text-white text-sm flex items-center gap-2">
+                          {t.name}
+                          {selected && <span className="text-green-400 text-xs">✓ Sélectionné</span>}
+                        </div>
+                        <div className="text-xs text-gray-400 mt-1">{t.desc}</div>
+                        {isLocked && (
+                          <div className="text-xs text-yellow-400 mt-1">
+                            ⚠️ Ton équipe manque de PHY ({myStats.PHY}/78) — effet réduit
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </motion.button>
+                );
+              })}
+            </div>
+
+            <motion.button whileTap={{ scale: 0.97 }} onClick={startFirstHalf}
+              className="w-full bg-green-500 hover:bg-green-400 text-white font-black py-4 rounded-2xl text-lg transition">
+              ⚽ Coup d'envoi !
+            </motion.button>
+          </motion.div>
+        )}
+
+        {/* ── MATCH EN COURS (1ère ou 2e mi-temps) ────────────────────────── */}
+        {(phase === "playing" || phase === "playing2") && selectedAI && (
           <div>
-            {/* Tableau de score */}
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               className="bg-white/10 border border-white/20 rounded-2xl p-6 mb-5 text-center"
             >
               <div className="text-xs text-gray-400 mb-3 uppercase tracking-wide">
-                ⏱️ {Math.min(currentMin, 90)}'
+                ⏱️ {Math.min(currentMin, 90)}' · {phase === "playing" ? "1ère mi-temps" : "2e mi-temps"} · {tactic.emoji} {tactic.name}
               </div>
               <div className="flex items-center justify-center gap-6">
                 <div className="text-center">
@@ -334,9 +446,13 @@ export default function MatchGame() {
                   <div className="text-xs text-gray-400 font-bold">{user.username}</div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-5xl font-black text-white">{myScore}</span>
+                  <span className="text-5xl font-black text-white">
+                    {phase === "playing" ? "0" : myScore}
+                  </span>
                   <span className="text-2xl text-gray-400">-</span>
-                  <span className="text-5xl font-black text-white">{aiScore}</span>
+                  <span className="text-5xl font-black text-white">
+                    {phase === "playing" ? "0" : aiScore}
+                  </span>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl mb-1">{selectedAI.emoji}</div>
@@ -344,17 +460,15 @@ export default function MatchGame() {
                 </div>
               </div>
 
-              {/* Barre de progression */}
               <div className="mt-4 w-full bg-white/10 rounded-full h-2">
                 <motion.div
-                  animate={{ width: `${Math.min(currentMin / 90 * 100, 100)}%` }}
+                  animate={{ width: `${Math.min(((currentMin) / 90) * 100, 100)}%` }}
                   transition={{ duration: 0.2 }}
                   className="h-2 bg-green-400 rounded-full"
                 />
               </div>
             </motion.div>
 
-            {/* Événements du match */}
             <div className="space-y-2">
               <AnimatePresence>
                 {visibleEvents.map((event, i) => (
@@ -386,13 +500,79 @@ export default function MatchGame() {
           </div>
         )}
 
+        {/* ── PAUSE MI-TEMPS ──────────────────────────────────────────────── */}
+        {phase === "halftime" && selectedAI && (
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
+            <div className="text-center mb-5">
+              <div className="text-4xl mb-2">⏸️</div>
+              <h2 className="text-2xl font-black text-white">Mi-temps</h2>
+            </div>
+
+            <div className="bg-white/10 border border-white/20 rounded-2xl p-6 mb-5 text-center">
+              <div className="flex items-center justify-center gap-6">
+                <div className="text-center">
+                  <div className="text-xs text-gray-400 font-bold">{user.username}</div>
+                  <div className="text-5xl font-black text-white">{myScore}</div>
+                </div>
+                <span className="text-2xl text-gray-400">-</span>
+                <div className="text-center">
+                  <div className="text-xs text-gray-400 font-bold">{selectedAI.name}</div>
+                  <div className="text-5xl font-black text-white">{aiScore}</div>
+                </div>
+              </div>
+              <div className="mt-3 text-sm text-gray-400">
+                {myScore > aiScore ? "🟢 Tu mènes — garde le rythme !" :
+                 myScore === aiScore ? "🟡 Match nul — c'est le moment d'oser" :
+                 "🔴 Tu es mené — change de stratégie pour la 2e mi-temps !"}
+              </div>
+            </div>
+
+            <h3 className="font-bold text-white mb-3 text-center">🔄 Ajuste ta tactique pour la 2e mi-temps</h3>
+            <div className="space-y-3 mb-5">
+              {TACTICS.map(t => {
+                const isLocked = t.requiresPHY && myStats.PHY < 78;
+                const selected = tactic.id === t.id;
+                return (
+                  <motion.button key={t.id} whileTap={{ scale: 0.97 }}
+                    onClick={() => setTactic(t)}
+                    className={`w-full text-left rounded-2xl border p-4 transition relative overflow-hidden ${
+                      selected ? "border-green-400 bg-green-500/10" : "border-white/10 bg-white/5"
+                    }`}
+                  >
+                    <div className={`absolute inset-0 bg-gradient-to-r ${t.color} opacity-10`} />
+                    <div className="relative flex items-start gap-3">
+                      <div className="text-2xl">{t.emoji}</div>
+                      <div className="flex-1">
+                        <div className="font-bold text-white text-sm flex items-center gap-2">
+                          {t.name}
+                          {selected && <span className="text-green-400 text-xs">✓ Sélectionné</span>}
+                        </div>
+                        <div className="text-xs text-gray-400 mt-1">{t.desc}</div>
+                        {isLocked && (
+                          <div className="text-xs text-yellow-400 mt-1">
+                            ⚠️ Ton équipe manque de PHY ({myStats.PHY}/78) — effet réduit
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </motion.button>
+                );
+              })}
+            </div>
+
+            <motion.button whileTap={{ scale: 0.97 }} onClick={() => startSecondHalf(tactic)}
+              className="w-full bg-green-500 hover:bg-green-400 text-white font-black py-4 rounded-2xl text-lg transition">
+              ⚽ Reprise du match !
+            </motion.button>
+          </motion.div>
+        )}
+
         {/* ── RÉSULTAT ─────────────────────────────────────────────────── */}
         {phase === "result" && selectedAI && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
           >
-            {/* Résultat final */}
             <div className={`rounded-2xl p-6 text-center mb-5 border ${
               myScore > aiScore
                 ? "bg-green-500/20 border-green-400/40"
@@ -418,7 +598,6 @@ export default function MatchGame() {
                 </div>
               </div>
 
-              {/* Récompense */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -430,11 +609,10 @@ export default function MatchGame() {
               </motion.div>
             </div>
 
-            {/* Événements résumé */}
             <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-5">
               <h3 className="font-bold text-white mb-3">📋 Résumé du match</h3>
               <div className="space-y-2">
-                {events.map((event, i) => (
+                {allEvents.map((event, i) => (
                   <div key={i} className={`flex items-center gap-3 text-sm ${
                     event.team === "me" ? "text-green-300" : "text-red-300"
                   }`}>
@@ -446,28 +624,28 @@ export default function MatchGame() {
                     </span>
                   </div>
                 ))}
-                {events.length === 0 && (
+                {allEvents.length === 0 && (
                   <p className="text-gray-400 text-sm text-center">0-0 · Aucun but</p>
                 )}
               </div>
             </div>
 
-            {/* Boutons */}
             <div className="space-y-3">
               <motion.button whileTap={{ scale: 0.97 }} onClick={resetMatch}
                 className="w-full bg-green-500 hover:bg-green-400 text-white font-bold py-4 rounded-2xl transition">
                 🔄 Rejouer
               </motion.button>
+              <Link to="/challenge">
+                <motion.button whileTap={{ scale: 0.97 }}
+                  className="w-full bg-blue-500 hover:bg-blue-400 text-white font-bold py-4 rounded-2xl transition">
+                  🆚 Défier un ami
+                </motion.button>
+              </Link>
               <Link to="/team">
                 <motion.button whileTap={{ scale: 0.97 }}
                   className="w-full bg-white/10 hover:bg-white/20 text-white font-bold py-4 rounded-2xl transition">
                   ⚽ Améliorer mon équipe
                 </motion.button>
-              </Link>
-              <Link to="/challenge">
-                <button className="w-full bg-blue-500 hover:bg-blue-400 text-white font-bold py-4 rounded-2xl transition mt-3">
-                  🆚 Défier un ami
-                </button>
               </Link>
             </div>
           </motion.div>
