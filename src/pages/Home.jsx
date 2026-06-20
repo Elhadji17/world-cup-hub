@@ -1,11 +1,12 @@
 // src/pages/Home.jsx — Mobile-first, design moderne
 
-import { useState }              from "react";
+
 import { Link }                  from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth }               from "../hooks/useAuth";
 import { useGameStats }          from "../hooks/useGameStats.jsx";
 import AuthModal                 from "../components/AuthModal";
+import { useState, useEffect } from "react";
 
 const FEATURES = [
   {
@@ -98,6 +99,35 @@ export default function Home() {
   const { user, logout } = useAuth();
   const { coins, lives, totalPoints } = useGameStats();
   const [showAuth, setShowAuth] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+
+  useEffect(() => {
+    if (window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone) {
+      setIsInstalled(true);
+      return;
+    }
+    function handler(e) {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    }
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  const isIOS = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+
+  async function handleInstallClick() {
+    if (isIOS) {
+      alert("Pour installer : appuie sur Partager ⬆️ en bas de Safari, puis \"Sur l'écran d'accueil\"");
+      return;
+    }
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    setDeferredPrompt(null);
+    setIsInstalled(true);
+  }
 
   return (
     <div className="min-h-screen bg-[#080c14] text-white">
@@ -204,6 +234,27 @@ export default function Home() {
           )}
         </div>
       </section>
+
+      {/* ── INSTALLER L'APP ──────────────────────────────────────────────── */}
+      {!isInstalled && (
+        <section className="px-4 pb-6 max-w-2xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-gradient-to-r from-blue-600/20 to-green-600/20 border border-blue-400/30 rounded-2xl p-4 flex items-center gap-4"
+          >
+            <div className="text-3xl shrink-0">📲</div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-bold text-white text-sm">Installe l'app sur ton téléphone</h3>
+              <p className="text-xs text-gray-400">Accès en 1 clic depuis ton écran d'accueil</p>
+            </div>
+            <motion.button whileTap={{ scale: 0.95 }} onClick={handleInstallClick}
+              className="shrink-0 bg-white text-blue-700 font-bold text-xs px-4 py-2.5 rounded-xl">
+              Installer
+            </motion.button>
+          </motion.div>
+        </section>
+      )}
 
       {/* ── STATS GLOBALES ────────────────────────────────────────────────── */}
       <section className="px-4 pb-8 max-w-2xl mx-auto">
