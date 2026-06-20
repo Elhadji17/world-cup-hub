@@ -8,7 +8,6 @@ import { useAuth }                      from "../hooks/useAuth";
 import { useGameStats }                 from "../hooks/useGameStats.jsx";
 import PlayerCard                        from "../components/PlayerCard";
 import { applyRoleBoost }                from "../data/player-roles";
-import { getPlayerCondition, getConditionMultiplier, recordMatchPlayed, CONDITION_INFO } from "../data/player-fatigue";
 
 const TEAM_KEY       = "wch_team";
 
