@@ -22,8 +22,8 @@ export const MATCH_SPECIALS = [
     image:   "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Sadio_Mane_Al-Nassr.jpg/330px-Sadio_Mane_Al-Nassr.jpg",
     stats:   { PAC: 96, TIR: 90, PAS: 84, DRI: 93, DEF: 45, PHY: 86 },
     matchWindow: {
-      start: "2026-06-19T00:00:00",
-      end:   "2026-06-21T00:00:00",
+      start: "2026-06-21T00:00:00",
+      end:   "2026-06-24T00:00:00",
     },
   },
 ];
