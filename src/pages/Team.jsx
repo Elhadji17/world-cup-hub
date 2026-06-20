@@ -173,10 +173,18 @@ export default function Team() {
             <h1 className="text-2xl font-bold">⚽ Mon Équipe</h1>
             <p className="text-xs text-gray-400">{filledCount}/11 joueurs · Note {teamRating > 0 ? teamRating : "—"}</p>
           </div>
-          {saved && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-              className="text-xs text-green-400 font-bold">✅ Sauvegardé</motion.div>
-          )}
+          <div className="flex items-center gap-2">
+            {saved && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                className="text-xs text-green-400 font-bold">✅ Sauvegardé</motion.div>
+            )}
+            <Link to="/match">
+              <motion.button whileTap={{ scale: 0.95 }}
+                className="bg-green-500 hover:bg-green-400 text-white text-xs font-bold px-4 py-2 rounded-xl transition flex items-center gap-1">
+                ⚽ Match
+              </motion.button>
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -203,6 +211,18 @@ export default function Team() {
               <div className="text-xs text-gray-400">{filledCount}/11 postes remplis</div>
             </div>
             <div className="text-4xl font-black text-green-400">{teamRating}</div>
+          </motion.div>
+        )}
+
+        {/* CTA Jouer un match — visible dès que l'équipe est jouable */}
+        {filledCount >= 5 && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-4">
+            <Link to="/match">
+              <motion.button whileTap={{ scale: 0.97 }}
+                className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:brightness-110 text-white font-black py-4 rounded-2xl text-lg transition flex items-center justify-center gap-2 shadow-lg shadow-green-500/20">
+                ⚽ Jouer un match avec cette équipe
+              </motion.button>
+            </Link>
           </motion.div>
         )}
 
