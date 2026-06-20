@@ -106,8 +106,6 @@ export default function Team() {
     .map(([, player]) => player?.id)
     .filter(Boolean);
 
-  console.log("DEBUG selecting:", selecting, "| team:", team, "| usedPlayerIds:", usedPlayerIds);
-
   // Charger collection
   useEffect(() => {
     const token = localStorage.getItem("wch_token");
