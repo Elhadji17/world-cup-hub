@@ -22,6 +22,8 @@ import ShopSuccess from "./pages/ShopSuccess";
 import ShareCard from "./pages/ShareCard";
 import MatchGame from "./pages/Match";
 import Challenge from "./pages/Challenge";
+import InstallPrompt from "./components/InstallPrompt";
+
 
 
 
@@ -119,6 +121,7 @@ export default function App() {
     <BrowserRouter>
       <Navbar />
       <AnimatedRoutes />
+      <InstallPrompt />
     </BrowserRouter>
   );
 }
