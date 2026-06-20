@@ -1,5 +1,5 @@
 // src/pages/QuizHub.jsx
-import { useState }      from "react";
+import { useState, useEffect } from "react";
 import { useNavigate }   from "react-router-dom";
 import { motion }        from "framer-motion";
 import { CATEGORIES }    from "../data/quiz-categories";
@@ -21,6 +21,8 @@ const QUESTIONS_MAP = {
   "ballon-dor":       questionsBD,
 };
 
+const API = import.meta.env.VITE_API_URL ?? "";
+
 const DIFFICULTY_COLOR = {
   "Facile":    "text-green-400  bg-green-400/10  border-green-400/30",
   "Moyen":     "text-yellow-400 bg-yellow-400/10 border-yellow-400/30",
@@ -38,6 +40,35 @@ export default function QuizHub() {
   const { coins, lives, totalPoints } = useGameStats();
   const playerName = user?.username ?? localStorage.getItem("playerName") ?? "Joueur";
   const [dailyDone] = useState(isDailyDone);
+  const [synced, setSynced] = useState(false);
+
+  // Synchroniser toute la progression depuis le backend au montage —
+  // évite d'afficher une progression obsolète après changement d'appareil/navigateur
+  useEffect(() => {
+    const token = localStorage.getItem("wch_token");
+    if (!token) { setSynced(true); return; }
+
+    (async () => {
+      try {
+        const res  = await fetch(`${API}/api/quiz?action=get-progress`, {
+          headers: { "Authorization": `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (data.seenQuestions) {
+          Object.entries(data.seenQuestions).forEach(([catId, backendSeen]) => {
+            const seenKey   = `wch_seen_${catId}`;
+            const localSeen = JSON.parse(localStorage.getItem(seenKey)) ?? [];
+            const merged    = [...new Set([...localSeen, ...backendSeen])];
+            localStorage.setItem(seenKey, JSON.stringify(merged));
+          });
+        }
+      } catch {
+        // Hors-ligne — on garde la progression locale existante
+      } finally {
+        setSynced(true);
+      }
+    })();
+  }, []);
 
   const history = JSON.parse(localStorage.getItem("history")) || [];
 
@@ -45,6 +76,17 @@ export default function QuizHub() {
     if (cat.isDaily && dailyDone) return;
     if (cat.isPlayers) { navigate("/quiz/players"); return; }
     navigate(`/quiz/${cat.id}`);
+  }
+
+  if (!synced) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-5xl mb-4 animate-bounce">🧠</div>
+          <p className="text-gray-400">Chargement de ta progression...</p>
+        </div>
+      </div>
+    );
   }
 
   return (

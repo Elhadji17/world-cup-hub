@@ -24,6 +24,7 @@ const QUESTIONS_MAP = {
 };
 
 const TIMER_MAX = 15;
+const API       = import.meta.env.VITE_API_URL ?? "";
 
 function getMedal(score, total) {
   const pct = score / total;
@@ -34,6 +35,11 @@ function getMedal(score, total) {
 }
 
 function shuffle(arr) { return [...arr].sort(() => Math.random() - 0.5); }
+
+// Fusionne les questions vues locales et celles du backend (le backend fait foi en cas de conflit)
+function mergeSeen(localSeen, backendSeen) {
+  return [...new Set([...(localSeen ?? []), ...(backendSeen ?? [])])];
+}
 
 export default function Quiz() {
   const { categoryId } = useParams();
@@ -49,10 +55,43 @@ export default function Quiz() {
   const [startLives] = useState(() => Math.max(globalLives, 0));
   const currentLevel  = getCategoryLevel(category.id);
 
-  const [shuffledQ] = useState(() => {
+  // Progression synchronisée — chargée depuis le backend avant de générer les questions
+  const [progressReady, setProgressReady] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem("wch_token");
+    if (!token) { setProgressReady(true); return; }
+
+    (async () => {
+      try {
+        const res  = await fetch(`${API}/api/quiz?action=get-progress`, {
+          headers: { "Authorization": `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (data.seenQuestions) {
+          // Fusionner avec ce qui existe déjà en local (au cas où une partie locale
+          // n'aurait pas encore été synchronisée) puis ré-écrire localStorage
+          const seenKey   = `wch_seen_${category.id}`;
+          const localSeen = JSON.parse(localStorage.getItem(seenKey)) ?? [];
+          const backendSeen = data.seenQuestions[category.id] ?? [];
+          const merged = mergeSeen(localSeen, backendSeen);
+          localStorage.setItem(seenKey, JSON.stringify(merged));
+        }
+      } catch {
+        // Hors-ligne ou erreur réseau — on continue avec ce qu'on a en local
+      } finally {
+        setProgressReady(true);
+      }
+    })();
+  }, [category.id]);
+
+  const [shuffledQ, setShuffledQ] = useState([]);
+
+  useEffect(() => {
+    if (!progressReady) return;
     const questions = getLevelQuestions(allQ, category.id);
-    return shuffle(questions).slice(0, QUESTIONS_PER_LEVEL);
-  });
+    setShuffledQ(shuffle(questions).slice(0, QUESTIONS_PER_LEVEL));
+  }, [progressReady]);
 
   const [current,        setCurrent]        = useState(0);
   const [score,          setScore]          = useState(0);
@@ -75,17 +114,17 @@ export default function Quiz() {
 
   const question = shuffledQ[current];
   const totalQ   = shuffledQ.length;
-  const progress = ((current + 1) / totalQ) * 100;
+  const progress = totalQ > 0 ? ((current + 1) / totalQ) * 100 : 0;
 
   useEffect(() => { setLocalCoins(coins); }, [coins]);
 
   // Timer
   useEffect(() => {
-    if (finished || showResult) return;
+    if (!progressReady || finished || showResult || !question) return;
     if (timeLeft === 0) { handleTimeout(); return; }
     const t = setTimeout(() => setTimeLeft(p => p - 1), 1000);
     return () => clearTimeout(t);
-  }, [timeLeft, showResult, finished]);
+  }, [timeLeft, showResult, finished, progressReady, question]);
 
   function handleAnswer(option) {
     if (showResult) return;
@@ -142,16 +181,32 @@ export default function Quiz() {
     }
   }
 
+  // Sauvegarde la progression vers le backend — source de vérité partagée entre appareils
+  async function saveProgressToBackend(categoryId, seenIds) {
+    const token = localStorage.getItem("wch_token");
+    if (!token) return;
+    try {
+      await fetch(`${API}/api/quiz?action=save-progress`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body:    JSON.stringify({ categoryId, seenIds }),
+      });
+    } catch {
+      // Pas grave si ça échoue — la prochaine sauvegarde réussie rattrapera
+    }
+  }
+
   async function finishQuiz(finalScore) {
     if (ending) return;
     setEnding(true);
 
-    // Sauvegarder questions jouées
+    // Sauvegarder questions jouées — localStorage en cache rapide + backend en source de vérité
     const seenKey = `wch_seen_${category.id}`;
     const seen    = JSON.parse(localStorage.getItem(seenKey)) ?? [];
     const played  = shuffledQ.slice(0, current + 1).map(q => q.id);
     const newSeen = [...new Set([...seen, ...played])];
     localStorage.setItem(seenKey, JSON.stringify(newSeen));
+    await saveProgressToBackend(category.id, newSeen);
 
     // Détecter level up
     const prevLevelIdx = Math.min(Math.floor(seen.length / QUESTIONS_PER_LEVEL), LEVELS.length - 1);
@@ -186,6 +241,18 @@ export default function Quiz() {
     if (isCorrect && option === question.answer) return "bg-green-500/80 border-green-400";
     if (!isCorrect && option === selectedAnswer)  return "bg-red-500/80 border-red-400";
     return "bg-white/5 border-white/10 opacity-50";
+  }
+
+  // ── Écran chargement progression ────────────────────────────────────────
+  if (!progressReady || shuffledQ.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-5xl mb-4 animate-bounce">{category?.emoji ?? "🧠"}</div>
+          <p className="text-gray-400">Chargement de ta progression...</p>
+        </div>
+      </div>
+    );
   }
 
   // ── Écran plus de vies ────────────────────────────────────────────────────
