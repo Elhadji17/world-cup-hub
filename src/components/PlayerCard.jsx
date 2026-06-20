@@ -9,6 +9,7 @@ const RARITY_STYLES = {
   silver:    { bg: "from-gray-600 via-gray-400 to-gray-500",        border: "border-gray-300",     text: "text-gray-100",     glow: "0 0 20px rgba(192,192,192,0.6)" },
   gold:      { bg: "from-yellow-700 via-yellow-500 to-amber-600",   border: "border-yellow-300",   text: "text-yellow-100",   glow: "0 0 20px rgba(255,215,0,0.7)"   },
   legendary: { bg: "from-purple-900 via-purple-600 to-pink-700",    border: "border-purple-300",   text: "text-purple-100",   glow: "0 0 30px rgba(168,85,247,0.8)"  },
+  match_special: { bg: "from-yellow-300 via-amber-400 to-yellow-500", border: "border-yellow-100",   text: "text-yellow-900",   glow: "0 0 40px rgba(251,191,36,0.95)" },
 };
 
 const STAT_COLORS = {
@@ -39,7 +40,7 @@ export default function PlayerCard({ player, size = "md", animate = true, onClic
     >
       {/* Badge rareté */}
       <div className={`absolute top-1.5 left-1.5 text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-black/40 ${style.text}`}>
-        {player.rarity === "legendary" ? "💎 LÉGEND." : player.rarity === "gold" ? "🟨 OR" : player.rarity === "silver" ? "⬜ ARGENT" : "🟫 BRONZE"}
+        {player.rarity === "match_special" ? "🔥 ÉDITION MATCH" : player.rarity === "legendary" ? "💎 LÉGEND." : player.rarity === "gold" ? "🟨 OR" : player.rarity === "silver" ? "⬜ ARGENT" : "🟫 BRONZE"}
       </div>
 
       {/* Note globale */}

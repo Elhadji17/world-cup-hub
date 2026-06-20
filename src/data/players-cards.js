@@ -6,7 +6,37 @@ export const RARITIES = {
   SILVER:    { id: "silver",    label: "Argent",    color: "#c0c0c0", bg: "from-gray-400 to-gray-300",     glow: "shadow-gray-400/50",   probability: 0 },
   GOLD:      { id: "gold",      label: "Or",        color: "#ffd700", bg: "from-yellow-500 to-amber-400",  glow: "shadow-yellow-400/50", probability: 0 },
   LEGENDARY: { id: "legendary", label: "Légendaire",color: "#a855f7", bg: "from-purple-600 to-pink-500",  glow: "shadow-purple-500/50", probability: 0 },
+  MATCH_SPECIAL: { id: "match_special", label: "Édition Match", color: "#fbbf24", bg: "from-yellow-300 via-amber-400 to-yellow-600", glow: "shadow-yellow-300/80", probability: 0 },
 };
+
+// ── Cartes spéciales "Édition Match" ────────────────────────────────────────
+// Disponibles uniquement pendant une fenêtre de temps autour d'un match Sénégal
+export const MATCH_SPECIALS = [
+  {
+    id:      "mane_norvege2026",
+    name:    "Sadio Mané",
+    subtitle:"Sénégal 🇸🇳 vs Norvège 🇳🇴",
+    country: "Sénégal", flag: "🇸🇳",
+    position:"ATT", rating: 93,
+    rarity:  "match_special",
+    image:   "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Sadio_Mane_Al-Nassr.jpg/330px-Sadio_Mane_Al-Nassr.jpg",
+    stats:   { PAC: 96, TIR: 90, PAS: 84, DRI: 93, DEF: 45, PHY: 86 },
+    matchWindow: {
+      start: "2026-06-21T00:00:00",
+      end:   "2026-06-24T00:00:00",
+    },
+  },
+];
+
+// Retourne la carte spéciale active maintenant, ou null
+export function getActiveMatchSpecial() {
+  const now = new Date();
+  return MATCH_SPECIALS.find(card => {
+    const start = new Date(card.matchWindow.start);
+    const end   = new Date(card.matchWindow.end);
+    return now >= start && now <= end;
+  }) ?? null;
+}
 
 export const PLAYERS = [
   // ── LÉGENDAIRES ──────────────────────────────────────────────────────────
@@ -16,7 +46,7 @@ export const PLAYERS = [
     country: "Argentine", flag: "🇦🇷",
     position: "ATT", rating: 99,
     rarity: "legendary",
-    image: "/Players/Messi.jpg",
+    image: "https://upload.wikimedia.org/wikipedia/commons/c/c1/Lionel_Messi_20180626.jpg",
     stats: { PAC: 85, TIR: 98, PAS: 97, DRI: 99, DEF: 40, PHY: 70 },
   },
   {
@@ -25,7 +55,7 @@ export const PLAYERS = [
     country: "Portugal", flag: "🇵🇹",
     position: "ATT", rating: 98,
     rarity: "legendary",
-    image: "/Players/Cristiano.jpg",
+    image: "https://upload.wikimedia.org/wikipedia/commons/8/8c/Cristiano_Ronaldo_2018.jpg",
     stats: { PAC: 87, TIR: 98, PAS: 83, DRI: 95, DEF: 35, PHY: 95 },
   },
 
@@ -36,7 +66,7 @@ export const PLAYERS = [
     country: "France", flag: "🇫🇷",
     position: "ATT", rating: 95,
     rarity: "gold",
-    image: "/Players/Mbappe.jpg",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Picture_with_Mbapp%C3%A9_%28cropped_and_rotated%29.jpg/330px-Picture_with_Mbapp%C3%A9_%28cropped_and_rotated%29.jpg",
     stats: { PAC: 99, TIR: 93, PAS: 85, DRI: 96, DEF: 42, PHY: 80 },
   },
   {
@@ -45,7 +75,7 @@ export const PLAYERS = [
     country: "Brésil", flag: "🇧🇷",
     position: "ATT", rating: 94,
     rarity: "gold",
-    image: "/Players/Vinicius.jpg",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c6/2023_05_06_Final_de_la_Copa_del_Rey_-_52879242230_%28cropped%29.jpg/330px-2023_05_06_Final_de_la_Copa_del_Rey_-_52879242230_%28cropped%29.jpg",
     stats: { PAC: 97, TIR: 88, PAS: 82, DRI: 97, DEF: 30, PHY: 75 },
   },
   {
@@ -184,7 +214,7 @@ export const PLAYERS = [
     country: "Espagne", flag: "🇪🇸",
     position: "MIL", rating: 85,
     rarity: "bronze",
-    image: "/Players/Pedri.jpg",
+    image: null,
     stats: { PAC: 78, TIR: 74, PAS: 88, DRI: 88, DEF: 67, PHY: 65 },
   },
   {
@@ -230,7 +260,7 @@ export const PLAYERS = [
     country: "Sénégal", flag: "🇸🇳",
     position: "ATT", rating: 90,
     rarity: "gold",
-    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Esteghlal_F.C._v_Al_Nassr_FC%2C_3_March_2025%2C_Sadio_Man%C3%A9_%28cropped%29.jpg/440px-Esteghlal_F.C._v_Al_Nassr_FC%2C_3_March_2025%2C_Sadio_Man%C3%A9_%28cropped%29.jpg",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Sadio_Mane_Al-Nassr.jpg/330px-Sadio_Mane_Al-Nassr.jpg",
     stats: { PAC: 95, TIR: 87, PAS: 82, DRI: 91, DEF: 45, PHY: 85 },
   },
   {
@@ -239,7 +269,7 @@ export const PLAYERS = [
     country: "Sénégal", flag: "🇸🇳",
     position: "DEF", rating: 86,
     rarity: "silver",
-    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/thirty/Kalidou_Koulibaly.jpg/440px-Kalidou_Koulibaly.jpg",
+    image: null,
     stats: { PAC: 78, TIR: 43, PAS: 62, DRI: 65, DEF: 90, PHY: 93 },
   },
   {
@@ -248,7 +278,7 @@ export const PLAYERS = [
     country: "Sénégal", flag: "🇸🇳",
     position: "ATT", rating: 82,
     rarity: "silver",
-    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/Ismaila_Sarr_2019.jpg/440px-Ismaila_Sarr_2019.jpg",
+    image: null,
     stats: { PAC: 95, TIR: 78, PAS: 72, DRI: 85, DEF: 32, PHY: 74 },
   },
   {
@@ -257,7 +287,7 @@ export const PLAYERS = [
     country: "Sénégal", flag: "🇸🇳",
     position: "MIL", rating: 82,
     rarity: "silver",
-    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/Idrissa_Gana_Gueye.jpg/440px-Idrissa_Gana_Gueye.jpg",
+    image: null,
     stats: { PAC: 80, TIR: 68, PAS: 78, DRI: 76, DEF: 85, PHY: 88 },
   },
   {
@@ -284,7 +314,7 @@ export const PLAYERS = [
     country: "Sénégal", flag: "🇸🇳",
     position: "GK", rating: 84,
     rarity: "silver",
-    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b6/%C3%89douard_Mendy.jpg/440px-%C3%89douard_Mendy.jpg",
+    image: null,
     stats: { PAC: 55, TIR: 20, PAS: 45, DRI: 30, DEF: 88, PHY: 85 },
   },
   {
@@ -369,8 +399,13 @@ export function drawCard(probabilities) {
   return bronze[Math.floor(Math.random() * bronze.length)];
 }
 
-// Tirer une carte sénégalaise
+// Tirer une carte sénégalaise — chance bonus de carte spéciale édition match si active
 export function drawSenegalCard(probabilities) {
+  const special = getActiveMatchSpecial();
+  if (special && Math.random() < 0.08) { // 8% de chance
+    return special;
+  }
+
   const rand  = Math.random();
   let cumul   = 0;
   const order = ["gold", "silver", "bronze"];

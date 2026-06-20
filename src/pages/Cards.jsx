@@ -5,7 +5,7 @@ import { useState, useEffect }     from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth }                 from "../hooks/useAuth";
 import { useGameStats }            from "../hooks/useGameStats.jsx";
-import { PACKS, openPack }         from "../data/players-cards";
+import { PACKS, openPack, getActiveMatchSpecial } from "../data/players-cards";
 import PlayerCard                   from "../components/PlayerCard";
 
 const COLLECTION_KEY = "wch_cards";
@@ -48,6 +48,26 @@ export default function Cards() {
   const [opening,     setOpening]    = useState(null);
   const [newCards,    setNewCards]   = useState([]);
   const [revealed,    setRevealed]   = useState([]);
+  const [activeSpecial, setActiveSpecial] = useState(getActiveMatchSpecial);
+  const [timeLeft,      setTimeLeft]      = useState("");
+
+  useEffect(() => {
+    if (!activeSpecial) return;
+    const t = setInterval(() => {
+      const end = new Date(activeSpecial.matchWindow.end);
+      const diff = end - new Date();
+      if (diff <= 0) { setActiveSpecial(null); return; }
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      setTimeLeft(`${h}h ${m}m`);
+    }, 30000);
+    const end = new Date(activeSpecial.matchWindow.end);
+    const diff = end - new Date();
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    setTimeLeft(`${h}h ${m}m`);
+    return () => clearInterval(t);
+  }, [activeSpecial]);
   const [message,     setMessage]    = useState(null);
   const [syncing,     setSyncing]    = useState(false);
   const [exchanging,  setExchanging] = useState(null); // id carte en cours d'échange
@@ -205,6 +225,35 @@ export default function Cards() {
         {/* ── PACKS ── */}
         {tab === "packs" && (
           <div>
+            {/* Bandeau carte spéciale édition match */}
+            {activeSpecial && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+                className="mb-5 relative overflow-hidden rounded-2xl border border-yellow-300/50 bg-gradient-to-r from-yellow-400/20 via-amber-400/20 to-yellow-400/20 p-4"
+              >
+                <motion.div
+                  animate={{ x: ["-100%", "200%"] }}
+                  transition={{ repeat: Infinity, duration: 2.5, ease: "linear" }}
+                  className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12"
+                />
+                <div className="relative flex items-center gap-3">
+                  <div className="text-3xl">🔥</div>
+                  <div className="flex-1">
+                    <div className="font-black text-yellow-200 text-sm">
+                      Carte ÉDITION MATCH disponible !
+                    </div>
+                    <div className="text-xs text-yellow-100/80">
+                      {activeSpecial.name} — {activeSpecial.subtitle} · dans le Pack Lions 🇸🇳
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-[10px] text-yellow-200/70">Expire dans</div>
+                    <div className="font-bold text-yellow-100 text-sm">{timeLeft}</div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
             <div className="grid grid-cols-4 gap-2 mb-5">
               {[
                 { label: "💎 Légend.", count: collectionByRarity.legendary, color: "text-purple-400" },
