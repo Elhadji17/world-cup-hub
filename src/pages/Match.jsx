@@ -9,6 +9,7 @@ import { useAuth }                      from "../hooks/useAuth";
 import { useGameStats }                 from "../hooks/useGameStats.jsx";
 import PlayerCard                        from "../components/PlayerCard";
 import { getMatchupMultiplier, getDefaultRole } from "../data/player-roles";
+import { rollMatchForm, FORM_STATES } from "../data/match-form";
 import {
   TEAM_KEY, TACTICS, AI_TEAMS, KEY_ACTIONS,
   calcTeamStats, simulateHalfGoals, applyTactic, generateHalfEvents,
@@ -28,6 +29,8 @@ export default function MatchGame() {
   const [currentMin,    setCurrentMin]    = useState(0);
   const [reward,        setReward]        = useState(0);
   const [allEvents,     setAllEvents]     = useState([]);
+  const [myFormMap,     setMyFormMap]     = useState({});
+  const [aiFormMap,     setAiFormMap]     = useState({});
   const intervalRef = useRef(null);
 
   // Charger mon équipe
@@ -37,8 +40,8 @@ export default function MatchGame() {
     setMyTeam(players);
   }, []);
 
-  const myStats  = calcTeamStats(myTeam, selectedAI?.players ?? []);
-  const myRating = calcTeamStats(myTeam).rating; // rating affiché reste neutre, sans bonus de matchup
+  const myStats  = calcTeamStats(myTeam, selectedAI?.players ?? [], myFormMap);
+  const myRating = calcTeamStats(myTeam).rating; // rating affiché reste neutre, sans bonus de matchup/forme
 
   function chooseOpponent(aiTeam) {
     // Assigner un rôle par défaut à chaque joueur IA pour activer les interactions croisées
@@ -48,11 +51,14 @@ export default function MatchGame() {
     };
     setSelectedAI(aiWithRoles);
     setTactic(TACTICS[0]);
+    // Tirer la forme du jour une seule fois, au moment du choix d'adversaire
+    setMyFormMap(rollMatchForm(myTeam));
+    setAiFormMap(rollMatchForm(aiWithRoles.players));
     setPhase("tactic");
   }
 
   function playHalf(half, currentTactic) {
-    const aiStats = calcTeamStats(selectedAI.players, myTeam);
+    const aiStats = calcTeamStats(selectedAI.players, myTeam, aiFormMap);
     const myAdjusted = applyTactic(myStats, currentTactic);
     const aiAttack    = Math.round(aiStats.ATT * currentTactic.oppAttMult);
 
@@ -290,6 +296,26 @@ export default function MatchGame() {
                 </div>
               );
             })()}
+
+            {/* Forme du jour — uniquement ton équipe, l'adversaire reste une inconnue */}
+            {Object.keys(myFormMap).length > 0 && (
+              <div className="mb-5 bg-white/5 border border-white/10 rounded-xl p-3">
+                <p className="text-xs text-gray-400 mb-2 font-bold">📊 Forme du jour</p>
+                <div className="space-y-1.5">
+                  {myTeam.filter(p => myFormMap[p.id]).map((p, i) => {
+                    const form = FORM_STATES[myFormMap[p.id]];
+                    return (
+                      <div key={i} className="flex items-center justify-between text-xs">
+                        <span className="text-gray-300">{p.name?.split(" ").pop()}</span>
+                        <span className={form.id === "on_fire" ? "text-orange-400 font-bold" : "text-blue-300 font-bold"}>
+                          {form.emoji} {form.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <div className="space-y-3 mb-5">
               {TACTICS.map(t => {

@@ -3,6 +3,7 @@
 // Match.jsx importe ces fonctions et ne gère que l'affichage.
 
 import { applyRoleBoost, getMatchupMultiplier } from "./player-roles";
+import { applyFormMultiplier } from "./match-form";
 
 export const TEAM_KEY = "wch_team";
 
@@ -92,12 +93,13 @@ export const AI_TEAMS = [
 ];
 
 // Calculer les stats moyennes d'une équipe — applique boosts de rôle + interactions
-// croisées avec les rôles de l'effectif adverse (opponentPlayers, optionnel)
-export function calcTeamStats(players, opponentPlayers = []) {
+// croisées avec les rôles de l'effectif adverse + forme du jour (tous optionnels)
+export function calcTeamStats(players, opponentPlayers = [], formMap = {}) {
   if (!players || players.length === 0) return { ATT: 50, MIL: 50, DEF: 50, PHY: 50, rating: 50 };
   const total = players.length;
   const effectiveStats = key => players.reduce((s, p) => {
-    const stats   = p.role ? applyRoleBoost(p, p.role) : (p.stats ?? {});
+    let stats = p.role ? applyRoleBoost(p, p.role) : (p.stats ?? {});
+    stats = applyFormMultiplier(stats, p, formMap);
     const matchup = opponentPlayers.length ? getMatchupMultiplier(p, opponentPlayers) : 1;
     // Le matchup n'affecte que les stats offensives (l'efficacité du rôle face au profil adverse)
     const isOffensiveStat = key === "TIR" || key === "PAC" || key === "DRI" || key === "PAS";
