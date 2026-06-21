@@ -114,3 +114,37 @@ export function applyRoleBoost(player, roleId) {
   }
   return boosted;
 }
+
+// ── Interactions croisées entre rôles adverses ──────────────────────────────
+// Certains rôles offensifs sont mieux ou moins bien contrés selon le profil
+// défensif en face. counters: liste des rôles qui RÉDUISENT l'efficacité de ce
+// rôle s'ils sont présents côté adverse. vulnerableTo: l'inverse, rôles qui
+// laissent ce rôle s'exprimer davantage.
+const ROLE_MATCHUPS = {
+  // Ailier rapide type (faux_neuf, lateral_offensif côté attaque) — contré par
+  // un latéral qui peut suivre la course, moins bien par un pur axial lent
+  faux_neuf:          { counteredBy: ["lateral_offensif"], thrivesAgainst: ["defenseur_central"] },
+  avant_centre:        { counteredBy: ["defenseur_central"], thrivesAgainst: ["lateral_offensif"] },
+  relayeur:            { counteredBy: ["recuperateur"],      thrivesAgainst: ["lateral_offensif"] },
+  lateral_offensif:    { counteredBy: ["recuperateur"],      thrivesAgainst: ["defenseur_central"] },
+};
+
+const COUNTER_MALUS  = 0.88; // -12% si contré par le bon profil défensif
+const THRIVE_BONUS   = 1.10; // +10% si l'adversaire n'a pas le bon profil pour contrer
+
+// Calcule un multiplicateur d'efficacité pour un joueur selon les rôles présents
+// dans l'effectif adverse (pas un face-à-face strict 1v1, mais une approximation
+// basée sur la présence du rôle contreur quelque part dans l'équipe adverse)
+export function getMatchupMultiplier(player, opponentPlayers) {
+  if (!player.role) return 1;
+  const matchup = ROLE_MATCHUPS[player.role];
+  if (!matchup) return 1;
+
+  const opponentRoles = opponentPlayers.map(p => p.role).filter(Boolean);
+  const isCountered = matchup.counteredBy.some(r => opponentRoles.includes(r));
+  const canThrive    = matchup.thrivesAgainst.some(r => opponentRoles.includes(r));
+
+  if (isCountered) return COUNTER_MALUS;
+  if (canThrive)   return THRIVE_BONUS;
+  return 1;
+}

@@ -7,7 +7,7 @@ import { Link }                         from "react-router-dom";
 import { useAuth }                      from "../hooks/useAuth";
 import { useGameStats }                 from "../hooks/useGameStats.jsx";
 import PlayerCard                        from "../components/PlayerCard";
-import { applyRoleBoost }                from "../data/player-roles";
+import { applyRoleBoost, getMatchupMultiplier, getDefaultRole } from "../data/player-roles";
 
 const TEAM_KEY       = "wch_team";
 
@@ -96,13 +96,18 @@ const AI_TEAMS = [
   },
 ];
 
-// Calculer les stats moyennes d'une équipe — applique les boosts de rôle si présents
-function calcTeamStats(players) {
+// Calculer les stats moyennes d'une équipe — applique boosts de rôle + interactions
+// croisées avec les rôles de l'effectif adverse (opponentPlayers, optionnel)
+function calcTeamStats(players, opponentPlayers = []) {
   if (!players || players.length === 0) return { ATT: 50, MIL: 50, DEF: 50, PHY: 50, rating: 50 };
   const total = players.length;
   const effectiveStats = key => players.reduce((s, p) => {
-    const stats = p.role ? applyRoleBoost(p, p.role) : (p.stats ?? {});
-    return s + (stats[key] ?? 60);
+    const stats   = p.role ? applyRoleBoost(p, p.role) : (p.stats ?? {});
+    const matchup = opponentPlayers.length ? getMatchupMultiplier(p, opponentPlayers) : 1;
+    // Le matchup n'affecte que les stats offensives (l'efficacité du rôle face au profil adverse)
+    const isOffensiveStat = key === "TIR" || key === "PAC" || key === "DRI" || key === "PAS";
+    const value = isOffensiveStat ? (stats[key] ?? 60) * matchup : (stats[key] ?? 60);
+    return s + value;
   }, 0) / total;
   const avg = key => Math.round(effectiveStats(key));
   return {
@@ -202,17 +207,22 @@ export default function MatchGame() {
     setMyTeam(players);
   }, []);
 
-  const myStats  = calcTeamStats(myTeam);
-  const myRating = myStats.rating;
+  const myStats  = calcTeamStats(myTeam, selectedAI?.players ?? []);
+  const myRating = calcTeamStats(myTeam).rating; // rating affiché reste neutre, sans bonus de matchup
 
   function chooseOpponent(aiTeam) {
-    setSelectedAI(aiTeam);
+    // Assigner un rôle par défaut à chaque joueur IA pour activer les interactions croisées
+    const aiWithRoles = {
+      ...aiTeam,
+      players: aiTeam.players.map(p => ({ ...p, role: getDefaultRole(p).id })),
+    };
+    setSelectedAI(aiWithRoles);
     setTactic(TACTICS[0]);
     setPhase("tactic");
   }
 
   function playHalf(half, currentTactic) {
-    const aiStats = calcTeamStats(selectedAI.players);
+    const aiStats = calcTeamStats(selectedAI.players, myTeam);
     const myAdjusted = applyTactic(myStats, currentTactic);
     const aiAttack    = Math.round(aiStats.ATT * currentTactic.oppAttMult);
 
@@ -426,6 +436,30 @@ export default function MatchGame() {
               <h2 className="text-xl font-bold">Choisis ta tactique</h2>
               <p className="text-sm text-gray-400">Contre {selectedAI.emoji} {selectedAI.name} (note {selectedAI.rating})</p>
             </div>
+
+            {/* Analyse des duels de rôles */}
+            {(() => {
+              const myPlayersWithRole = myTeam.filter(p => p.role);
+              const matchupInfo = myPlayersWithRole
+                .map(p => ({ player: p, mult: getMatchupMultiplier(p, selectedAI.players) }))
+                .filter(m => m.mult !== 1);
+              if (matchupInfo.length === 0) return null;
+              return (
+                <div className="mb-5 bg-white/5 border border-white/10 rounded-xl p-3">
+                  <p className="text-xs text-gray-400 mb-2 font-bold">⚔️ Duels de rôles détectés</p>
+                  <div className="space-y-1.5">
+                    {matchupInfo.map(({ player, mult }, i) => (
+                      <div key={i} className="flex items-center justify-between text-xs">
+                        <span className="text-gray-300">{player.name?.split(" ").pop()}</span>
+                        <span className={mult > 1 ? "text-green-400 font-bold" : "text-red-400 font-bold"}>
+                          {mult > 1 ? "↑ Avantagé" : "↓ Contré"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
 
             <div className="space-y-3 mb-5">
               {TACTICS.map(t => {
