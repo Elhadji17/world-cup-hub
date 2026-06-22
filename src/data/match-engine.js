@@ -181,16 +181,18 @@ function tacticDefenseBonus(tactic) {
 function chooseAction(zone, tactic) {
   if (zone === "surface") {
     return randomWeighted([
-      { type: "shot",   weight: 60 },
-      { type: "pass",   weight: 25 },
-      { type: "dribble",weight: 15 },
+      { type: "shot",   weight: 50 },
+      { type: "header", weight: 20 }, // duel aérien en surface
+      { type: "pass",   weight: 20 },
+      { type: "dribble",weight: 10 },
     ]);
   }
   if (zone === "attaque") {
     return randomWeighted([
-      { type: "shot",   weight: 15 },
+      { type: "shot",   weight: 12 },
+      { type: "header", weight: 8  }, // duel aérien possible en attaque aussi
       { type: "pass",   weight: 55 },
-      { type: "dribble",weight: 30 },
+      { type: "dribble",weight: 25 },
     ]);
   }
   // Milieu et défense — influencé par la tactique
@@ -224,7 +226,8 @@ function chooseAction(zone, tactic) {
 }
 
 // ── Résolution des actions ─────────────────────────────────────────────────
-function resolveAction(actionType, attackStats, defStats, zone, attackTactic, defTactic) {
+// gkStats : stats du gardien adverse (DEF = arrêts, PHY = sorties aériennes)
+function resolveAction(actionType, attackStats, defStats, zone, attackTactic, defTactic, gkStats = null) {
   if (actionType === "pass") {
     const score = (attackStats.MIL - defStats.MIL)
       + tacticPassBonus(attackTactic)
@@ -238,12 +241,22 @@ function resolveAction(actionType, attackStats, defStats, zone, attackTactic, de
     return { success: roll(clamp(40 + score * 0.3, 20, 70)) };
   }
   if (actionType === "shot") {
-    let score = attackStats.ATT - defStats.DEF
+    // Si un gardien est présent, on l'utilise à la place de DEF équipe
+    const gkStat = gkStats ? gkStats.DEF : defStats.DEF;
+    let score = attackStats.ATT - gkStat
       + tacticShotBonus(attackTactic)
       - tacticDefenseBonus(defTactic);
-    if (zone === "surface") score += 5; // bonus surface réduit
-    // Chance de but beaucoup plus réaliste — max ~35%
+    if (zone === "surface") score += 5;
     return { success: roll(clamp(8 + score * 0.25, 2, 35)), isShot: true };
+  }
+  if (actionType === "header") {
+    // Duel aérien — PHY attaquant vs PHY gardien (sortie) ou PHY défenseur
+    const defPHY = gkStats && zone === "surface"
+      ? gkStats.PHY   // en surface : c'est le gardien qui sort
+      : defStats.PHY; // ailleurs : c'est un défenseur qui gagne le duel
+    const score = attackStats.PHY - defPHY;
+    // Légèrement moins probable qu'un tir normal — header plus difficile à convertir
+    return { success: roll(clamp(10 + score * 0.2, 2, 28)), isShot: true };
   }
   if (actionType === "clear") {
     return { success: true, turnover: true };
@@ -269,6 +282,7 @@ export const KEY_ACTIONS = {
   save:   { emoji: "🧤", label: "sort une parade décisive" },
   corner: { emoji: "🚩", label: "obtient un corner dangereux" },
   yellow: { emoji: "🟨", label: "reçoit un carton jaune" },
+  header: { emoji: "🤯", label: "gagne un duel aérien" },
 };
 
 // ── Simuler une mi-temps (boucle de ticks) ────────────────────────────────
@@ -281,6 +295,13 @@ export function generateHalfEvents(
 ) {
   const events  = [];
   const minutes = new Set();
+
+  // Extraire les gardiens — ils interviennent séparément sur les tirs et duels aériens
+  const myGK    = myPlayers.find(p => p.position === "GK");
+  const aiGK    = aiPlayers.find(p => p.position === "GK");
+  const myGKStats  = myGK  ? { DEF: myGK.stats?.DEF  ?? 75, PHY: myGK.stats?.PHY  ?? 75 } : null;
+  const aiGKStats  = aiGK  ? { DEF: aiGK.stats?.DEF  ?? 75, PHY: aiGK.stats?.PHY  ?? 75 }
+                           : { DEF: 75, PHY: 72 }; // gardien IA par défaut si absent
 
   // État de match
   let zone          = "milieu";
@@ -306,8 +327,8 @@ export function generateHalfEvents(
       ? (zone === "surface" || zone === "attaque"
           ? (myPlayers.filter(p => p.position === "ATT" || p.position === "MIL").length
               ? myPlayers.filter(p => p.position === "ATT" || p.position === "MIL")
-              : myPlayers)
-          : myPlayers)
+              : myPlayers.filter(p => p.position !== "GK"))
+          : myPlayers.filter(p => p.position !== "GK"))
       : aiPlayers;
     const p = pool[Math.floor(Math.random() * Math.max(pool.length, 1))];
     return team === "me"
@@ -317,18 +338,20 @@ export function generateHalfEvents(
 
   // 45 ticks = 45 minutes simulées
   for (let tick = 1; tick <= 45; tick++) {
-    const minute      = minuteOffset + tick;
-    const atkStats    = possession === "me" ? myStats : aiStats;
-    const defStats    = possession === "me" ? aiStats : myStats;
-    const atkTactic   = possession === "me" ? myTactic : aiTactic;
+    const minute       = minuteOffset + tick;
+    const atkStats     = possession === "me" ? myStats : aiStats;
+    const defStats     = possession === "me" ? aiStats : myStats;
+    const atkTactic    = possession === "me" ? myTactic : aiTactic;
     const defTacticObj = possession === "me" ? aiTactic : myTactic;
+    // Gardien adverse = celui qui doit arrêter le tir
+    const defGK        = possession === "me" ? aiGKStats : myGKStats;
 
     if (possession === "me") myPossessionTicks++;
 
     const action = chooseAction(zone, atkTactic);
-    const result = resolveAction(action.type, atkStats, defStats, zone, atkTactic, defTacticObj);
+    const result = resolveAction(action.type, atkStats, defStats, zone, atkTactic, defTacticObj, defGK);
 
-    if (action.type === "shot") {
+    if (action.type === "shot" || action.type === "header") {
       if (possession === "me") { myShots++; }
       else                     { aiShots++; }
 
@@ -340,11 +363,11 @@ export function generateHalfEvents(
         zone = "milieu";
         possession = possession === "me" ? "ai" : "me"; // relance adverse
       } else {
-        // Tir raté
+        // Tir ou tête raté
         if (possession === "me") { if (Math.random() < 0.6) myOnTarget++; }
         else                     { if (Math.random() < 0.6) aiOnTarget++; }
-        // Événement narratif
-        const evType = Math.random() < 0.5 ? "miss" : "save";
+        // Événement narratif : tête ratée → "gagne un duel aérien" si header
+        const evType = action.type === "header" ? "header" : (Math.random() < 0.5 ? "miss" : "save");
         addEvent(possession, getPlayerName(possession, zone), minute, evType);
         possession = possession === "me" ? "ai" : "me";
         zone = "milieu";
