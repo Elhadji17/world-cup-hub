@@ -398,9 +398,21 @@ export function generateHalfEvents(
         // Tir ou tête raté
         if (possession === "me") { if (Math.random() < 0.6) myOnTarget++; }
         else                     { if (Math.random() < 0.6) aiOnTarget++; }
-        // Événement narratif : tête ratée → "gagne un duel aérien" si header
-        const evType = action.type === "header" ? "header" : (Math.random() < 0.5 ? "miss" : "save");
-        addEvent(possession, getPlayerName(possession, zone), minute, evType);
+        // Événement narratif : tête ratée → "duel aérien" | tir raté → miss (attaquant) ou save (gardien)
+        if (action.type === "header") {
+          // Duel aérien raté — c'est l'attaquant qui rate, pas le gardien
+          addEvent(possession, getPlayerName(possession, zone), minute, "header");
+        } else if (Math.random() < 0.5) {
+          // Miss — l'attaquant rate le cadre (on affiche l'attaquant)
+          addEvent(possession, getPlayerName(possession, zone), minute, "miss");
+        } else {
+          // Save — c'est toujours le GARDIEN adverse qui parade
+          const defSide = possession === "me" ? "ai" : "me";
+          const gkName  = possession === "me"
+            ? (aiPlayers.find(p => p.position === "GK")?.name?.split(" ").pop() ?? "Gardien")
+            : (myPlayers.find(p => p.position === "GK")?.name?.split(" ").pop() ?? "Gardien");
+          addEvent(defSide, gkName, minute, "save");
+        }
         possession = possession === "me" ? "ai" : "me";
         zone = "milieu";
       }
