@@ -297,70 +297,83 @@ export default function Simulator() {
         {/* ── MATCH EN COURS ───────────────────────────────────────────── */}
         {(phase === "playing" || phase === "playing2") && (
           <div>
-            {/* Terrain animé */}
-            <div className="mb-4">
-              <MatchField
-                events={visibleEvents}
-                currentMin={currentMin}
-                phase={phase}
-                senScore={phase === "playing" ? 0 : homeScore}
-                norScore={phase === "playing" ? 0 : awayScore}
-              />
+            {/* Header chrono compact */}
+            <div className="bg-white/10 border border-white/20 rounded-2xl px-4 py-3 mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-green-400 text-sm font-bold animate-pulse">⏱️</span>
+                <span className="text-white font-bold">{Math.min(currentMin, 90)}'</span>
+                <span className="text-xs text-gray-400">{phase === "playing" ? "1ère mi-temps" : "2e mi-temps"}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xl">🇸🇳</span>
+                <span className="text-2xl font-black text-white">{phase === "playing" ? 0 : homeScore}</span>
+                <span className="text-gray-400">-</span>
+                <span className="text-2xl font-black text-white">{phase === "playing" ? 0 : awayScore}</span>
+                <span className="text-xl">🇳🇴</span>
+              </div>
+              <span className="text-xs text-gray-400">{tactic.emoji} {tactic.name.split(" ")[0]}</span>
             </div>
 
-            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-              className="bg-white/10 border border-white/20 rounded-2xl p-6 mb-5 text-center">
-              <div className="text-xs text-gray-400 mb-3 uppercase tracking-wide">
-                ⏱️ {Math.min(currentMin, 90)}' · {phase === "playing" ? "1ère mi-temps" : "2e mi-temps"} · {tactic.emoji} {tactic.name}
-              </div>
-              <div className="flex items-center justify-center gap-6">
-                <div className="text-center">
-                  <div className="text-3xl">🇸🇳</div>
-                  <div className="text-xs text-gray-400">Sénégal</div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-5xl font-black">{phase === "playing" ? "0" : homeScore}</span>
-                  <span className="text-2xl text-gray-400">-</span>
-                  <span className="text-5xl font-black">{phase === "playing" ? "0" : awayScore}</span>
-                </div>
-                <div className="text-center">
-                  <div className="text-3xl">🇳🇴</div>
-                  <div className="text-xs text-gray-400">Norvège</div>
-                </div>
-              </div>
-              <div className="mt-4 w-full bg-white/10 rounded-full h-2">
-                <motion.div animate={{ width: `${Math.min((currentMin / 90) * 100, 100)}%` }}
-                  transition={{ duration: 0.2 }} className="h-2 bg-green-400 rounded-full" />
-              </div>
-            </motion.div>
+            {/* Barre de progression */}
+            <div className="w-full bg-white/10 rounded-full h-1.5 mb-3">
+              <motion.div animate={{ width: `${Math.min((currentMin / 90) * 100, 100)}%` }}
+                transition={{ duration: 0.2 }} className="h-1.5 bg-green-400 rounded-full" />
+            </div>
 
-            <div className="space-y-2">
-              <AnimatePresence>
-                {visibleEvents.map((event, i) => {
-                  const isGoal = event.type === "goal";
-                  const action = !isGoal ? KEY_ACTIONS[event.type] : null;
-                  const isSen  = event.team === "me";
-                  return (
-                    <motion.div key={i}
-                      initial={{ opacity: 0, x: isSen ? -20 : 20 }} animate={{ opacity: 1, x: 0 }}
-                      className={`flex items-center gap-3 px-4 py-2 rounded-xl ${
-                        isGoal
-                          ? isSen ? "bg-green-500/20 border border-green-400/30" : "bg-red-500/20 border border-red-400/30"
-                          : "bg-white/5 border border-white/10"
-                      }`}>
-                      <span className="text-xl">{isGoal ? "⚽" : action?.emoji}</span>
-                      <span className="text-xs text-gray-400 font-bold w-8">{event.minute}'</span>
-                      <span className="text-sm font-bold">{event.player}</span>
-                      <span className="text-xs ml-auto">
-                        {isGoal ? (isSen ? "✅ But Sénégal !" : "❌ But Norvège") : action?.label}
-                      </span>
-                    </motion.div>
-                  );
-                })}
-              </AnimatePresence>
-              {visibleEvents.length === 0 && (
-                <div className="text-center text-gray-400 py-8 animate-pulse">⚽ Simulation en cours...</div>
-              )}
+            {/* Layout côte à côte : terrain | événements */}
+            <div className="flex gap-3 items-start">
+
+              {/* Terrain animé — colonne gauche, fixe */}
+              <div className="shrink-0 w-[48%]">
+                <MatchField
+                  events={visibleEvents}
+                  currentMin={currentMin}
+                  phase={phase}
+                  senScore={phase === "playing" ? 0 : homeScore}
+                  norScore={phase === "playing" ? 0 : awayScore}
+                />
+              </div>
+
+              {/* Fil d'événements — colonne droite, scrollable */}
+              <div className="flex-1 min-w-0" style={{ maxHeight: "480px", overflowY: "auto" }}>
+                {visibleEvents.length === 0 ? (
+                  <div className="text-center text-gray-400 py-10 animate-pulse text-xs">
+                    ⚽<br/>Simulation<br/>en cours...
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    <AnimatePresence>
+                      {[...visibleEvents].reverse().map((event, i) => {
+                        const isGoal = event.type === "goal";
+                        const action = !isGoal ? KEY_ACTIONS[event.type] : null;
+                        const isSen  = event.team === "me";
+                        return (
+                          <motion.div key={`${event.minute}-${i}`}
+                            initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+                            className={`px-2 py-1.5 rounded-lg text-xs ${
+                              isGoal
+                                ? isSen ? "bg-green-500/25 border border-green-400/40" : "bg-red-500/25 border border-red-400/40"
+                                : "bg-white/5 border border-white/10"
+                            }`}>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-gray-400 font-mono shrink-0">{event.minute}'</span>
+                              <span>{isGoal ? "⚽" : action?.emoji}</span>
+                              <span className={`font-bold truncate ${isSen ? "text-green-200" : "text-red-200"}`}>
+                                {event.player}
+                              </span>
+                            </div>
+                            {isGoal && (
+                              <div className={`text-[10px] mt-0.5 font-bold ${isSen ? "text-green-400" : "text-red-400"}`}>
+                                {isSen ? "✅ BUT SÉNÉGAL !" : "❌ But Norvège"}
+                              </div>
+                            )}
+                          </motion.div>
+                        );
+                      })}
+                    </AnimatePresence>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
