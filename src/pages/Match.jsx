@@ -246,9 +246,17 @@ export default function MatchGame() {
             )}
             <div className="space-y-3">
               {AI_TEAMS.map((team, i) => {
-                const diff      = myRating - team.rating;
+                const diff       = myRating - team.rating;
                 const difficulty = diff > 5 ? "Facile 🟢" : diff > -5 ? "Moyen 🟡" : "Difficile 🔴";
-                const rewardEst = diff > 5 ? 30 : diff > -5 ? 50 : 90;
+                const rewardEst  = diff > 5 ? 30 : diff > -5 ? 50 : 90;
+
+                // Grouper les joueurs par position pour un affichage lisible
+                const byPos = {
+                  GK:  team.players.filter(p => p.position === "GK"),
+                  DEF: team.players.filter(p => p.position === "DEF"),
+                  MIL: team.players.filter(p => p.position === "MIL"),
+                  ATT: team.players.filter(p => p.position === "ATT"),
+                };
 
                 return (
                   <motion.div key={i}
@@ -258,26 +266,38 @@ export default function MatchGame() {
                     className="relative rounded-2xl border border-white/10 overflow-hidden"
                   >
                     <div className={`absolute inset-0 bg-gradient-to-r ${team.color} opacity-20`} />
-                    <div className="relative flex items-center gap-4 p-4">
-                      <div className="text-4xl">{team.emoji}</div>
-                      <div className="flex-1">
-                        <div className="font-bold text-white">{team.name}</div>
-                        <div className="text-xs text-gray-400 mt-0.5">
-                          Note {team.rating} · {difficulty} · +{rewardEst} 💰 si victoire
+                    <div className="relative p-4">
+                      {/* Header */}
+                      <div className="flex items-center justify-between gap-3 mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="text-3xl">{team.emoji}</div>
+                          <div>
+                            <div className="font-bold text-white text-sm">{team.name}</div>
+                            <div className="text-xs text-gray-400">
+                              Note {team.rating} · {difficulty} · +{rewardEst} 💰
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex gap-1 mt-1">
-                          {team.players.map(p => (
-                            <span key={p.id} className="text-xs bg-white/10 px-1.5 py-0.5 rounded">
-                              {p.flag} {p.name}
-                            </span>
-                          ))}
-                        </div>
+                        <motion.button whileTap={{ scale: 0.95 }}
+                          onClick={() => chooseOpponent(team)}
+                          className="bg-green-500 hover:bg-green-400 text-white font-bold px-4 py-2 rounded-xl shrink-0 transition text-sm">
+                          Choisir
+                        </motion.button>
                       </div>
-                      <motion.button whileTap={{ scale: 0.95 }}
-                        onClick={() => chooseOpponent(team)}
-                        className="bg-green-500 hover:bg-green-400 text-white font-bold px-4 py-2 rounded-xl shrink-0 transition">
-                        Choisir
-                      </motion.button>
+
+                      {/* Joueurs groupés par ligne */}
+                      <div className="space-y-1">
+                        {Object.entries(byPos).filter(([, players]) => players.length > 0).map(([pos, players]) => (
+                          <div key={pos} className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[10px] text-gray-500 font-bold w-6 shrink-0">{pos}</span>
+                            {players.map(p => (
+                              <span key={p.id} className="text-[11px] bg-white/10 px-1.5 py-0.5 rounded text-gray-300 whitespace-nowrap">
+                                {p.flag} {p.name.split(" ")[0]}
+                              </span>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </motion.div>
                 );
