@@ -4,6 +4,7 @@
 
 import { applyRoleBoost, getMatchupMultiplier } from "./player-roles";
 import { applyFormMultiplier } from "./match-form";
+import { getMoraleInfo } from "./match-morale";
 
 export const TEAM_KEY = "wch_team";
 
@@ -93,17 +94,20 @@ export const AI_TEAMS = [
 ];
 
 // Calculer les stats moyennes d'une équipe — applique boosts de rôle + interactions
-// croisées avec les rôles de l'effectif adverse + forme du jour (tous optionnels)
-export function calcTeamStats(players, opponentPlayers = [], formMap = {}) {
+// croisées avec les rôles de l'effectif adverse + forme du jour + moral (tous optionnels)
+export function calcTeamStats(players, opponentPlayers = [], formMap = {}, morale = 3) {
   if (!players || players.length === 0) return { ATT: 50, MIL: 50, DEF: 50, PHY: 50, rating: 50 };
   const total = players.length;
+  const moraleInfo = getMoraleInfo(morale);
   const effectiveStats = key => players.reduce((s, p) => {
     let stats = p.role ? applyRoleBoost(p, p.role) : (p.stats ?? {});
     stats = applyFormMultiplier(stats, p, formMap);
     const matchup = opponentPlayers.length ? getMatchupMultiplier(p, opponentPlayers) : 1;
-    // Le matchup n'affecte que les stats offensives (l'efficacité du rôle face au profil adverse)
     const isOffensiveStat = key === "TIR" || key === "PAC" || key === "DRI" || key === "PAS";
-    const value = isOffensiveStat ? (stats[key] ?? 60) * matchup : (stats[key] ?? 60);
+    const isDefensiveStat = key === "DEF" || key === "PHY";
+    let value = stats[key] ?? 60;
+    if (isOffensiveStat) value = value * matchup * moraleInfo.attBonus;
+    if (isDefensiveStat) value = value * moraleInfo.defBonus;
     return s + value;
   }, 0) / total;
   const avg = key => Math.round(effectiveStats(key));

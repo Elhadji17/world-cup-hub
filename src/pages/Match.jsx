@@ -10,6 +10,7 @@ import { useGameStats }                 from "../hooks/useGameStats.jsx";
 import PlayerCard                        from "../components/PlayerCard";
 import { getMatchupMultiplier, getDefaultRole } from "../data/player-roles";
 import { rollMatchForm, FORM_STATES } from "../data/match-form";
+import { getMorale, getMoraleInfo, updateMorale } from "../data/match-morale";
 import {
   TEAM_KEY, TACTICS, AI_TEAMS, KEY_ACTIONS,
   calcTeamStats, simulateHalfGoals, applyTactic, generateHalfEvents,
@@ -31,6 +32,7 @@ export default function MatchGame() {
   const [allEvents,     setAllEvents]     = useState([]);
   const [myFormMap,     setMyFormMap]     = useState({});
   const [aiFormMap,     setAiFormMap]     = useState({});
+  const [morale,        setMorale]        = useState(() => getMorale());
   const intervalRef = useRef(null);
 
   // Charger mon équipe
@@ -40,8 +42,8 @@ export default function MatchGame() {
     setMyTeam(players);
   }, []);
 
-  const myStats  = calcTeamStats(myTeam, selectedAI?.players ?? [], myFormMap);
-  const myRating = calcTeamStats(myTeam).rating; // rating affiché reste neutre, sans bonus de matchup/forme
+  const myStats  = calcTeamStats(myTeam, selectedAI?.players ?? [], myFormMap, morale);
+  const myRating = calcTeamStats(myTeam).rating;
 
   function chooseOpponent(aiTeam) {
     // Assigner un rôle par défaut à chaque joueur IA pour activer les interactions croisées
@@ -108,6 +110,8 @@ export default function MatchGame() {
               livesUsed:   1, // 1 vie consommée par match, déduite côté backend
             });
             await refresh();
+            const newMorale = updateMorale(won ? "win" : draw ? "draw" : "loss");
+            setMorale(newMorale);
             setReward(result?.coinsEarned ?? (won ? 50 : draw ? 20 : 5));
             setPhase("result");
           }
@@ -272,6 +276,26 @@ export default function MatchGame() {
               <h2 className="text-xl font-bold">Choisis ta tactique</h2>
               <p className="text-sm text-gray-400">Contre {selectedAI.emoji} {selectedAI.name} (note {selectedAI.rating})</p>
             </div>
+
+            {/* Moral de l'équipe */}
+            {(() => {
+              const moraleInfo = getMoraleInfo(morale);
+              return (
+                <div className={`mb-4 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 flex items-center justify-between`}>
+                  <div>
+                    <p className="text-xs text-gray-400 font-bold">💪 Moral de l'équipe</p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {morale >= 4 ? "Série positive — ton équipe est dans un bon état d'esprit" :
+                       morale <= 2 ? "Série négative — il faut rebondir" :
+                       "Neutre — tout reste possible"}
+                    </p>
+                  </div>
+                  <span className={`text-sm font-black ${moraleInfo.color}`}>
+                    {moraleInfo.emoji} {moraleInfo.label}
+                  </span>
+                </div>
+              );
+            })()}
 
             {/* Analyse des duels de rôles */}
             {(() => {
@@ -542,6 +566,21 @@ export default function MatchGame() {
                 <span className="text-yellow-400 font-black text-lg">+{reward} 💰</span>
                 <span className="text-gray-300 text-sm ml-2">coins gagnés !</span>
               </motion.div>
+
+              {/* Nouveau moral */}
+              {(() => {
+                const moraleInfo = getMoraleInfo(morale);
+                return (
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.7 }}
+                    className="mt-3 bg-white/5 border border-white/10 rounded-xl px-4 py-2 flex items-center justify-between">
+                    <span className="text-xs text-gray-400">💪 Moral de l'équipe</span>
+                    <span className={`text-sm font-black ${moraleInfo.color}`}>
+                      {moraleInfo.emoji} {moraleInfo.label}
+                    </span>
+                  </motion.div>
+                );
+              })()}
             </div>
 
             <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-5">
