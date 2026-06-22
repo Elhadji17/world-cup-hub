@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence }      from "framer-motion";
 import { useGameStats }                 from "../hooks/useGameStats.jsx";
 import { TACTICS, generateHalfEvents, mergeMatchStats, calcTeamStats, applyTactic, KEY_ACTIONS } from "../data/match-engine";
-import { SENEGAL_MATCH, NORWAY_MATCH }  from "../data/matchData";
+import { SENEGAL_MATCH, NORWAY_MATCH, getScriptedEventsForHalf } from "../data/matchData";
 import { getRecentFormMultiplier }      from "../data/match-form";
 import MatchField                        from "../components/MatchField";
 
@@ -113,10 +113,36 @@ export default function Simulator() {
     const myAdj   = applyTactic(myStats, currentTactic);
     const offset  = half === 1 ? 0 : 45;
 
-    const { events, halfStats, myGoals, aiGoals } = generateHalfEvents(
+    // 1. Événements aléatoires du moteur (ticks, zones, duels)
+    const { events: engineEvents, halfStats, myGoals, aiGoals } = generateHalfEvents(
       null, null, senegalPlayers, norwayPlayers, offset,
       myAdj, aiStats, currentTactic, norwayTactic
     );
+
+    // 2. Événements scénarisés selon la tactique choisie
+    const scripted = getScriptedEventsForHalf(half, currentTactic.id).map(e => ({
+      team:    e.team,
+      player:  e.player,
+      minute:  e.minute,
+      type:    e.type,
+      scripted: true, // marque pour l'affichage
+      desc:    e.desc,
+    }));
+
+    // 3. Compter les buts scénarisés pour ajuster le score
+    const scriptedSenGoals = scripted.filter(e => e.team === "sen" && e.type === "goal").length;
+    const scriptedNorGoals = scripted.filter(e => e.team === "nor" && e.type === "goal").length;
+
+    // 4. Fusionner et trier par minute — les scénarisés remplacent les aléatoires
+    //    à la même minute pour éviter les doublons
+    const usedMinutes = new Set(scripted.map(e => e.minute));
+    const filteredEngine = engineEvents.filter(e => !usedMinutes.has(e.minute));
+    const allHalfEvents = [...scripted, ...filteredEngine]
+      .sort((a, b) => a.minute - b.minute);
+
+    // 5. Score final = moteur + scénarisés
+    const finalSenGoals = myGoals + scriptedSenGoals;
+    const finalNorGoals = aiGoals + scriptedNorGoals;
 
     setVisibleEvents([]);
     setCurrentMin(offset);
@@ -126,24 +152,24 @@ export default function Simulator() {
     intervalRef.current = setInterval(() => {
       min += 1;
       setCurrentMin(Math.min(min, offset + 45));
-      setVisibleEvents(events.filter(e => e.minute <= min));
+      setVisibleEvents(allHalfEvents.filter(e => e.minute <= min));
 
       if (min >= offset + 45) {
         clearInterval(intervalRef.current);
         setTimeout(() => {
           if (half === 1) {
-            setHomeScore(myGoals);
-            setAwayScore(aiGoals);
-            setAllEvents(events);
-            setHalf1Events(events);
+            setHomeScore(finalSenGoals);
+            setAwayScore(finalNorGoals);
+            setAllEvents(allHalfEvents);
+            setHalf1Events(allHalfEvents);
             setMatchStats(halfStats);
             setPhase("halftime");
           } else {
-            const finalHome = homeScore + myGoals;
-            const finalAway = awayScore + aiGoals;
+            const finalHome = homeScore + finalSenGoals;
+            const finalAway = awayScore + finalNorGoals;
             setHomeScore(finalHome);
             setAwayScore(finalAway);
-            setAllEvents(prev => [...prev, ...events]);
+            setAllEvents(prev => [...prev, ...allHalfEvents]);
             setMatchStats(prev => prev ? mergeMatchStats(prev, halfStats) : halfStats);
             setPhase("result");
           }
@@ -360,21 +386,29 @@ export default function Simulator() {
                 {[...visibleEvents].reverse().map((event, i) => {
                   const isGoal = event.type === "goal";
                   const action = !isGoal ? KEY_ACTIONS[event.type] : null;
-                  const isSen  = event.team === "me";
+                  const isSen  = event.team === "me" || event.team === "sen";
                   return (
                     <motion.div key={`${event.minute}-${i}`}
                       initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-                      className={`flex items-center gap-3 px-4 py-2 rounded-xl ${
+                      className={`px-4 py-2.5 rounded-xl border ${
                         isGoal
-                          ? isSen ? "bg-green-500/20 border border-green-400/30" : "bg-red-500/20 border border-red-400/30"
-                          : "bg-white/5 border border-white/10"
+                          ? isSen ? "bg-green-500/20 border-green-400/30" : "bg-red-500/20 border-red-400/30"
+                          : "bg-white/5 border-white/10"
                       }`}>
-                      <span className="text-lg">{isGoal ? "⚽" : action?.emoji}</span>
-                      <span className="text-xs text-gray-400 font-mono w-8 shrink-0">{event.minute}'</span>
-                      <span className={`text-sm font-bold flex-1 ${isSen ? "text-green-200" : "text-red-200"}`}>{event.player}</span>
-                      <span className="text-xs text-gray-400">
-                        {isGoal ? (isSen ? "✅ 🇸🇳" : "❌ 🇳🇴") : action?.label}
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-lg">{isGoal ? "⚽" : action?.emoji}</span>
+                        <span className="text-xs text-gray-400 font-mono w-8 shrink-0">{event.minute}'</span>
+                        <span className={`text-sm font-bold flex-1 ${isSen ? "text-green-200" : "text-red-200"}`}>
+                          {event.player}
+                        </span>
+                        <span className="text-xs text-gray-400">
+                          {isGoal ? (isSen ? "✅ But 🇸🇳" : "❌ But 🇳🇴") : action?.label}
+                        </span>
+                      </div>
+                      {/* Description narrative pour les événements scénarisés */}
+                      {event.scripted && event.desc && (
+                        <p className="text-[11px] text-gray-400 mt-1 ml-11 italic">{event.desc}</p>
+                      )}
                     </motion.div>
                   );
                 })}
