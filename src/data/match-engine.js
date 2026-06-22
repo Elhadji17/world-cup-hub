@@ -181,44 +181,44 @@ function tacticDefenseBonus(tactic) {
 function chooseAction(zone, tactic) {
   if (zone === "surface") {
     return randomWeighted([
-      { type: "shot",   weight: 55 },
+      { type: "shot",   weight: 60 },
       { type: "pass",   weight: 25 },
-      { type: "dribble",weight: 20 },
+      { type: "dribble",weight: 15 },
     ]);
   }
   if (zone === "attaque") {
     return randomWeighted([
-      { type: "shot",   weight: 30 },
-      { type: "pass",   weight: 45 },
-      { type: "dribble",weight: 25 },
+      { type: "shot",   weight: 15 },
+      { type: "pass",   weight: 55 },
+      { type: "dribble",weight: 30 },
     ]);
   }
   // Milieu et défense — influencé par la tactique
   const style = tactic?.style ?? "BALANCED";
   if (style === "ATTAQUE_PLACEE") {
     return randomWeighted([
-      { type: "pass",   weight: 60 },
-      { type: "dribble",weight: 25 },
+      { type: "pass",   weight: 65 },
+      { type: "dribble",weight: 20 },
       { type: "clear",  weight: 15 },
     ]);
   }
   if (style === "CONTRE") {
     return randomWeighted([
-      { type: "clear",  weight: 50 },
+      { type: "clear",  weight: 55 },
       { type: "pass",   weight: 30 },
-      { type: "dribble",weight: 20 },
+      { type: "dribble",weight: 15 },
     ]);
   }
   if (style === "PRESSING_HAUT") {
     return randomWeighted([
-      { type: "pass",   weight: 45 },
-      { type: "dribble",weight: 35 },
+      { type: "pass",   weight: 50 },
+      { type: "dribble",weight: 30 },
       { type: "clear",  weight: 20 },
     ]);
   }
   return randomWeighted([
-    { type: "pass",   weight: 55 },
-    { type: "dribble",weight: 25 },
+    { type: "pass",   weight: 60 },
+    { type: "dribble",weight: 20 },
     { type: "clear",  weight: 20 },
   ]);
 }
@@ -229,20 +229,21 @@ function resolveAction(actionType, attackStats, defStats, zone, attackTactic, de
     const score = (attackStats.MIL - defStats.MIL)
       + tacticPassBonus(attackTactic)
       - tacticDefenseBonus(defTactic);
-    return { success: roll(clamp(50 + score, 10, 90)) };
+    return { success: roll(clamp(50 + score * 0.3, 30, 80)) };
   }
   if (actionType === "dribble") {
     const score = (attackStats.ATT - defStats.DEF)
       + tacticDribbleBonus(attackTactic)
       - tacticDefenseBonus(defTactic);
-    return { success: roll(clamp(45 + score, 10, 85)) };
+    return { success: roll(clamp(40 + score * 0.3, 20, 70)) };
   }
   if (actionType === "shot") {
     let score = attackStats.ATT - defStats.DEF
       + tacticShotBonus(attackTactic)
       - tacticDefenseBonus(defTactic);
-    if (zone === "surface") score += 15;
-    return { success: roll(clamp(20 + score, 2, 65)), isShot: true };
+    if (zone === "surface") score += 5; // bonus surface réduit
+    // Chance de but beaucoup plus réaliste — max ~35%
+    return { success: roll(clamp(8 + score * 0.25, 2, 35)), isShot: true };
   }
   if (actionType === "clear") {
     return { success: true, turnover: true };
@@ -250,10 +251,16 @@ function resolveAction(actionType, attackStats, defStats, zone, attackTactic, de
   return { success: true };
 }
 
-// ── Progression de zone ────────────────────────────────────────────────────
+// ── Progression de zone — plus difficile qu'avant ─────────────────────────
 function advanceZone(zone) {
+  // Pas de progression directe défense → surface en un tick
+  // On avance d'une zone à la fois avec une chance de ralentissement
   const idx = ZONES.indexOf(zone);
-  return idx < ZONES.length - 1 ? ZONES[idx + 1] : zone;
+  if (idx < ZONES.length - 1) {
+    // 70% de chance d'avancer, 30% de rester sur place
+    return Math.random() < 0.7 ? ZONES[idx + 1] : zone;
+  }
+  return zone;
 }
 
 // ── Banque d'événements narratifs ─────────────────────────────────────────
