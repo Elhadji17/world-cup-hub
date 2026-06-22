@@ -1,6 +1,5 @@
 // src/pages/Simulator.jsx
-// Simulateur Tactique — simule de vrais matchs avec les vraies compositions
-// et notre moteur de match (zones + ticks + duels).
+// Simulateur Tactique — Sénégal vs Norvège · Coupe du Monde 2026
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence }      from "framer-motion";
@@ -10,119 +9,96 @@ import { SENEGAL_MATCH, NORWAY_MATCH }  from "../data/matchData";
 import { getRecentFormMultiplier }      from "../data/match-form";
 import MatchField                        from "../components/MatchField";
 
-// Calcule la note live d'un joueur en tenant compte de sa forme récente
 function getLiveRating(player) {
   const mult = getRecentFormMultiplier(player);
   return Math.round(player.rating * mult * 10) / 10;
 }
 
-// Formations disponibles pour le Sénégal
 const FORMATIONS = ["4-3-3", "4-2-3-1", "4-4-2", "5-3-2"];
 
-// Composant onglets Terrain / Actions — pleine largeur sur mobile
-function SimMatchView({ visibleEvents, currentMin, phase, homeScore, awayScore }) {
-  const [tab, setTab] = useState("terrain");
+// ── Récap des actions d'une mi-temps ou du match complet ─────────────────
+function MatchRecap({ events, title }) {
+  if (!events || events.length === 0) return null;
+
+  const goals   = events.filter(e => e.type === "goal");
+  const shots   = events.filter(e => e.type === "shot" || e.type === "miss" || e.type === "save" || e.type === "header" || e.type === "goal");
+  const senGoals = goals.filter(e => e.team === "me").length;
+  const norGoals = goals.filter(e => e.team === "ai").length;
+  const corners  = events.filter(e => e.type === "corner").length;
+  const yellows  = events.filter(e => e.type === "yellow").length;
+  const saves    = events.filter(e => e.type === "save").length;
+  const misses   = events.filter(e => e.type === "miss").length;
+  const headers  = events.filter(e => e.type === "header").length;
 
   return (
-    <div>
-      {/* Sélecteur d'onglets */}
-      <div className="flex gap-1 bg-white/10 rounded-xl p-1 mb-3">
-        <button onClick={() => setTab("terrain")}
-          className={`flex-1 py-2 rounded-lg text-sm font-bold transition ${
-            tab === "terrain" ? "bg-green-500 text-white" : "text-gray-400 hover:text-white"
-          }`}>
-          🏟️ Terrain
-        </button>
-        <button onClick={() => setTab("actions")}
-          className={`flex-1 py-2 rounded-lg text-sm font-bold transition relative ${
-            tab === "actions" ? "bg-green-500 text-white" : "text-gray-400 hover:text-white"
-          }`}>
-          📋 Actions
-          {visibleEvents.filter(e => e.type === "goal").length > 0 && (
-            <span className="absolute top-1 right-2 bg-yellow-400 text-black text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center">
-              {visibleEvents.filter(e => e.type === "goal").length}
-            </span>
-          )}
-        </button>
+    <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-4">
+      <h3 className="font-bold text-white mb-3 text-sm">{title}</h3>
+
+      {/* Buts */}
+      {goals.length > 0 && (
+        <div className="mb-3">
+          <p className="text-[10px] text-gray-500 uppercase tracking-wide mb-1.5">⚽ Buts</p>
+          {goals.map((g, i) => (
+            <div key={i} className={`flex items-center gap-2 text-xs mb-1 ${g.team === "me" ? "text-green-300" : "text-red-300"}`}>
+              <span className="font-mono text-gray-400 w-8">{g.minute}'</span>
+              <span>⚽</span>
+              <span className="font-bold">{g.player}</span>
+              <span className="ml-auto">{g.team === "me" ? "🇸🇳" : "🇳🇴"}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Stats rapides */}
+      <div className="grid grid-cols-3 gap-2">
+        {[
+          { label: "Tirs/têtes", value: shots.length, emoji: "🎯" },
+          { label: "Parades", value: saves, emoji: "🧤" },
+          { label: "Occasions ratées", value: misses, emoji: "😬" },
+          { label: "Corners", value: corners, emoji: "🚩" },
+          { label: "Cartons jaunes", value: yellows, emoji: "🟨" },
+          { label: "Duels aériens", value: headers, emoji: "🤯" },
+        ].map(({ label, value, emoji }) => (
+          <div key={label} className="bg-white/5 rounded-xl p-2 text-center">
+            <div className="text-lg">{emoji}</div>
+            <div className="text-white font-bold text-sm">{value}</div>
+            <div className="text-[9px] text-gray-400 leading-tight mt-0.5">{label}</div>
+          </div>
+        ))}
       </div>
-
-      {/* Vue Terrain */}
-      {tab === "terrain" && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <MatchField
-            events={visibleEvents}
-            currentMin={currentMin}
-            phase={phase}
-            senScore={homeScore}
-            norScore={awayScore}
-          />
-        </motion.div>
-      )}
-
-      {/* Vue Actions */}
-      {tab === "actions" && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          {visibleEvents.length === 0 ? (
-            <div className="text-center text-gray-400 py-12 animate-pulse">
-              ⚽ Simulation en cours...
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <AnimatePresence>
-                {[...visibleEvents].reverse().map((event, i) => {
-                  const isGoal = event.type === "goal";
-                  const action = !isGoal ? KEY_ACTIONS[event.type] : null;
-                  const isSen  = event.team === "me";
-                  return (
-                    <motion.div key={`${event.minute}-${i}`}
-                      initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-                      className={`flex items-center gap-3 px-4 py-2.5 rounded-xl ${
-                        isGoal
-                          ? isSen ? "bg-green-500/20 border border-green-400/30" : "bg-red-500/20 border border-red-400/30"
-                          : "bg-white/5 border border-white/10"
-                      }`}>
-                      <span className="text-lg">{isGoal ? "⚽" : action?.emoji}</span>
-                      <span className="text-xs text-gray-400 font-mono w-8 shrink-0">{event.minute}'</span>
-                      <span className={`text-sm font-bold flex-1 ${isSen ? "text-green-200" : "text-red-200"}`}>
-                        {event.player}
-                      </span>
-                      <span className="text-xs text-gray-400">
-                        {isGoal ? (isSen ? "✅ But 🇸🇳" : "❌ But 🇳🇴") : action?.label}
-                      </span>
-                    </motion.div>
-                  );
-                })}
-              </AnimatePresence>
-            </div>
-          )}
-        </motion.div>
-      )}
     </div>
   );
+}
+
+function FormBadge({ player }) {
+  if (!player) return null;
+  const mult = getRecentFormMultiplier(player);
+  if (mult >= 1.05) return <span className="text-[9px] text-orange-400 font-bold">🔥</span>;
+  if (mult <= 0.95) return <span className="text-[9px] text-blue-400 font-bold">😴</span>;
+  return null;
 }
 
 export default function Simulator() {
   const { coins } = useGameStats();
 
-  // État de la composition du Sénégal (modifiable par l'utilisateur)
   const [senegalPlayers, setSenegalPlayers] = useState(SENEGAL_MATCH.players);
   const [senegalBench,   setSenegalBench]   = useState(SENEGAL_MATCH.bench);
   const [formation,      setFormation]      = useState(SENEGAL_MATCH.formation);
   const [tactic,         setTactic]         = useState(TACTICS[0]);
-  const [subTarget,      setSubTarget]      = useState(null); // joueur à remplacer
+  const [subTarget,      setSubTarget]      = useState(null);
 
-  // État de la simulation
-  const [phase,         setPhase]         = useState("lineup"); // lineup | tactic | playing | halftime | playing2 | result
+  const [phase,         setPhase]         = useState("lineup");
   const [visibleEvents, setVisibleEvents] = useState([]);
   const [homeScore,     setHomeScore]     = useState(0);
   const [awayScore,     setAwayScore]     = useState(0);
   const [currentMin,    setCurrentMin]    = useState(0);
   const [allEvents,     setAllEvents]     = useState([]);
+  const [half1Events,   setHalf1Events]   = useState([]);
   const [matchStats,    setMatchStats]    = useState(null);
   const intervalRef = useRef(null);
 
   const norwayPlayers = NORWAY_MATCH.players;
-  const norwayTactic  = TACTICS[2]; // Pressing haut (style norvégien)
+  const norwayTactic  = TACTICS[2];
 
   function handleSubstitute(benchPlayer) {
     if (!subTarget) return;
@@ -132,17 +108,14 @@ export default function Simulator() {
   }
 
   function playHalf(half, currentTactic) {
-    const myStats  = calcTeamStats(senegalPlayers);
-    const aiStats  = calcTeamStats(norwayPlayers);
-    const myAdj    = applyTactic(myStats, currentTactic);
-    const offset   = half === 1 ? 0 : 45;
+    const myStats = calcTeamStats(senegalPlayers);
+    const aiStats = calcTeamStats(norwayPlayers);
+    const myAdj   = applyTactic(myStats, currentTactic);
+    const offset  = half === 1 ? 0 : 45;
 
     const { events, halfStats, myGoals, aiGoals } = generateHalfEvents(
-      null, null,
-      senegalPlayers, norwayPlayers,
-      offset,
-      myAdj, aiStats,
-      currentTactic, norwayTactic
+      null, null, senegalPlayers, norwayPlayers, offset,
+      myAdj, aiStats, currentTactic, norwayTactic
     );
 
     setVisibleEvents([]);
@@ -162,6 +135,7 @@ export default function Simulator() {
             setHomeScore(myGoals);
             setAwayScore(aiGoals);
             setAllEvents(events);
+            setHalf1Events(events);
             setMatchStats(halfStats);
             setPhase("halftime");
           } else {
@@ -187,6 +161,7 @@ export default function Simulator() {
     setTactic(TACTICS[0]);
     setPhase("lineup");
     setAllEvents([]);
+    setHalf1Events([]);
     setVisibleEvents([]);
     setMatchStats(null);
     setHomeScore(0);
@@ -196,14 +171,6 @@ export default function Simulator() {
   function shareOnWhatsApp() {
     const text = `⚽ J'ai simulé Sénégal 🇸🇳 vs Norvège 🇳🇴 sur World Cup Hub !\n\n🎯 Ma tactique : ${tactic.emoji} ${tactic.name} · Formation : ${formation}\n📊 Résultat simulé : ${homeScore}-${awayScore}\n\nSimule toi aussi 👉 worldcuphub2026.vercel.app/simulator`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
-  }
-
-  // Note de forme d'un joueur sous forme de badge couleur
-  function FormBadge({ player }) {
-    const mult = getRecentFormMultiplier(player);
-    if (mult >= 1.05) return <span className="text-[9px] text-orange-400 font-bold">🔥</span>;
-    if (mult <= 0.95) return <span className="text-[9px] text-blue-400 font-bold">😴</span>;
-    return null;
   }
 
   return (
@@ -224,19 +191,16 @@ export default function Simulator() {
 
       <div className="max-w-2xl mx-auto px-4 pt-5">
 
-        {/* ── COMPOSITION & REMPLACEMENTS ──────────────────────────────── */}
+        {/* ── COMPOSITION ─────────────────────────────────────────────── */}
         {phase === "lineup" && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-
-            {/* Contexte du match */}
             <div className="bg-red-500/10 border border-red-400/20 rounded-2xl p-4 mb-5">
-              <p className="text-xs text-red-300 font-bold mb-1">🚨 Contexte du match</p>
+              <p className="text-xs text-red-300 font-bold mb-1">🚨 Contexte</p>
               <p className="text-xs text-gray-300 leading-relaxed">
-                Le Sénégal est dos au mur après sa défaite 3-1 contre la France. La Norvège arrive en confiance avec une victoire 4-1 contre l'Irak. C'est un match de survie pour les Lions de la Teranga. Configure ta composition et lance la simulation !
+                Sénégal dos au mur après 3-1 contre la France. Norvège en confiance avec 4-1 contre l'Irak (Haaland ⚠️). C'est un match de survie !
               </p>
             </div>
 
-            {/* Formation */}
             <div className="mb-4">
               <p className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wide">Formation</p>
               <div className="flex gap-2 flex-wrap">
@@ -244,14 +208,11 @@ export default function Simulator() {
                   <button key={f} onClick={() => setFormation(f)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                       formation === f ? "bg-green-500 text-white" : "bg-white/10 text-gray-300 hover:bg-white/20"
-                    }`}>
-                    {f}
-                  </button>
+                    }`}>{f}</button>
                 ))}
               </div>
             </div>
 
-            {/* Titulaires Sénégal */}
             <div className="mb-4">
               <p className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wide">
                 🇸🇳 Titulaires {subTarget ? `— Remplacer ${subTarget.name}` : "(appuie pour remplacer)"}
@@ -263,12 +224,9 @@ export default function Simulator() {
                     {senegalPlayers.filter(p => p.position === pos).map(player => {
                       const isTarget = subTarget?.id === player.id;
                       return (
-                        <button key={player.id}
-                          onClick={() => setSubTarget(isTarget ? null : player)}
+                        <button key={player.id} onClick={() => setSubTarget(isTarget ? null : player)}
                           className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs border transition ${
-                            isTarget
-                              ? "border-yellow-400 bg-yellow-500/15 text-yellow-200"
-                              : "border-white/10 bg-white/5 hover:bg-white/10 text-gray-200"
+                            isTarget ? "border-yellow-400 bg-yellow-500/15 text-yellow-200" : "border-white/10 bg-white/5 hover:bg-white/10 text-gray-200"
                           }`}>
                           <span className="font-bold text-gray-500 text-[9px]">#{player.number}</span>
                           <span>{player.name}</span>
@@ -282,7 +240,6 @@ export default function Simulator() {
               </div>
             </div>
 
-            {/* Banc — visible si un joueur est sélectionné */}
             {subTarget && (
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                 className="mb-4 bg-yellow-500/10 border border-yellow-400/20 rounded-xl p-3">
@@ -298,24 +255,21 @@ export default function Simulator() {
                       <span>{sub.name}</span>
                       <span className="text-[10px] text-gray-400">{sub.position}</span>
                       <FormBadge player={sub} />
-                      <span className="text-[10px] text-gray-400 font-mono">{getLiveRating(sub)}</span>
                     </button>
                   ))}
                 </div>
               </motion.div>
             )}
 
-            {/* Norvège — lecture seule */}
             <div className="mb-5 bg-white/5 border border-white/10 rounded-xl p-3">
-              <p className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wide">🇳🇴 Norvège (4-3-3) — En confiance après 4-1</p>
+              <p className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wide">🇳🇴 Norvège (4-3-3)</p>
               <div className="space-y-1">
                 {["GK","DEF","MIL","ATT"].map(pos => (
                   <div key={pos} className="flex flex-wrap gap-1 items-center">
                     <span className="text-[10px] text-gray-500 font-bold w-6">{pos}</span>
                     {norwayPlayers.filter(p => p.position === pos).map(p => (
                       <span key={p.id} className="text-[10px] bg-white/5 px-1.5 py-0.5 rounded text-gray-400">
-                        #{p.number} {p.name}
-                        {p.ratingBase >= 88 && <span className="text-yellow-400 ml-0.5">★</span>}
+                        #{p.number} {p.name}{p.ratingBase >= 88 ? " ★" : ""}
                       </span>
                     ))}
                   </div>
@@ -336,15 +290,13 @@ export default function Simulator() {
             <div className="text-center mb-5">
               <div className="text-3xl mb-2">🎯</div>
               <h2 className="text-xl font-bold">Choisis ta tactique</h2>
-              <p className="text-sm text-gray-400">Formation : {formation} · Adversaire : Pressing haut norvégien ⚡</p>
+              <p className="text-sm text-gray-400">Formation : {formation} · Adversaire : Pressing haut ⚡</p>
             </div>
-
             <div className="space-y-3 mb-5">
               {TACTICS.map(t => {
                 const selected = tactic.id === t.id;
                 return (
-                  <motion.button key={t.id} whileTap={{ scale: 0.97 }}
-                    onClick={() => setTactic(t)}
+                  <motion.button key={t.id} whileTap={{ scale: 0.97 }} onClick={() => setTactic(t)}
                     className={`w-full text-left rounded-2xl border p-4 transition relative overflow-hidden ${
                       selected ? "border-green-400 bg-green-500/10" : "border-white/10 bg-white/5"
                     }`}>
@@ -362,15 +314,12 @@ export default function Simulator() {
                 );
               })}
             </div>
-
             <div className="flex gap-3">
               <motion.button whileTap={{ scale: 0.97 }} onClick={() => setPhase("lineup")}
-                className="flex-1 bg-white/10 text-white font-bold py-3 rounded-2xl transition">
-                ← Composition
-              </motion.button>
+                className="flex-1 bg-white/10 text-white font-bold py-3 rounded-2xl">← Composition</motion.button>
               <motion.button whileTap={{ scale: 0.97 }} onClick={() => playHalf(1, tactic)}
-                className="flex-2 bg-green-500 hover:bg-green-400 text-white font-black py-3 px-8 rounded-2xl transition">
-                ⚽ Lancer la simulation !
+                className="flex-2 bg-green-500 hover:bg-green-400 text-white font-black py-3 px-8 rounded-2xl">
+                ⚽ Lancer !
               </motion.button>
             </div>
           </motion.div>
@@ -379,62 +328,89 @@ export default function Simulator() {
         {/* ── MATCH EN COURS ───────────────────────────────────────────── */}
         {(phase === "playing" || phase === "playing2") && (
           <div>
-            {/* Header chrono compact */}
             <div className="bg-white/10 border border-white/20 rounded-2xl px-4 py-3 mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-green-400 text-sm font-bold animate-pulse">⏱️</span>
+                <span className="text-green-400 font-bold animate-pulse">⏱️</span>
                 <span className="text-white font-bold">{Math.min(currentMin, 90)}'</span>
                 <span className="text-xs text-gray-400">{phase === "playing" ? "1ère" : "2e"} mi-temps</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xl">🇸🇳</span>
-                <span className="text-2xl font-black text-white">{phase === "playing" ? 0 : homeScore}</span>
-                <span className="text-gray-400 text-lg">-</span>
-                <span className="text-2xl font-black text-white">{phase === "playing" ? 0 : awayScore}</span>
+                <span className="text-2xl font-black">{phase === "playing" ? 0 : homeScore}</span>
+                <span className="text-gray-400">-</span>
+                <span className="text-2xl font-black">{phase === "playing" ? 0 : awayScore}</span>
                 <span className="text-xl">🇳🇴</span>
               </div>
               <span className="text-xs text-gray-400">{tactic.emoji}</span>
             </div>
 
-            {/* Barre de progression */}
             <div className="w-full bg-white/10 rounded-full h-1.5 mb-3">
               <motion.div animate={{ width: `${Math.min((currentMin / 90) * 100, 100)}%` }}
                 transition={{ duration: 0.2 }} className="h-1.5 bg-green-400 rounded-full" />
             </div>
 
-            {/* Onglets Terrain / Actions */}
-            <SimMatchView
-              visibleEvents={visibleEvents}
-              currentMin={currentMin}
-              phase={phase}
-              homeScore={phase === "playing" ? 0 : homeScore}
-              awayScore={phase === "playing" ? 0 : awayScore}
-            />
+            <div className="mb-3">
+              <MatchField events={visibleEvents} currentMin={currentMin} phase={phase}
+                senScore={phase === "playing" ? 0 : homeScore}
+                norScore={phase === "playing" ? 0 : awayScore} />
+            </div>
+
+            <div className="space-y-2">
+              <AnimatePresence>
+                {[...visibleEvents].reverse().map((event, i) => {
+                  const isGoal = event.type === "goal";
+                  const action = !isGoal ? KEY_ACTIONS[event.type] : null;
+                  const isSen  = event.team === "me";
+                  return (
+                    <motion.div key={`${event.minute}-${i}`}
+                      initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+                      className={`flex items-center gap-3 px-4 py-2 rounded-xl ${
+                        isGoal
+                          ? isSen ? "bg-green-500/20 border border-green-400/30" : "bg-red-500/20 border border-red-400/30"
+                          : "bg-white/5 border border-white/10"
+                      }`}>
+                      <span className="text-lg">{isGoal ? "⚽" : action?.emoji}</span>
+                      <span className="text-xs text-gray-400 font-mono w-8 shrink-0">{event.minute}'</span>
+                      <span className={`text-sm font-bold flex-1 ${isSen ? "text-green-200" : "text-red-200"}`}>{event.player}</span>
+                      <span className="text-xs text-gray-400">
+                        {isGoal ? (isSen ? "✅ 🇸🇳" : "❌ 🇳🇴") : action?.label}
+                      </span>
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
+              {visibleEvents.length === 0 && (
+                <div className="text-center text-gray-400 py-8 animate-pulse">⚽ Simulation en cours...</div>
+              )}
+            </div>
           </div>
         )}
 
         {/* ── MI-TEMPS ─────────────────────────────────────────────────── */}
         {phase === "halftime" && (
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
-            <div className="text-center mb-5">
+            <div className="text-center mb-4">
               <div className="text-4xl mb-2">⏸️</div>
               <h2 className="text-2xl font-black">Mi-temps</h2>
             </div>
-            <div className="bg-white/10 border border-white/20 rounded-2xl p-6 mb-5 text-center">
+
+            <div className="bg-white/10 border border-white/20 rounded-2xl p-5 mb-4 text-center">
               <div className="flex items-center justify-center gap-8">
                 <div><div className="text-xs text-gray-400">🇸🇳 Sénégal</div><div className="text-5xl font-black">{homeScore}</div></div>
                 <span className="text-2xl text-gray-400">-</span>
                 <div><div className="text-xs text-gray-400">🇳🇴 Norvège</div><div className="text-5xl font-black">{awayScore}</div></div>
               </div>
               <p className="text-sm text-gray-400 mt-3">
-                {homeScore > awayScore ? "🟢 Le Sénégal mène — continuez sur cette lancée !" :
-                 homeScore === awayScore ? "🟡 Nul à la pause — un but peut tout changer" :
-                 "🔴 Le Sénégal est mené — il faut réagir maintenant !"}
+                {homeScore > awayScore ? "🟢 Le Sénégal mène — continuez !" :
+                 homeScore === awayScore ? "🟡 Nul — un but peut tout changer" :
+                 "🔴 Le Sénégal est mené — il faut réagir !"}
               </p>
             </div>
 
-            {/* Option de changer de tactique à la mi-temps */}
-            <p className="text-xs text-gray-400 mb-3 text-center font-bold">Ajuste ta tactique pour la 2e mi-temps :</p>
+            {/* Récap des actions de la 1ère mi-temps */}
+            <MatchRecap events={half1Events} title="📊 Récap — 1ère mi-temps" />
+
+            <p className="text-xs text-gray-400 mb-3 text-center font-bold">Ajuste ta tactique :</p>
             <div className="grid grid-cols-2 gap-2 mb-4">
               {TACTICS.map(t => (
                 <button key={t.id} onClick={() => setTactic(t)}
@@ -457,7 +433,7 @@ export default function Simulator() {
         {/* ── RÉSULTAT ─────────────────────────────────────────────────── */}
         {phase === "result" && (
           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
-            <div className={`rounded-2xl p-6 text-center mb-5 border ${
+            <div className={`rounded-2xl p-6 text-center mb-4 border ${
               homeScore > awayScore ? "bg-green-500/20 border-green-400/40" :
               homeScore === awayScore ? "bg-yellow-500/20 border-yellow-400/40" :
               "bg-red-500/20 border-red-400/40"
@@ -465,9 +441,8 @@ export default function Simulator() {
               <div className="text-4xl mb-2">
                 {homeScore > awayScore ? "🏆" : homeScore === awayScore ? "🤝" : "😔"}
               </div>
-              <h2 className="text-lg font-black mb-1">Résultat de ta simulation</h2>
-              <p className="text-xs text-gray-400 mb-4">{tactic.emoji} {tactic.name} · Formation {formation}</p>
-
+              <h2 className="text-lg font-black mb-1">Résultat simulé</h2>
+              <p className="text-xs text-gray-400 mb-4">{tactic.emoji} {tactic.name} · {formation}</p>
               <div className="flex items-center justify-center gap-8">
                 <div className="text-center">
                   <div className="text-4xl">🇸🇳</div>
@@ -481,18 +456,20 @@ export default function Simulator() {
                   <div className="text-6xl font-black">{awayScore}</div>
                 </div>
               </div>
-
               <div className="mt-4 bg-yellow-500/20 border border-yellow-400/30 rounded-xl px-4 py-2">
                 <p className="text-yellow-400 font-bold text-sm">🎯 Score sauvegardé !</p>
-                <p className="text-xs text-gray-400 mt-0.5">Si c'est le vrai résultat ce soir, tu gagnes 200 💰 bonus</p>
+                <p className="text-xs text-gray-400 mt-0.5">Si c'est le vrai résultat ce soir → 200 💰 bonus</p>
               </div>
             </div>
 
-            {/* Stats */}
+            {/* Récap complet du match */}
+            <MatchRecap events={allEvents} title="📊 Récap complet du match" />
+
+            {/* Stats possession */}
             {matchStats && (
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-5">
-                <h3 className="font-bold mb-4">📊 Stats de la simulation</h3>
-                <div className="mb-3">
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-4">
+                <h3 className="font-bold text-white mb-3 text-sm">📈 Statistiques</h3>
+                <div className="mb-2">
                   <div className="flex justify-between text-xs text-gray-400 mb-1">
                     <span className="font-bold text-white">{matchStats.possession.me}%</span>
                     <span>Possession</span>
@@ -510,7 +487,7 @@ export default function Simulator() {
                 ].map(({ label, me, ai }) => {
                   const total = me + ai || 1;
                   return (
-                    <div key={label} className="mb-2">
+                    <div key={label} className="mb-1.5">
                       <div className="flex justify-between text-xs text-gray-400 mb-0.5">
                         <span className="font-bold text-white">{me}</span>
                         <span>{label}</span>
@@ -530,23 +507,6 @@ export default function Simulator() {
               </div>
             )}
 
-            {/* Buts */}
-            {allEvents.filter(e => e.type === "goal").length > 0 && (
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-5">
-                <h3 className="font-bold mb-3">⚽ Buts simulés</h3>
-                {allEvents.filter(e => e.type === "goal").map((event, i) => (
-                  <div key={i} className={`flex items-center gap-3 text-sm mb-1 ${
-                    event.team === "me" ? "text-green-300" : "text-red-300"
-                  }`}>
-                    <span className="text-xs text-gray-400 w-8">{event.minute}'</span>
-                    <span>⚽</span>
-                    <span className="font-bold">{event.player}</span>
-                    <span className="text-xs text-gray-400 ml-auto">{event.team === "me" ? "🇸🇳" : "🇳🇴"}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-
             <div className="space-y-3">
               <motion.button whileTap={{ scale: 0.97 }} onClick={shareOnWhatsApp}
                 className="w-full bg-green-500 hover:bg-green-400 text-white font-bold py-4 rounded-2xl transition">
@@ -559,7 +519,6 @@ export default function Simulator() {
             </div>
           </motion.div>
         )}
-
       </div>
     </div>
   );
