@@ -95,183 +95,158 @@ export const NORWAY_MATCH = {
 // Petite fonction utilitaire interne pour trouver un joueur par poste de manière résiliente
 // matchData_2.js
 
+// matchData_2.js
+
 function getPlayerByRole(players, position, fallbackName) {
   const found = players.find(p => p.position === position);
   return found ? found.name : fallbackName;
 }
 
-export const SCRIPTED_EVENTS = [
-  // ── PREMIÈRE MI-TEMPS : DUELS ET BLOC TACTIQUE ───────────────────────
+// ── 1. BANQUE D'ACTIONS PAR PROFIL TACTIQUE ───────────────────────
+
+const OFFENSIVE_EVENTS = [
   {
-    id: "match_intro",
-    minute: [1, 5],
-    half: 1,
-    team: "neutral",
-    type: "header",
-    descFn: (lineup, formation) => `Le coup d'envoi est donné ! Le Sénégal s'installe dans son système en ${formation}. La Norvège impose un pressing haut d'entrée de jeu.`,
-    prob: 1.0,
-    stats: {}
-  },
-  {
-    id: "haaland_vs_koulibaly_1",
-    minute: [8, 14],
-    half: 1,
-    team: "sen",
-    type: "header", // Duel aérien
-    playerFn: (lineup) => getPlayerByRole(lineup, "DEF", "Koulibaly"),
-    descFn: (lineup) => {
-      const def = getPlayerByRole(lineup, "DEF", "Koulibaly");
-      return `Duel clé : Longue ouverture d'Ødegaard vers Haaland. ${def} s'impose magistralement au physique et relance proprement.`;
-    },
-    prob: 0.90,
-    stats: { senegal: { tirs: 0 }, norvege: {} }
-  },
-  {
-    id: "sarr_alert",
-    minute: [16, 22],
+    id: "off_wing_destruction",
+    minute: [12, 18],
     half: 1,
     team: "sen",
     type: "shot",
-    playerFn: (lineup) => getPlayerByRole(lineup, "ATT", "I. Sarr"),
-    descFn: (lineup) => {
-      const sarr = getPlayerByRole(lineup, "ATT", "I. Sarr");
-      const bu = getPlayerByRole(lineup, "ATT", "N. Jackson");
-      return `Avantage Sénégal sur le couloir ! ${sarr} humilie Meling sur le côté droit grâce à sa vitesse et centre fort. ${bu} coupe au premier poteau, mais Nyland détourne !`;
-    },
-    prob: 0.85,
-    stats: { senegal: { tirs: 1, cadres: 1, xg: 0.45 }, norvege: {} }
+    descFn: (lineup, form) => `Grâce au surnombre offensif de votre ${form}, Sadio Mané repique dans l'axe et s'appuie sur Lamine Camara. Sa frappe enroulée rase le poteau de Nyland !`,
+    stats: { senegal: { tirs: 1, cadres: 1, xg: 0.35 }, norvege: {} }
   },
   {
-    id: "formation_risk_midfield",
-    minute: [23, 27],
+    id: "off_high_risk",
+    minute: [24, 29],
     half: 1,
     team: "nor",
-    type: "miss",
-    descFn: (lineup, formation) => {
-      if (formation === "4-3-3" || formation === "4-2-3-1") {
-        return `Le milieu sénégalais coulisse bien. Ødegaard est encerclé par Lamine Camara et Pape Gueye, sa transmission vers Bobb finit en sortie de but.`;
-      }
-      return `Risque tactique : Le milieu à deux du Sénégal souffre face au trio norvégien. Berge décale Schjelderup qui frappe au-dessus.`;
-    },
-    prob: 0.75,
-    stats: { senegal: {}, norvege: { tirs: 1, cadres: 0, xg: 0.15 } }
+    type: "goal", // Sanction du bloc haut
+    descFn: (lineup, form) => `Risque de votre tactique ultra-offensive : Votre bloc est très haut. Sur un contre éclair, Ødegaard lance Haaland qui gagne son face-à-face avec Mendy.`,
+    stats: { senegal: {}, norvege: { tirs: 1, cadres: 1, xg: 0.65 } }
   },
   {
-    id: "haaland_goal_fixed",
-    minute: [29, 34],
-    half: 1,
-    team: "nor",
-    player: "E. Haaland",
-    type: "goal",
-    descFn: () => "But de la Norvège. Récupération haute d'Aursnes profitant d'un pressing agressif. Ødegaard glisse subtilement à Haaland dans l'intervalle qui ajuste Mendy.",
-    prob: 1.0, // Événement fondateur du scénario
-    stats: { senegal: {}, norvege: { tirs: 1, cadres: 1, xg: 0.60 } }
-  },
+    id: "off_total_pressure",
+    minute: [65, 71],
+    half: 2,
+    team: "sen",
+    type: "corner",
+    descFn: (lineup, form) => `Le Sénégal étouffe la Norvège dans ses 16 mètres. Le pressing imposé par votre ${form} force Ostigard à concéder trois corners consécutifs.`,
+    stats: { senegal: { tirs: 2, cadres: 0, xg: 0.15 }, norvege: {} }
+  }
+];
+
+const DEFENSIVE_EVENTS = [
   {
-    id: "koulibaly_yellow_shift",
-    minute: [36, 42],
+    id: "def_bus_parked",
+    minute: [10, 16],
     half: 1,
     team: "sen",
-    type: "yellow",
-    playerFn: (lineup) => getPlayerByRole(lineup, "DEF", "Koulibaly"),
-    descFn: (lineup) => {
-      const def = getPlayerByRole(lineup, "DEF", "Koulibaly");
-      return `Prise de risque : Haaland partait seul en transition dans le dos de la défense. ${def} commet une faute tactique nécessaire et écope d'un jaune.`;
-    },
-    prob: 0.80,
-    stats: { senegal: { jaunes: 1 }, norvege: {} }
+    type: "save",
+    descFn: (lineup, form) => `Votre ${form} ultra-compacte ne laisse aucun espace. Haaland tente de décrocher mais il est encerclé par trois défenseurs. Sa frappe lointaine est captée sans problème.`,
+    stats: { senegal: {}, norvege: { tirs: 1, cadres: 1, xg: 0.08 } }
   },
-
-  // ── DEUXIÈME MI-TEMPS : RESTRUCTURATION ET REMPLACEMENTS ───────────
   {
-    id: "half2_start",
-    minute: [46, 50],
+    id: "def_counter_attack",
+    minute: [32, 38],
+    half: 1,
+    team: "sen",
+    type: "shot",
+    descFn: (lineup) => `Contre-attaque éclair ! En récupérant le ballon très bas, Ismaila Sarr profite de l'espace, remonte 40 mètres et décoche une frappe lourde boxée en corner.`,
+    stats: { senegal: { tirs: 1, cadres: 1, xg: 0.40 }, norvege: {} }
+  },
+  {
+    id: "def_clean_masterclass",
+    minute: [72, 78],
     half: 2,
+    team: "nor",
+    type: "miss",
+    descFn: (lineup) => `Le plan défensif est parfait. Kalidou Koulibaly coupe absolument toutes les trajectoires de centres norvégiens. Le public applaudit la rigueur tactique.`,
+    stats: { senegal: {}, norvege: { tirs: 1, cadres: 0, xg: 0.10 } }
+  }
+];
+
+const BALANCED_EVENTS = [
+  {
+    id: "mid_battle",
+    minute: [15, 22],
+    half: 1,
     team: "neutral",
     type: "header",
-    descFn: (lineup, formation) => `Reprise du match. Les Lions reviennent avec des intentions agressives en transition verticale pour déstabiliser le bloc haut de la Norvège.`,
-    prob: 1.0,
+    descFn: (lineup, form) => `Gros combat tactique. Votre ${form} permet un équilibre parfait au milieu. Pape Gueye et Sander Berge se livrent un duel féroce pour le contrôle du ballon.`,
+    stats: { senegal: {}, norvege: {} }
+  },
+  {
+    id: "nor_star_flash",
+    minute: [30, 35],
+    half: 1,
+    team: "nor",
+    type: "goal",
+    descFn: () => `Éclat de génie norvégien. Sur une phase de possession lente, Ødegaard trouve une faille millimétrée pour Haaland qui se retourne instantanément et marque d'un tir puissant.`,
+    stats: { senegal: {}, norvege: { tirs: 1, cadres: 1, xg: 0.50 } }
+  },
+  {
+    id: "sen_build_up",
+    minute: [55, 62],
+    half: 2,
+    team: "sen",
+    type: "shot",
+    descFn: (lineup) => `Une séquence de 12 passes consécutives du Sénégal. Nicolas Jackson sert Sadio Mané à l'entrée de la surface, mais son tir enveloppé passe juste au-dessus.`,
+    stats: { senegal: { tirs: 1, cadres: 0, xg: 0.25 }, norvege: {} }
+  }
+];
+
+// Actions communes (Incontournables comme le coup d'envoi ou le but égalisateur)
+const CORE_EVENTS = [
+  {
+    id: "match_start", minute: [1, 4], half: 1, team: "neutral", type: "header",
+    descFn: (lineup, form) => `Coup d'envoi ! Le Sénégal s'organise en ${form}. Les consignes tactiques sont claires, le match commence avec beaucoup d'intensité.`,
     stats: {}
   },
   {
     id: "jackson_equalizer",
-    minute: [52, 58],
+    minute: [50, 54],
     half: 2,
     team: "sen",
     type: "goal",
-    playerFn: (lineup) => getPlayerByRole(lineup, "ATT", "N. Jackson"),
-    descFn: (lineup) => {
-      const bu = getPlayerByRole(lineup, "ATT", "N. Jackson");
-      const sarr = getPlayerByRole(lineup, "ATT", "I. Sarr");
-      return `BUT SÉNÉGAL ! Relance propre sous pression. Lamine Camara oriente instantanément vers ${sarr} qui dépose Meling. Son centre tendu trouve ${bu} au second poteau !`;
-    },
-    prob: 1.0,
-    stats: { senegal: { tirs: 1, cadres: 1, xg: 0.75 }, norvege: {} }
-  },
-  {
-    id: "scripted_substitution_nor",
-    minute: [62, 67],
-    half: 2,
-    team: "nor",
-    type: "miss",
-    descFn: () => "Changement pour la Norvège : Fatigué par les duels avec Niakhaté, Sørloth cède sa place à un milieu supplémentaire pour densifier l'axe.",
-    prob: 0.90,
-    stats: {}
-  },
-  {
-    id: "tactical_advantage_check",
-    minute: [70, 74],
-    half: 2,
-    team: "sen",
-    type: "shot",
-    playerFn: (lineup) => getPlayerByRole(lineup, "ATT", "S. Mané"),
-    descFn: (lineup, formation, tacticId) => {
-      const mane = getPlayerByRole(lineup, "ATT", "S. Mané");
-      if (tacticId === "attack" || tacticId === "press") {
-        return `Le choix de l'Attaque Totale pousse la Norvège à reculer. ${mane} repique dans l'axe et tente une lourde frappe boxée par Nyland !`;
-      }
-      return `Le Sénégal reste discipliné dans son bloc. ${mane} combine avec Lamine Camara mais la passe finale est interceptée par Ajer.`;
-    },
-    prob: 0.85,
-    stats: { senegal: { tirs: 1, cadres: 1, xg: 0.20 }, norvege: {} }
-  },
-  {
-    id: "mendy_heroic_save",
-    minute: [76, 82],
-    half: 2,
-    team: "nor",
-    type: "save",
-    descFn: (lineup) => {
-      const gk = getPlayerByRole(lineup, "GK", "É. Mendy");
-      return `Parade monumentale de ${gk} ! Sur un corner d'Ødegaard, Ajer dévie de la tête pour Haaland à bout portant. Notre gardien repousse par réflexe !`;
-    },
-    prob: 1.0,
-    stats: { senegal: {}, norvege: { tirs: 1, cadres: 1, xg: 0.55 } }
+    descFn: (lineup) => `BUT POUR LE SÉNÉGAL ! Magnifique mouvement collectif. Lamine Camara transperce le milieu et sert Nicolas Jackson qui ajuste Nyland d'un plat du pied sécurité ! Égalisation !`,
+    stats: { senegal: { tirs: 1, cadres: 1, xg: 0.70 }, norvege: {} }
   }
 ];
 
+// ── 2. FONCTION DE GÉNÉRATION DYNAMIQUE SELON LA FORMATION ───────
+
 export function getScriptedEventsForHalf(half, tacticId, senegalPlayers, formation) {
+  let dynamicPool = [...CORE_EVENTS];
+
+  // Détermination du style selon la formation sélectionnée
+  // Formations Offensives
+  if (["4-3-3", "4-2-3-1"].includes(formation)) {
+    dynamicPool = [...dynamicPool, ...OFFENSIVE_EVENTS];
+  } 
+  // Formations Défensives / Contre
+  else if (["5-3-2", "5-4-1", "3-5-2"].includes(formation)) {
+    dynamicPool = [...dynamicPool, ...DEFENSIVE_EVENTS];
+  } 
+  // Formations Équilibrées
+  else {
+    dynamicPool = [...dynamicPool, ...BALANCED_EVENTS];
+  }
+
   const triggered = [];
   const usedMinutes = new Set();
 
-  SCRIPTED_EVENTS
+  dynamicPool
     .filter(e => e.half === half)
     .forEach(event => {
-      if (Math.random() >= event.prob) return;
-
       const [minA, minB] = event.minute;
       let minute = minA + Math.floor(Math.random() * (minB - minA + 1));
       while (usedMinutes.has(minute) && minute < minB) minute++;
       usedMinutes.add(minute);
 
-      const resolvedPlayer = event.playerFn ? event.playerFn(senegalPlayers) : (event.player || "");
-      // On passe désormais la formation et le style tactique à la description narrative
-      const resolvedDesc = event.descFn ? event.descFn(senegalPlayers, formation, tacticId) : "";
+      const resolvedDesc = event.descFn ? event.descFn(senegalPlayers, formation) : "";
 
       triggered.push({
         ...event,
         minute,
-        player: resolvedPlayer,
         desc: resolvedDesc,
         rawStats: event.stats || {}
       });

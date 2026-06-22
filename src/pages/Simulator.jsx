@@ -201,12 +201,51 @@ function playHalf(half, currentTactic) {
   if (cadresNor <= finalNorGoals) cadresNor = finalNorGoals + Math.floor(Math.random() * 2) + 1;
   if (xgNor <= finalNorGoals) xgNor = Number((cadresNor * 0.20 + finalNorGoals * 0.45).toFixed(2));
 
-  const basePossession = half === 1 ? 53 : 51; // Léger avantage de maîtrise territoriale au Sénégal
+  // Dans Simulator_3.jsx -> À l'intérieur de playHalf()
 
-  const halfStats = {
-    senegal: { possession: basePossession, tirs: tirsSen, cadres: cadresSen, xg: xgSen, corners: cornersSen + (half * 2), jaunes: jaunesSen || 1 },
-    norvege: { possession: 100 - basePossession, tirs: tirsNor, cadres: cadresNor, xg: xgNor, corners: cornersNor + half, jaunes: jaunesNor || 1 }
-  };
+// ── MODIFICATEUR DE STATS SELON LA FORMATION ACCORDÉE ──
+let basePossession = 50;
+let possessionBonusSen = 0;
+let extraShotsSen = 0;
+let extraShotsNor = 0;
+
+if (["4-3-3", "4-2-3-1"].includes(formation)) {
+  // Ultra Offensif : Gros tirs pour les deux (car contres concédés)
+  possessionBonusSen = 4; 
+  extraShotsSen = 4;
+  extraShotsNor = 3;
+} else if (["5-3-2", "5-4-1"].includes(formation)) {
+  // Ultra Défensif : Faible possession, bloque les tirs adverses
+  possessionBonusSen = -8; 
+  extraShotsSen = 1;
+  extraShotsNor = -2; // On étouffe les tirs de la Norvège
+} else if (["3-5-2"].includes(formation)) {
+  // Maîtrise du milieu : Énorme possession
+  possessionBonusSen = 8;
+  extraShotsSen = 2;
+  extraShotsNor = -1;
+}
+
+const finalPossessionSen = (half === 1 ? 52 : 50) + possessionBonusSen;
+
+const halfStats = {
+  senegal: { 
+    possession: finalPossessionSen, 
+    tirs: tirsSen + Math.max(0, extraShotsSen), 
+    cadres: cadresSen + Math.floor(extraShotsSen / 2), 
+    xg: Number((xgSen + (extraShotsSen * 0.1)).toFixed(2)), 
+    corners: cornersSen + (half * 2), 
+    jaunes: jaunesSen || 1 
+  },
+  norvege: { 
+    possession: 100 - finalPossessionSen, 
+    tirs: Math.max(2, tirsNor + extraShotsNor), 
+    cadres: Math.max(1, cadresNor + Math.floor(extraShotsNor / 2)), 
+    xg: Number((xgNor + (extraShotsNor * 0.08)).toFixed(2)), 
+    corners: Math.max(1, cornersNor + extraShotsNor), 
+    jaunes: jaunesNor || 1 
+  }
+};
 
   // ─── ⏱️ LANCEUR D'INTERVALLE ADAPTÉ (PLUS DE TEMPS DE LECTURE) ───
   setVisibleEvents([]);
