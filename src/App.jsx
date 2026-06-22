@@ -23,6 +23,7 @@ import ShareCard from "./pages/ShareCard";
 import MatchGame from "./pages/Match";
 import Challenge from "./pages/Challenge";
 import InstallPrompt from "./components/InstallPrompt";
+import Simulator from "./pages/Simulator";
 
 
 
@@ -94,6 +95,7 @@ function AnimatedRoutes() {
         <Route path="/match" element={<PageWrapper><MatchGame /></PageWrapper>} />
         <Route path="/challenge" element={<PageWrapper><Challenge /></PageWrapper>} />
         <Route path="/challenge/:challengeId" element={<PageWrapper><Challenge /></PageWrapper>} />
+        <Route path="/simulator" element={<Simulator />} />
         
 
       </Routes>

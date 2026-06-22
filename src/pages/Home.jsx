@@ -9,8 +9,9 @@ import AuthModal                   from "../components/AuthModal";
 
 // Découverte secondaire — grille compacte 2x2
 const DISCOVER = [
+  { to: "/simulator",   emoji: "🎮", title: "Simulateur" }, // ← ajoute cette ligne en premier
   { to: "/cards",       emoji: "🃏", title: "Cartes" },
-  { to: "/leaderboard",  emoji: "🏆", title: "Classement" },
+  { to: "/leaderboard", emoji: "🏆", title: "Classement" },
   { to: "/matches",     emoji: "📅", title: "Matchs" },
   { to: "/share-card",  emoji: "🪪", title: "Ma carte fan" },
 ];
