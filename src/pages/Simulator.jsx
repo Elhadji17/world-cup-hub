@@ -8,6 +8,7 @@ import { useGameStats }                 from "../hooks/useGameStats.jsx";
 import { TACTICS, generateHalfEvents, mergeMatchStats, calcTeamStats, applyTactic, KEY_ACTIONS } from "../data/match-engine";
 import { SENEGAL_MATCH, NORWAY_MATCH }  from "../data/matchData";
 import { getRecentFormMultiplier }      from "../data/match-form";
+import MatchField                        from "../components/MatchField";
 
 // Calcule la note live d'un joueur en tenant compte de sa forme récente
 function getLiveRating(player) {
@@ -296,6 +297,17 @@ export default function Simulator() {
         {/* ── MATCH EN COURS ───────────────────────────────────────────── */}
         {(phase === "playing" || phase === "playing2") && (
           <div>
+            {/* Terrain animé */}
+            <div className="mb-4">
+              <MatchField
+                events={visibleEvents}
+                currentMin={currentMin}
+                phase={phase}
+                senScore={phase === "playing" ? 0 : homeScore}
+                norScore={phase === "playing" ? 0 : awayScore}
+              />
+            </div>
+
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
               className="bg-white/10 border border-white/20 rounded-2xl p-6 mb-5 text-center">
               <div className="text-xs text-gray-400 mb-3 uppercase tracking-wide">
