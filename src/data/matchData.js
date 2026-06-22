@@ -93,6 +93,8 @@ export const NORWAY_MATCH = {
 // src/data/matchData.js
 
 // Petite fonction utilitaire interne pour trouver un joueur par poste de manière résiliente
+// src/data/matchData.js
+
 function getPlayerByRole(players, position, fallbackName) {
   const found = players.find(p => p.position === position);
   return found ? found.name : fallbackName;
@@ -101,82 +103,80 @@ function getPlayerByRole(players, position, fallbackName) {
 export const SCRIPTED_EVENTS = [
   // ── PREMIÈRE MI-TEMPS ───────────────────────────────────────────────
   {
-    id: "haaland_goal_1",
-    minute: [28, 38],
+    id: "sarr_alert",
+    minute: [16, 22],
+    half: 1,
+    team: "sen",
+    type: "shot", // Génère 1 tir, 1 cadré
+    playerFn: (lineup) => getPlayerByRole(lineup, "ATT", "I. Sarr"),
+    descFn: (lineup) => {
+      const sarr = getPlayerByRole(lineup, "ATT", "I. Sarr");
+      const bu = getPlayerByRole(lineup, "ATT", "N. Jackson");
+      return `${sarr} humilie Meling sur le côté droit et centre fort. ${bu} coupe au premier poteau, mais Nyland détourne miraculeusement !`;
+    },
+    prob: 0.80,
+    stats: { senegal: { tirs: 1, cadres: 1, xg: 0.45 }, norvege: { tirs: 0, cadres: 0, xg: 0 } }
+  },
+  {
+    id: "haaland_goal_fixed",
+    minute: [28, 33],
     half: 1,
     team: "nor",
     player: "E. Haaland",
-    type: "goal",
-    // Pas besoin de fonction ici car Haaland est côté IA (fixe)
-    descFn: () => "Combinaison Ødegaard→Haaland dans l'intervalle. Frappe croisée clinique.",
-    prob: 0.55,
-    tacticsModifier: { attack: 0.35, press: 0.40, balanced: 0.55, defense: 0.70 },
+    type: "goal", // 1 tir, 1 cadré, 1 but pour l'IA
+    descFn: () => "But de la Norvège. Récupération haute d'Aursnes, Ødegaard glisse à Haaland dans l'intervalle qui décoche une frappe croisée clinique.",
+    prob: 0.70,
+    stats: { senegal: { tirs: 0, cadres: 0, xg: 0 }, norvege: { tirs: 1, cadres: 1, xg: 0.60 } }
   },
   {
-    id: "koulibaly_yellow",
-    minute: [35, 50],
+    // Remplacement de l'ancien carton de Koulibaly par celui du scénario
+    id: "koulibaly_yellow_shift",
+    minute: [35, 42],
     half: 1,
     team: "sen",
     type: "yellow",
-    // Cherche le premier défenseur axial ou prend Koulibaly par défaut
     playerFn: (lineup) => getPlayerByRole(lineup, "DEF", "Koulibaly"),
     descFn: (lineup) => {
       const def = getPlayerByRole(lineup, "DEF", "Koulibaly");
-      return `Tacle très appuyé de ${def} sur Haaland. Carton jaune inévitable pour notre défenseur.`;
+      return `Gros duel physique. ${def} s'impose magistralement devant Haaland mais est rappelé à l'ordre par l'arbitre.`;
     },
-    prob: 0.60,
-    tacticsModifier: { attack: 0.70, press: 0.75, balanced: 0.60, defense: 0.45 },
+    prob: 0.65,
+    stats: { senegal: { jaunes: 1 }, norvege: {} }
   },
 
   // ── DEUXIÈME MI-TEMPS ───────────────────────────────────────────────
   {
-    id: "jackson_goal",
-    minute: [52, 62],
+    id: "jackson_equalizer",
+    minute: [52, 58],
     half: 2,
     team: "sen",
-    type: "goal",
-    // Dynamique : prend le premier attaquant (buteur) de la liste actuelle
+    type: "goal", // 1 tir, 1 cadré, 1 but pour le Sénégal
     playerFn: (lineup) => getPlayerByRole(lineup, "ATT", "N. Jackson"),
     descFn: (lineup) => {
       const bu = getPlayerByRole(lineup, "ATT", "N. Jackson");
-      const mil = getPlayerByRole(lineup, "MIL", "L. Camara");
-      return `Transition verticale parfaite ! ${mil} oriente le jeu vers l'avant, centre tendu et ${bu} conclut au second poteau !`;
+      const sarr = getPlayerByRole(lineup, "ATT", "I. Sarr");
+      return `BUT SÉNÉGAL ! Transition verticale d'école. Lamine Camara oriente vers ${sarr} qui dépose la défense. Son centre tendu trouve ${bu} qui conclut de près !`;
     },
-    prob: 0.40,
-    tacticsModifier: { attack: 0.58, press: 0.52, balanced: 0.40, defense: 0.25 },
+    prob: 0.95, // Presque garanti pour le storytelling
+    stats: { senegal: { tirs: 1, cadres: 1, xg: 0.75 }, norvege: { tirs: 0, cadres: 0, xg: 0 } }
   },
   {
-    id: "mbaye_corner",
-    minute: [55, 68],
-    half: 2,
-    team: "sen",
-    type: "corner",
-    // Si l'utilisateur a laissé Mbaye sur le banc mais mis Sarr, ou inversement, le script s'adapte
-    playerFn: (lineup) => lineup.find(p => p.id === "mbaye_20") ? "I. Mbaye" : getPlayerByRole(lineup, "ATT", "I. Sarr"),
-    descFn: (lineup) => {
-      const att = lineup.find(p => p.id === "mbaye_20") ? "I. Mbaye" : getPlayerByRole(lineup, "ATT", "I. Sarr");
-      return `${att} provoque balle au pied sur le côté droit, pousse son vis-à-vis à la faute et obtient un corner précieux.`;
-    },
-    prob: 0.72,
-    tacticsModifier: { attack: 0.85, press: 0.80, balanced: 0.72, defense: 0.55 },
-  },
-  {
-    id: "mendy_save",
-    minute: [62, 75],
+    id: "mendy_heroic_save",
+    minute: [75, 82],
     half: 2,
     team: "nor",
-    player: "A. Nusa",
-    type: "save",
+    player: "A. Jere",
+    type: "save", // 1 tir, 1 cadré pour la Norvège, 1 parade pour Mendy
     descFn: (lineup) => {
       const gk = getPlayerByRole(lineup, "GK", "É. Mendy");
-      return `Nusa accélère et repique, grosse frappe en force — mais ${gk} s'interpose magnifiquement !`;
+      return `Parade de grande classe ! Corner d'Ødegaard, reprise de la tête d'Ajer, mais ${gk} se détend magnifiquement sur sa ligne !`;
     },
-    prob: 0.68,
-    tacticsModifier: { attack: 0.50, press: 0.55, balanced: 0.68, defense: 0.80 },
+    prob: 0.75,
+    stats: { senegal: { parades: 1 }, norvege: { tirs: 1, cadres: 1, xg: 0.35 } }
   }
 ];
 
-// MODIFICATION DE LA FONCTION : On passe désormais 'senegalPlayers' (la lineup actuelle)
+// Ne change pas la signature de ta fonction, mets juste à jour la résolution des stats
 export function getScriptedEventsForHalf(half, tacticId, senegalPlayers) {
   const triggered = [];
   const usedMinutes = new Set();
@@ -184,8 +184,7 @@ export function getScriptedEventsForHalf(half, tacticId, senegalPlayers) {
   SCRIPTED_EVENTS
     .filter(e => e.half === half)
     .forEach(event => {
-      // Détermination de la probabilité selon la tactique
-      const prob = event.tacticsModifier?.[tacticId] ?? event.prob;
+      const prob = event.prob; 
       if (Math.random() >= prob) return;
 
       const [minA, minB] = event.minute;
@@ -193,16 +192,16 @@ export function getScriptedEventsForHalf(half, tacticId, senegalPlayers) {
       while (usedMinutes.has(minute) && minute < minB) minute++;
       usedMinutes.add(minute);
 
-      // Résolution dynamique des textes et joueurs au moment de la génération
       const resolvedPlayer = event.playerFn ? event.playerFn(senegalPlayers) : (event.player || "Joueur");
       const resolvedDesc = event.descFn ? event.descFn(senegalPlayers) : "";
 
       triggered.push({
         ...event,
         minute,
-        resolvedMinute: minute,
-        player: resolvedPlayer, // Le nom correct est injecté ici
-        desc: resolvedDesc      // La description correcte est injectée ici
+        player: resolvedPlayer,
+        desc: resolvedDesc,
+        // On exporte les stats de l'évènement pour que Simulator.jsx puisse les additionner
+        rawStats: event.stats || {} 
       });
     });
 

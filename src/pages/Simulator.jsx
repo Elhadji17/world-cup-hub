@@ -109,82 +109,97 @@ export default function Simulator() {
 
   // Dans src/pages/Simulator.jsx -> Fonction playHalf()
 
+// Dans src/pages/Simulator.jsx
+
 function playHalf(half, currentTactic) {
-  const myStats = calcTeamStats(senegalPlayers);
-  const aiStats = calcTeamStats(norwayPlayers);
-  const myAdj   = applyTactic(myStats, currentTactic);
-  const offset  = half === 1 ? 0 : 45;
+  const offset = half === 1 ? 0 : 45;
 
-  // 1. Événements aléatoires du moteur
-  const { events: engineEvents, halfStats, myGoals, aiGoals } = generateHalfEvents(
-    null, null, senegalPlayers, norwayPlayers, offset,
-    myAdj, aiStats, currentTactic, norwayTactic
-  );
-
-  // 2. Événements scénarisés adaptés à l'équipe actuelle ! (On passe senegalPlayers en 3e paramètre)
+  // 1. Récupération des événements scénarisés mis à jour (avec la lineup)
   const scripted = getScriptedEventsForHalf(half, currentTactic.id, senegalPlayers).map(e => ({
-    team:     e.team,
-    player:   e.player,
-    minute:   e.minute,
-    type:     e.type,
+    team: e.team,
+    player: e.player,
+    minute: e.minute,
+    type: e.type,
     scripted: true, 
-    desc:     e.desc,
+    desc: e.desc,
+    rawStats: e.rawStats // On garde les stats sous le coude
   }));
 
-  // 3. Compter les buts scénarisés de base
+  // Compte des buts issus des scripts de base
   let scriptedSenGoals = scripted.filter(e => e.team === "sen" && e.type === "goal").length;
   let scriptedNorGoals = scripted.filter(e => e.team === "nor" && e.type === "goal").length;
 
-  // ─── 🤫 LE COUP DE POUCE INVISIBLE (FIDÉLISATION) ───
-  // Si on est en 2ème mi-temps, on applique la règle marketing : victoire serrée ou nul.
   let bonusSenGoals = 0;
-  let bonusNorGoals = 0;
 
+  // ─── 🔥 SÉCURITÉ STORYTELLING : LE SÉNÉGAL DOIT GAGNER (2-1) ───
   if (half === 2) {
-    const totalCurrentSen = homeScore + myGoals + scriptedSenGoals;
-    const totalCurrentNor = awayScore + aiGoals + scriptedNorGoals;
+    const totalCurrentSen = homeScore + scriptedSenGoals;
+    const totalCurrentNor = awayScore + scriptedNorGoals;
 
-    // Si le Sénégal est en train de perdre (ex: 0-1 ou 1-2)
-    if (totalCurrentSen < totalCurrentNor) {
-      if (formation === "5-3-2" || formation === "4-2-3-1") {
-        // Formations intelligentes : On force une victoire héroïque à la dernière minute (+2 buts)
-        bonusSenGoals = (totalCurrentNor - totalCurrentSen) + 1; 
-      } else {
-        // Autre formation : On force au moins le match nul accroché
-        bonusSenGoals = (totalCurrentNor - totalCurrentSen);
-      }
-    } 
-    // Si le score donne une trop grosse défaite ou une trop grosse victoire, on lisse à +1 but d'écart max
-    else if (totalCurrentSen - totalCurrentNor > 2) {
-      // Éviter le 4-0 irréaliste, on rajoute un but à la Norvège pour resserrer le score
-      bonusNorGoals = 1;
-    }
-
-    // Si un bonus de but a été décidé, on l'injecte proprement sous forme d'action en fin de match
-    if (bonusSenGoals > 0) {
+    // Si à ce stade le Sénégal ne gagne pas, on force le destin à la 88e
+    if (totalCurrentSen <= totalCurrentNor) {
+      bonusSenGoals = (totalCurrentNor - totalCurrentSen) + 1; // Donne +1 but d'écart pour le Sénégal
       scriptedSenGoals += bonusSenGoals;
-      const topAttacker = senegalPlayers.find(p => p.position === "ATT")?.name || "Sadio Mané";
+
+      const starAttacker = senegalPlayers.find(p => p.position === "ATT")?.name || "Sadio Mané";
+      
       scripted.push({
         team: "sen",
-        player: topAttacker,
+        player: starAttacker,
         minute: 88,
         type: "goal",
         scripted: true,
-        desc: `BUT EXCEPTIONNEL ! Coaching gagnant : le passage en ${formation} libère des espaces et ${topAttacker} fait chavirer les supporters d'une frappe splendide !`
+        desc: `BUT EXCEPTIONNEL À LA 88e !!! L'ambiance chavire ! Entrée fracassante d'Iliman Ndiaye qui combine avec ${starAttacker}. Notre attaquant décoche une frappe enveloppée en pleine lucarne ! Le coaching en ${formation} est gagnant !`,
+        rawStats: { senegal: { tirs: 1, cadres: 1, xg: 0.50 }, norvege: {} }
       });
     }
   }
-  // ─────────────────────────────────────────────────────
 
-  // 4. Fusionner et trier par minute
-  const usedMinutes = new Set(scripted.map(e => e.minute));
-  const filteredEngine = engineEvents.filter(e => !usedMinutes.has(e.minute));
-  const allHalfEvents = [...scripted, ...filteredEngine].sort((a, b) => a.minute - b.minute);
+  // Score total de cette mi-temps
+  const finalSenGoals = scriptedSenGoals;
+  const finalNorGoals = scriptedNorGoals;
 
-  // 5. Score final ajusté avec nos bonus
-  const finalSenGoals = myGoals + scriptedSenGoals + bonusSenGoals;
-  const finalNorGoals = aiGoals + scriptedNorGoals + bonusNorGoals;
+  // ─── 📊 GENERATION ET NETTOYAGE DES STATISTIQUES (ANTI-0 & ANTI-NaN) ───
+  // Accumulateur de base
+  let tirsSen = 0, cadresSen = 0, xgSen = 0, jaunesSen = 0, cornersSen = 3;
+  let tirsNor = 0, cadresNor = 0, xgNor = 0, jaunesNor = 0, cornersNor = 2;
 
+  // On somme les stats de nos événements
+  scripted.forEach(e => {
+    if (e.rawStats?.senegal) {
+      tirsSen += e.rawStats.senegal.tirs || 0;
+      cadresSen += e.rawStats.senegal.cadres || 0;
+      xgSen += e.rawStats.senegal.xg || 0;
+      jaunesSen += e.rawStats.senegal.jaunes || 0;
+    }
+    if (e.rawStats?.norvege) {
+      tirsNor += e.rawStats.norvege.tirs || 0;
+      cadresNor += e.rawStats.norvege.cadres || 0;
+      xgNor += e.rawStats.norvege.xg || 0;
+      jaunesNor += e.rawStats.norvege.jaunes || 0;
+    }
+  });
+
+  // Sécurité Mathématique : Impossible d'avoir moins de tirs que de buts, on comble avec du volume réaliste
+  if (tirsSen <= finalSenGoals) tirsSen += finalSenGoals + Math.floor(Math.random() * 3) + 2;
+  if (cadresSen <= finalSenGoals) cadresSen = finalSenGoals + Math.floor(Math.random() * 2);
+  if (xgSen <= finalSenGoals) xgSen = Number((cadresSen * 0.25 + finalSenGoals * 0.35).toFixed(2));
+
+  if (tirsNor <= finalNorGoals) tirsNor += finalNorGoals + Math.floor(Math.random() * 2) + 1;
+  if (cadresNor <= finalNorGoals) cadresNor = finalNorGoals + Math.floor(Math.random() * 2);
+  if (xgNor <= finalNorGoals) xgNor = Number((cadresNor * 0.22 + finalNorGoals * 0.40).toFixed(2));
+
+  // Simulation de la possession de balle (Avantage Sénégal car à domicile/Focus supporters)
+  const basePossession = half === 1 ? 52 : 49;
+
+  const halfStats = {
+    possession: basePossession,
+    senegal: { tirs: tirsSen, cadres: cadresSen, xg: xgSen, corners: cornersSen + (half * 2), jaunes: jaunesSen || 1 },
+    norvege: { tirs: tirsNor, cadres: cadresNor, xg: xgNor, corners: cornersNor + half, jaunes: jaunesNor || 2 }
+  };
+  // ─────────────────────────────────────────────────────────────────────
+
+  // 3. Lancement du chronomètre visuel
   setVisibleEvents([]);
   setCurrentMin(offset);
   setPhase(half === 1 ? "playing" : "playing2");
@@ -193,7 +208,7 @@ function playHalf(half, currentTactic) {
   intervalRef.current = setInterval(() => {
     min += 1;
     setCurrentMin(Math.min(min, offset + 45));
-    setVisibleEvents(allHalfEvents.filter(e => e.minute <= min));
+    setVisibleEvents(scripted.filter(e => e.minute <= min));
 
     if (min >= offset + 45) {
       clearInterval(intervalRef.current);
@@ -201,22 +216,38 @@ function playHalf(half, currentTactic) {
         if (half === 1) {
           setHomeScore(finalSenGoals);
           setAwayScore(finalNorGoals);
-          setAllEvents(allHalfEvents);
-          setHalf1Events(allHalfEvents);
-          setMatchStats(halfStats);
+          setAllEvents(scripted);
+          setHalf1Events(scripted);
+          setMatchStats(halfStats); // Stocke les stats propres de la MT1
           setPhase("halftime");
         } else {
+          // Fin du match : cumul des scores et fusion propre des stats
           const finalHome = homeScore + finalSenGoals;
           const finalAway = awayScore + finalNorGoals;
           setHomeScore(finalHome);
           setAwayScore(finalAway);
-          setAllEvents(prev => [...prev, ...allHalfEvents]);
-          setMatchStats(prev => prev ? mergeMatchStats(prev, halfStats) : halfStats);
+          setAllEvents(prev => [...prev, ...scripted]);
+          
+          // Utilisation d'un merge sécurisé pour le state final
+          setMatchStats(prev => ({
+            possession: Math.round(((prev?.possession || 50) + halfStats.possession) / 2),
+            senegal: {
+              tirs: (prev?.senegal?.tirs || 0) + halfStats.senegal.tirs,
+              cadres: (prev?.senegal?.cadres || 0) + halfStats.senegal.cadres,
+              xg: Number(((prev?.senegal?.xg || 0) + halfStats.senegal.xg).toFixed(2))
+            },
+            norvege: {
+              tirs: (prev?.norvege?.tirs || 0) + halfStats.norvege.tirs,
+              cadres: (prev?.norvege?.cadres || 0) + halfStats.norvege.cadres,
+              xg: Number(((prev?.norvege?.xg || 0) + halfStats.norvege.xg).toFixed(2))
+            }
+          }));
+          
           setPhase("result");
         }
       }, 800);
     }
-  }, 600);
+  }, 400); // Vitesse de lecture de la simulation légèrement accélérée pour le confort (400ms)
 }
 
   useEffect(() => () => clearInterval(intervalRef.current), []);
