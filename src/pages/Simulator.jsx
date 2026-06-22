@@ -107,76 +107,117 @@ export default function Simulator() {
     setSubTarget(null);
   }
 
-  function playHalf(half, currentTactic) {
-    const myStats = calcTeamStats(senegalPlayers);
-    const aiStats = calcTeamStats(norwayPlayers);
-    const myAdj   = applyTactic(myStats, currentTactic);
-    const offset  = half === 1 ? 0 : 45;
+  // Dans src/pages/Simulator.jsx -> Fonction playHalf()
 
-    // 1. Événements aléatoires du moteur (ticks, zones, duels)
-    const { events: engineEvents, halfStats, myGoals, aiGoals } = generateHalfEvents(
-      null, null, senegalPlayers, norwayPlayers, offset,
-      myAdj, aiStats, currentTactic, norwayTactic
-    );
+function playHalf(half, currentTactic) {
+  const myStats = calcTeamStats(senegalPlayers);
+  const aiStats = calcTeamStats(norwayPlayers);
+  const myAdj   = applyTactic(myStats, currentTactic);
+  const offset  = half === 1 ? 0 : 45;
 
-    // 2. Événements scénarisés selon la tactique choisie
-    const scripted = getScriptedEventsForHalf(half, currentTactic.id).map(e => ({
-      team:    e.team,
-      player:  e.player,
-      minute:  e.minute,
-      type:    e.type,
-      scripted: true, // marque pour l'affichage
-      desc:    e.desc,
-    }));
+  // 1. Événements aléatoires du moteur
+  const { events: engineEvents, halfStats, myGoals, aiGoals } = generateHalfEvents(
+    null, null, senegalPlayers, norwayPlayers, offset,
+    myAdj, aiStats, currentTactic, norwayTactic
+  );
 
-    // 3. Compter les buts scénarisés pour ajuster le score
-    const scriptedSenGoals = scripted.filter(e => e.team === "sen" && e.type === "goal").length;
-    const scriptedNorGoals = scripted.filter(e => e.team === "nor" && e.type === "goal").length;
+  // 2. Événements scénarisés adaptés à l'équipe actuelle ! (On passe senegalPlayers en 3e paramètre)
+  const scripted = getScriptedEventsForHalf(half, currentTactic.id, senegalPlayers).map(e => ({
+    team:     e.team,
+    player:   e.player,
+    minute:   e.minute,
+    type:     e.type,
+    scripted: true, 
+    desc:     e.desc,
+  }));
 
-    // 4. Fusionner et trier par minute — les scénarisés remplacent les aléatoires
-    //    à la même minute pour éviter les doublons
-    const usedMinutes = new Set(scripted.map(e => e.minute));
-    const filteredEngine = engineEvents.filter(e => !usedMinutes.has(e.minute));
-    const allHalfEvents = [...scripted, ...filteredEngine]
-      .sort((a, b) => a.minute - b.minute);
+  // 3. Compter les buts scénarisés de base
+  let scriptedSenGoals = scripted.filter(e => e.team === "sen" && e.type === "goal").length;
+  let scriptedNorGoals = scripted.filter(e => e.team === "nor" && e.type === "goal").length;
 
-    // 5. Score final = moteur + scénarisés
-    const finalSenGoals = myGoals + scriptedSenGoals;
-    const finalNorGoals = aiGoals + scriptedNorGoals;
+  // ─── 🤫 LE COUP DE POUCE INVISIBLE (FIDÉLISATION) ───
+  // Si on est en 2ème mi-temps, on applique la règle marketing : victoire serrée ou nul.
+  let bonusSenGoals = 0;
+  let bonusNorGoals = 0;
 
-    setVisibleEvents([]);
-    setCurrentMin(offset);
-    setPhase(half === 1 ? "playing" : "playing2");
+  if (half === 2) {
+    const totalCurrentSen = homeScore + myGoals + scriptedSenGoals;
+    const totalCurrentNor = awayScore + aiGoals + scriptedNorGoals;
 
-    let min = offset;
-    intervalRef.current = setInterval(() => {
-      min += 1;
-      setCurrentMin(Math.min(min, offset + 45));
-      setVisibleEvents(allHalfEvents.filter(e => e.minute <= min));
-
-      if (min >= offset + 45) {
-        clearInterval(intervalRef.current);
-        setTimeout(() => {
-          if (half === 1) {
-            setHomeScore(finalSenGoals);
-            setAwayScore(finalNorGoals);
-            setAllEvents(allHalfEvents);
-            setHalf1Events(allHalfEvents);
-            setMatchStats(halfStats);
-            setPhase("halftime");
-          } else {
-            const finalHome = homeScore + finalSenGoals;
-            const finalAway = awayScore + finalNorGoals;
-            setHomeScore(finalHome);
-            setAwayScore(finalAway);
-            setAllEvents(prev => [...prev, ...allHalfEvents]);
-            setMatchStats(prev => prev ? mergeMatchStats(prev, halfStats) : halfStats);
-            setPhase("result");
-          }
-        }, 800);
+    // Si le Sénégal est en train de perdre (ex: 0-1 ou 1-2)
+    if (totalCurrentSen < totalCurrentNor) {
+      if (formation === "5-3-2" || formation === "4-2-3-1") {
+        // Formations intelligentes : On force une victoire héroïque à la dernière minute (+2 buts)
+        bonusSenGoals = (totalCurrentNor - totalCurrentSen) + 1; 
+      } else {
+        // Autre formation : On force au moins le match nul accroché
+        bonusSenGoals = (totalCurrentNor - totalCurrentSen);
       }
-    }, 600);
+    } 
+    // Si le score donne une trop grosse défaite ou une trop grosse victoire, on lisse à +1 but d'écart max
+    else if (totalCurrentSen - totalCurrentNor > 2) {
+      // Éviter le 4-0 irréaliste, on rajoute un but à la Norvège pour resserrer le score
+      bonusNorGoals = 1;
+    }
+
+    // Si un bonus de but a été décidé, on l'injecte proprement sous forme d'action en fin de match
+    if (bonusSenGoals > 0) {
+      scriptedSenGoals += bonusSenGoals;
+      const topAttacker = senegalPlayers.find(p => p.position === "ATT")?.name || "Sadio Mané";
+      scripted.push({
+        team: "sen",
+        player: topAttacker,
+        minute: 88,
+        type: "goal",
+        scripted: true,
+        desc: `BUT EXCEPTIONNEL ! Coaching gagnant : le passage en ${formation} libère des espaces et ${topAttacker} fait chavirer les supporters d'une frappe splendide !`
+      });
+    }
   }
+  // ─────────────────────────────────────────────────────
+
+  // 4. Fusionner et trier par minute
+  const usedMinutes = new Set(scripted.map(e => e.minute));
+  const filteredEngine = engineEvents.filter(e => !usedMinutes.has(e.minute));
+  const allHalfEvents = [...scripted, ...filteredEngine].sort((a, b) => a.minute - b.minute);
+
+  // 5. Score final ajusté avec nos bonus
+  const finalSenGoals = myGoals + scriptedSenGoals + bonusSenGoals;
+  const finalNorGoals = aiGoals + scriptedNorGoals + bonusNorGoals;
+
+  setVisibleEvents([]);
+  setCurrentMin(offset);
+  setPhase(half === 1 ? "playing" : "playing2");
+
+  let min = offset;
+  intervalRef.current = setInterval(() => {
+    min += 1;
+    setCurrentMin(Math.min(min, offset + 45));
+    setVisibleEvents(allHalfEvents.filter(e => e.minute <= min));
+
+    if (min >= offset + 45) {
+      clearInterval(intervalRef.current);
+      setTimeout(() => {
+        if (half === 1) {
+          setHomeScore(finalSenGoals);
+          setAwayScore(finalNorGoals);
+          setAllEvents(allHalfEvents);
+          setHalf1Events(allHalfEvents);
+          setMatchStats(halfStats);
+          setPhase("halftime");
+        } else {
+          const finalHome = homeScore + finalSenGoals;
+          const finalAway = awayScore + finalNorGoals;
+          setHomeScore(finalHome);
+          setAwayScore(finalAway);
+          setAllEvents(prev => [...prev, ...allHalfEvents]);
+          setMatchStats(prev => prev ? mergeMatchStats(prev, halfStats) : halfStats);
+          setPhase("result");
+        }
+      }, 800);
+    }
+  }, 600);
+}
 
   useEffect(() => () => clearInterval(intervalRef.current), []);
 

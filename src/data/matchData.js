@@ -90,142 +90,124 @@ export const NORWAY_MATCH = {
 //   - attMult : multiplicateur si tactique offensive (attack/press)
 //   - defMult : multiplicateur si tactique défensive (defense/balanced)
 
+// src/data/matchData.js
+
+// Petite fonction utilitaire interne pour trouver un joueur par poste de manière résiliente
+function getPlayerByRole(players, position, fallbackName) {
+  const found = players.find(p => p.position === position);
+  return found ? found.name : fallbackName;
+}
+
 export const SCRIPTED_EVENTS = [
-  // ── HAALAND — danger permanent, surtout 1ère mi-temps ───────────────
+  // ── PREMIÈRE MI-TEMPS ───────────────────────────────────────────────
   {
-    id:      "haaland_goal_1",
-    minute:  [28, 38],
-    half:    1,
-    team:    "nor",
-    player:  "Haaland",
-    type:    "goal",
-    desc:    "Combinaison Ødegaard→Haaland dans l'intervalle. Frappe croisée.",
-    prob:    0.55, // 55% de base
+    id: "haaland_goal_1",
+    minute: [28, 38],
+    half: 1,
+    team: "nor",
+    player: "E. Haaland",
+    type: "goal",
+    // Pas besoin de fonction ici car Haaland est côté IA (fixe)
+    descFn: () => "Combinaison Ødegaard→Haaland dans l'intervalle. Frappe croisée clinique.",
+    prob: 0.55,
     tacticsModifier: { attack: 0.35, press: 0.40, balanced: 0.55, defense: 0.70 },
   },
   {
-    id:      "haaland_goal_2",
-    minute:  [72, 82],
-    half:    2,
-    team:    "nor",
-    player:  "Haaland",
-    type:    "goal",
-    desc:    "Tête sur corner d'Ødegaard. Imparable.",
-    prob:    0.45,
-    tacticsModifier: { attack: 0.28, press: 0.35, balanced: 0.45, defense: 0.62 },
-  },
-  {
-    id:      "haaland_miss",
-    minute:  [15, 25],
-    half:    1,
-    team:    "nor",
-    player:  "Haaland",
-    type:    "miss",
-    desc:    "Haaland au point de penalty, tête qui frôle le montant.",
-    prob:    0.75, // très probable — il sera dangereux
-    tacticsModifier: { attack: 0.50, press: 0.55, balanced: 0.75, defense: 0.88 },
-  },
-
-  // ── ØDEGAARD — créateur principal ───────────────────────────────────
-  {
-    id:      "odegaard_save",
-    minute:  [35, 45],
-    half:    1,
-    team:    "nor",
-    player:  "Ødegaard",
-    type:    "save",
-    desc:    "Frappe enroulée d'Ødegaard, Mendy sort une parade décisive.",
-    prob:    0.65,
-    tacticsModifier: { attack: 0.40, press: 0.45, balanced: 0.65, defense: 0.78 },
-  },
-
-  // ── MANÉ — dernière CdM, motivé ─────────────────────────────────────
-  {
-    id:      "mane_miss",
-    minute:  [42, 47],
-    half:    1,
-    team:    "sen",
-    player:  "Mané",
-    type:    "miss",
-    desc:    "Mané élimine Ryerson, centre tendu — Jackson coupe mais Nyland détourne.",
-    prob:    0.70,
-    tacticsModifier: { attack: 0.85, press: 0.80, balanced: 0.70, defense: 0.55 },
-  },
-  {
-    id:      "mane_goal",
-    minute:  [58, 70],
-    half:    2,
-    team:    "sen",
-    player:  "Mané",
-    type:    "goal",
-    desc:    "Contre-attaque éclair ! Mané lancé en profondeur, frappe du droit.",
-    prob:    0.28, // moins probable mais possible
-    tacticsModifier: { attack: 0.42, press: 0.38, balanced: 0.28, defense: 0.18 },
-  },
-
-  // ── JACKSON — finisseur en forme ────────────────────────────────────
-  {
-    id:      "jackson_goal",
-    minute:  [52, 62],
-    half:    2,
-    team:    "sen",
-    player:  "Jackson",
-    type:    "goal",
-    desc:    "Transition verticale, Camara lance Mbaye, centre tendu — Jackson au second poteau !",
-    prob:    0.40,
-    tacticsModifier: { attack: 0.58, press: 0.52, balanced: 0.40, defense: 0.25 },
-  },
-  {
-    id:      "jackson_miss",
-    minute:  [30, 40],
-    half:    1,
-    team:    "sen",
-    player:  "Jackson",
-    type:    "miss",
-    desc:    "Jackson se retourne dans la surface, frappe croisée — Nyland repousse.",
-    prob:    0.60,
-    tacticsModifier: { attack: 0.75, press: 0.70, balanced: 0.60, defense: 0.45 },
-  },
-
-  // ── MBAYE — pépite du PSG, entrant ou titulaire ─────────────────────
-  {
-    id:      "mbaye_corner",
-    minute:  [55, 68],
-    half:    2,
-    team:    "sen",
-    player:  "I. Mbaye",
-    type:    "corner",
-    desc:    "Mbaye déborde sur le côté droit, obligé de centrer — corner obtenu.",
-    prob:    0.72,
-    tacticsModifier: { attack: 0.85, press: 0.80, balanced: 0.72, defense: 0.55 },
-  },
-
-  // ── KOULIBALY — carton jaune probable sous pression ─────────────────
-  {
-    id:      "koulibaly_yellow",
-    minute:  [35, 50],
-    half:    1,
-    team:    "sen",
-    player:  "Koulibaly",
-    type:    "yellow",
-    desc:    "Tacle tardif de Koulibaly sur Haaland. Carton jaune inévitable.",
-    prob:    0.60,
+    id: "koulibaly_yellow",
+    minute: [35, 50],
+    half: 1,
+    team: "sen",
+    type: "yellow",
+    // Cherche le premier défenseur axial ou prend Koulibaly par défaut
+    playerFn: (lineup) => getPlayerByRole(lineup, "DEF", "Koulibaly"),
+    descFn: (lineup) => {
+      const def = getPlayerByRole(lineup, "DEF", "Koulibaly");
+      return `Tacle très appuyé de ${def} sur Haaland. Carton jaune inévitable pour notre défenseur.`;
+    },
+    prob: 0.60,
     tacticsModifier: { attack: 0.70, press: 0.75, balanced: 0.60, defense: 0.45 },
   },
 
-  // ── MENDY — parade clé en 2e mi-temps ───────────────────────────────
+  // ── DEUXIÈME MI-TEMPS ───────────────────────────────────────────────
   {
-    id:      "mendy_save",
-    minute:  [62, 75],
-    half:    2,
-    team:    "nor",
-    player:  "Nusa",
-    type:    "save",
-    desc:    "Nusa accélère, frappe en force — Mendy sort une parade décisive !",
-    prob:    0.68,
-    tacticsModifier: { attack: 0.50, press: 0.55, balanced: 0.68, defense: 0.80 },
+    id: "jackson_goal",
+    minute: [52, 62],
+    half: 2,
+    team: "sen",
+    type: "goal",
+    // Dynamique : prend le premier attaquant (buteur) de la liste actuelle
+    playerFn: (lineup) => getPlayerByRole(lineup, "ATT", "N. Jackson"),
+    descFn: (lineup) => {
+      const bu = getPlayerByRole(lineup, "ATT", "N. Jackson");
+      const mil = getPlayerByRole(lineup, "MIL", "L. Camara");
+      return `Transition verticale parfaite ! ${mil} oriente le jeu vers l'avant, centre tendu et ${bu} conclut au second poteau !`;
+    },
+    prob: 0.40,
+    tacticsModifier: { attack: 0.58, press: 0.52, balanced: 0.40, defense: 0.25 },
   },
+  {
+    id: "mbaye_corner",
+    minute: [55, 68],
+    half: 2,
+    team: "sen",
+    type: "corner",
+    // Si l'utilisateur a laissé Mbaye sur le banc mais mis Sarr, ou inversement, le script s'adapte
+    playerFn: (lineup) => lineup.find(p => p.id === "mbaye_20") ? "I. Mbaye" : getPlayerByRole(lineup, "ATT", "I. Sarr"),
+    descFn: (lineup) => {
+      const att = lineup.find(p => p.id === "mbaye_20") ? "I. Mbaye" : getPlayerByRole(lineup, "ATT", "I. Sarr");
+      return `${att} provoque balle au pied sur le côté droit, pousse son vis-à-vis à la faute et obtient un corner précieux.`;
+    },
+    prob: 0.72,
+    tacticsModifier: { attack: 0.85, press: 0.80, balanced: 0.72, defense: 0.55 },
+  },
+  {
+    id: "mendy_save",
+    minute: [62, 75],
+    half: 2,
+    team: "nor",
+    player: "A. Nusa",
+    type: "save",
+    descFn: (lineup) => {
+      const gk = getPlayerByRole(lineup, "GK", "É. Mendy");
+      return `Nusa accélère et repique, grosse frappe en force — mais ${gk} s'interpose magnifiquement !`;
+    },
+    prob: 0.68,
+    tacticsModifier: { attack: 0.50, press: 0.55, balanced: 0.68, defense: 0.80 },
+  }
 ];
+
+// MODIFICATION DE LA FONCTION : On passe désormais 'senegalPlayers' (la lineup actuelle)
+export function getScriptedEventsForHalf(half, tacticId, senegalPlayers) {
+  const triggered = [];
+  const usedMinutes = new Set();
+
+  SCRIPTED_EVENTS
+    .filter(e => e.half === half)
+    .forEach(event => {
+      // Détermination de la probabilité selon la tactique
+      const prob = event.tacticsModifier?.[tacticId] ?? event.prob;
+      if (Math.random() >= prob) return;
+
+      const [minA, minB] = event.minute;
+      let minute = minA + Math.floor(Math.random() * (minB - minA + 1));
+      while (usedMinutes.has(minute) && minute < minB) minute++;
+      usedMinutes.add(minute);
+
+      // Résolution dynamique des textes et joueurs au moment de la génération
+      const resolvedPlayer = event.playerFn ? event.playerFn(senegalPlayers) : (event.player || "Joueur");
+      const resolvedDesc = event.descFn ? event.descFn(senegalPlayers) : "";
+
+      triggered.push({
+        ...event,
+        minute,
+        resolvedMinute: minute,
+        player: resolvedPlayer, // Le nom correct est injecté ici
+        desc: resolvedDesc      // La description correcte est injectée ici
+      });
+    });
+
+  return triggered.sort((a, b) => a.minute - b.minute);
+}
 
 // Fonction pour résoudre si un événement scénarisé se déclenche
 // selon la tactique choisie par l'utilisateur
@@ -234,22 +216,4 @@ export function resolveScriptedEvent(event, tacticId) {
   return Math.random() < prob;
 }
 
-// Génère les événements scénarisés d'une mi-temps selon la tactique
-export function getScriptedEventsForHalf(half, tacticId) {
-  const triggered = [];
-  const usedMinutes = new Set();
 
-  SCRIPTED_EVENTS
-    .filter(e => e.half === half)
-    .forEach(event => {
-      if (!resolveScriptedEvent(event, tacticId)) return;
-      const [minA, minB] = event.minute;
-      // Choisir une minute aléatoire dans la fourchette
-      let minute = minA + Math.floor(Math.random() * (minB - minA + 1));
-      while (usedMinutes.has(minute) && minute < minB) minute++;
-      usedMinutes.add(minute);
-      triggered.push({ ...event, minute, resolvedMinute: minute });
-    });
-
-  return triggered.sort((a, b) => a.minute - b.minute);
-}
