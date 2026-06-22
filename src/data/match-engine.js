@@ -173,7 +173,8 @@ export function calcTeamStats(players) {
     overall: Math.round(avgRating),
     attack: Math.round(attack / (players.filter(p => p.position === "ATT").length || 1)),
     midfield: Math.round(midfield / (players.filter(p => p.position === "MIL").length || 1)),
-    defense: Math.round(defense / (players.filter(p => p.position === "DEF" || player.position === "GK").length || 1)),
+    // Remplacement de "player.position" par "p.position" ici :
+    defense: Math.round(defense / (players.filter(p => p.position === "DEF" || p.position === "GK").length || 1)),
   };
 }
 

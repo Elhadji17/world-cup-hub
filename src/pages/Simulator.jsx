@@ -297,6 +297,7 @@ export default function Simulator() {
     }));
   };
 
+  // ✅ LE CODE CORRIGÉ :
   function getTeamStats(team, tac = null) {
     const stats = calcTeamStats(team.players);
     if (!tac) return stats;
