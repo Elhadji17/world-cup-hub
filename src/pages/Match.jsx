@@ -13,7 +13,7 @@ import { rollMatchForm, FORM_STATES } from "../data/match-form";
 import { getMorale, getMoraleInfo, updateMorale } from "../data/match-morale";
 import {
   TEAM_KEY, TACTICS, AI_TEAMS, KEY_ACTIONS,
-  calcTeamStats, simulateHalfGoals, applyTactic, generateHalfEvents,
+  calcTeamStats, simulateHalfGoals, applyTactic, generateHalfEvents, mergeMatchStats,
 } from "../data/match-engine";
 
 export default function MatchGame() {
@@ -30,6 +30,7 @@ export default function MatchGame() {
   const [currentMin,    setCurrentMin]    = useState(0);
   const [reward,        setReward]        = useState(0);
   const [allEvents,     setAllEvents]     = useState([]);
+  const [matchStats,    setMatchStats]    = useState(null);
   const [myFormMap,     setMyFormMap]     = useState({});
   const [aiFormMap,     setAiFormMap]     = useState({});
   const [morale,        setMorale]        = useState(() => getMorale());
@@ -68,7 +69,10 @@ export default function MatchGame() {
     const aiGoals = simulateHalfGoals(aiAttack, myAdjusted.DEF);
 
     const offset = half === 1 ? 0 : 45;
-    const events  = generateHalfEvents(myGoals, aiGoals, myTeam, selectedAI.players, offset);
+    const { events, halfStats } = generateHalfEvents(
+      myGoals, aiGoals, myTeam, selectedAI.players, offset,
+      myAdjusted, aiStats
+    );
 
     setVisibleEvents([]);
     setCurrentMin(offset);
@@ -88,6 +92,7 @@ export default function MatchGame() {
             setMyScore(myGoals);
             setAiScore(aiGoals);
             setAllEvents(events);
+            setMatchStats(halfStats);
             setPhase("halftime");
           } else {
             const finalMy = myScore + myGoals;
@@ -95,19 +100,17 @@ export default function MatchGame() {
             setMyScore(finalMy);
             setAiScore(finalAi);
             setAllEvents(prev => [...prev, ...events]);
+            setMatchStats(prev => mergeMatchStats(prev, halfStats));
 
             const won  = finalMy > finalAi;
             const draw = finalMy === finalAi;
-            // Mapping vers la formule backend: pointsBase = correct*10 + fastAnswers*10 + bonus_streak
-            // On veut 50/20/5 coins → correct = 5/2/0.5, donc on passe directement en "correct" arrondi
-            // pour rester compatible avec le endpoint partagé avec le Quiz.
             const correctEquiv = won ? 5 : draw ? 2 : 1;
             const result = await submitResult({
               correct:     correctEquiv,
               wrong:       0,
               streak:      0,
               fastAnswers: 0,
-              livesUsed:   1, // 1 vie consommée par match, déduite côté backend
+              livesUsed:   1,
             });
             await refresh();
             const newMorale = updateMorale(won ? "win" : draw ? "draw" : "loss");
@@ -135,6 +138,7 @@ export default function MatchGame() {
     setPhase("select");
     setSelectedAI(null);
     setAllEvents([]);
+    setMatchStats(null);
     setVisibleEvents([]);
     setCurrentMin(0);
     setMyScore(0);
@@ -582,6 +586,57 @@ export default function MatchGame() {
                 );
               })()}
             </div>
+
+            {/* Stats post-match */}
+            {matchStats && (
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-5">
+                <h3 className="font-bold text-white mb-4">📊 Statistiques du match</h3>
+
+                {/* Possession */}
+                <div className="mb-3">
+                  <div className="flex justify-between text-xs text-gray-400 mb-1">
+                    <span className="font-bold text-white">{matchStats.possession.me}%</span>
+                    <span>Possession</span>
+                    <span className="font-bold text-white">{matchStats.possession.ai}%</span>
+                  </div>
+                  <div className="flex h-2 rounded-full overflow-hidden">
+                    <div className="bg-green-500 transition-all" style={{ width: `${matchStats.possession.me}%` }} />
+                    <div className="bg-red-500 flex-1" />
+                  </div>
+                </div>
+
+                {/* Autres stats */}
+                <div className="space-y-2">
+                  {[
+                    { label: "Tirs", me: matchStats.shots.me, ai: matchStats.shots.ai },
+                    { label: "Tirs cadrés", me: matchStats.onTarget.me, ai: matchStats.onTarget.ai },
+                    { label: "xG", me: matchStats.xG.me, ai: matchStats.xG.ai },
+                    { label: "Duels gagnés", me: matchStats.duels.me, ai: matchStats.duels.ai },
+                  ].map(({ label, me, ai }) => {
+                    const total = me + ai || 1;
+                    const mePct = Math.round((me / total) * 100);
+                    return (
+                      <div key={label}>
+                        <div className="flex justify-between text-xs text-gray-400 mb-0.5">
+                          <span className="font-bold text-white">{me}</span>
+                          <span>{label}</span>
+                          <span className="font-bold text-white">{ai}</span>
+                        </div>
+                        <div className="flex h-1.5 rounded-full overflow-hidden">
+                          <div className="bg-green-500/70" style={{ width: `${mePct}%` }} />
+                          <div className="bg-red-500/70 flex-1" />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="flex justify-between text-xs text-gray-500 mt-3">
+                  <span className="text-green-400 font-bold">{user.username}</span>
+                  <span className="text-red-400 font-bold">{selectedAI.name}</span>
+                </div>
+              </div>
+            )}
 
             <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-5">
               <h3 className="font-bold text-white mb-3">📋 Résumé du match</h3>

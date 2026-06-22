@@ -147,8 +147,8 @@ export const KEY_ACTIONS = {
   yellow: { emoji: "🟨", label: "reçoit un carton jaune" },
 };
 
-// Générer les événements d'une demi — buts + actions clés non décisives
-export function generateHalfEvents(myGoals, aiGoals, myPlayers, aiPlayers, minuteOffset) {
+// Générer les événements d'une demi + stats de match associées
+export function generateHalfEvents(myGoals, aiGoals, myPlayers, aiPlayers, minuteOffset, myStats = {}, aiStats = {}) {
   const events = [];
   const minutes = new Set();
 
@@ -159,7 +159,7 @@ export function generateHalfEvents(myGoals, aiGoals, myPlayers, aiPlayers, minut
   };
 
   const attackers = myPlayers.filter(p => p.position === "ATT" || p.position === "MIL");
-  const aiAttackers = aiPlayers; // équipes IA n'ont pas de positions détaillées partout
+  const aiAttackers = aiPlayers;
 
   for (let i = 0; i < myGoals; i++) {
     const scorer = attackers[Math.floor(Math.random() * Math.max(attackers.length, 1))];
@@ -170,9 +170,9 @@ export function generateHalfEvents(myGoals, aiGoals, myPlayers, aiPlayers, minut
     addEvent("ai", scorer?.name ?? "Adversaire", minuteOffset + Math.floor(Math.random() * 43) + 1, "goal");
   }
 
-  // Actions clés non décisives — 5 à 8 par mi-temps, réparties entre les deux équipes
+  // Actions clés non décisives — 5 à 8 par mi-temps
   const actionTypes = Object.keys(KEY_ACTIONS);
-  const keyActionCount = 5 + Math.floor(Math.random() * 4); // 5 à 8
+  const keyActionCount = 5 + Math.floor(Math.random() * 4);
   for (let i = 0; i < keyActionCount; i++) {
     const team = Math.random() < 0.5 ? "me" : "ai";
     const pool = team === "me" ? (myPlayers.length ? myPlayers : attackers) : aiPlayers;
@@ -182,5 +182,58 @@ export function generateHalfEvents(myGoals, aiGoals, myPlayers, aiPlayers, minut
     addEvent(team, name, minuteOffset + Math.floor(Math.random() * 43) + 1, actionType);
   }
 
-  return events.sort((a, b) => a.minute - b.minute);
+  // Calculer les stats de cette demi-temps
+  const myATT  = myStats.ATT  ?? 70;
+  const aiATT  = aiStats.ATT  ?? 70;
+  const myDEF  = myStats.DEF  ?? 70;
+  const aiDEF  = aiStats.DEF  ?? 70;
+  const myMIL  = myStats.MIL  ?? 70;
+  const aiMIL  = aiStats.MIL  ?? 70;
+
+  // Possession estimée (basée sur milieu)
+  const totalMIL = myMIL + aiMIL;
+  const myPoss = Math.round((myMIL / totalMIL) * 100);
+
+  // Tirs = buts + occasions manquées (events "miss" + "save") + variance aléatoire
+  const myMissEvents  = events.filter(e => e.team === "me" && (e.type === "miss" || e.type === "save")).length;
+  const aiMissEvents  = events.filter(e => e.team === "ai" && (e.type === "miss" || e.type === "save")).length;
+  const myShots  = myGoals + myMissEvents + Math.floor(Math.random() * 2);
+  const aiShots  = aiGoals + aiMissEvents + Math.floor(Math.random() * 2);
+  const myOnTarget  = myGoals + Math.max(0, myMissEvents - 1);
+  const aiOnTarget  = aiGoals + Math.max(0, aiMissEvents - 1);
+
+  // xG simplifié : qualité des occasions = ATT / (ATT + DEF adverse)
+  const myXG = parseFloat(((myATT / (myATT + aiDEF)) * (myShots * 0.35)).toFixed(1));
+  const aiXG = parseFloat(((aiATT / (aiATT + myDEF)) * (aiShots * 0.35)).toFixed(1));
+
+  // Duels gagnés : ratio ATT vs DEF
+  const totalDuels = 8 + Math.floor(Math.random() * 5);
+  const myDuelsWon = Math.round((myATT / (myATT + aiDEF)) * totalDuels);
+  const aiDuelsWon = totalDuels - myDuelsWon;
+
+  const halfStats = {
+    possession: { me: myPoss, ai: 100 - myPoss },
+    shots:      { me: myShots, ai: aiShots },
+    onTarget:   { me: myOnTarget, ai: aiOnTarget },
+    xG:         { me: myXG, ai: aiXG },
+    duels:      { me: myDuelsWon, ai: aiDuelsWon },
+  };
+
+  return { events: events.sort((a, b) => a.minute - b.minute), halfStats };
+}
+
+// Agréger les stats de deux mi-temps en stats complètes de match
+export function mergeMatchStats(stats1, stats2) {
+  if (!stats1) return stats2;
+  if (!stats2) return stats1;
+  return {
+    possession: {
+      me: Math.round((stats1.possession.me + stats2.possession.me) / 2),
+      ai: Math.round((stats1.possession.ai + stats2.possession.ai) / 2),
+    },
+    shots:    { me: stats1.shots.me + stats2.shots.me,       ai: stats1.shots.ai + stats2.shots.ai },
+    onTarget: { me: stats1.onTarget.me + stats2.onTarget.me, ai: stats1.onTarget.ai + stats2.onTarget.ai },
+    xG:       { me: parseFloat((stats1.xG.me + stats2.xG.me).toFixed(1)), ai: parseFloat((stats1.xG.ai + stats2.xG.ai).toFixed(1)) },
+    duels:    { me: stats1.duels.me + stats2.duels.me,       ai: stats1.duels.ai + stats2.duels.ai },
+  };
 }
