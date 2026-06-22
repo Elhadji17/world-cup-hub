@@ -56,16 +56,24 @@ export const TACTICS = [
   },
 ];
 
-// ── Équipes IA adverses ──────────────────────────────────────────────────
+// ── Équipes IA adverses — 11 joueurs chacune ────────────────────────────
 export const AI_TEAMS = [
   {
     name: "Les Étoiles du Monde", emoji: "🌍", rating: 82,
     color: "from-blue-700 to-blue-900",
     tactic: TACTICS[0],
     players: [
-      { id: "ai1", name: "Rodriguez", rating: 84, stats: { PAC: 82, TIR: 85, PAS: 78, DRI: 80, DEF: 45, PHY: 82 }, rarity: "silver", flag: "🇧🇷", position: "ATT" },
-      { id: "ai2", name: "Mueller",   rating: 80, stats: { PAC: 75, TIR: 82, PAS: 80, DRI: 78, DEF: 50, PHY: 78 }, rarity: "silver", flag: "🇩🇪", position: "MIL" },
-      { id: "ai3", name: "Hernandez", rating: 83, stats: { PAC: 88, TIR: 80, PAS: 75, DRI: 85, DEF: 40, PHY: 75 }, rarity: "silver", flag: "🇲🇽", position: "ATT" },
+      { id: "ai1_gk",  name: "Ospina",    rating: 80, stats: { PAC: 52, TIR: 15, PAS: 55, DRI: 35, DEF: 82, PHY: 80 }, rarity: "silver", flag: "🇨🇴", position: "GK"  },
+      { id: "ai1_rb",  name: "Carvajal",  rating: 80, stats: { PAC: 82, TIR: 55, PAS: 72, DRI: 74, DEF: 78, PHY: 76 }, rarity: "silver", flag: "🇪🇸", position: "DEF" },
+      { id: "ai1_cb1", name: "Marquinhos",rating: 83, stats: { PAC: 72, TIR: 42, PAS: 68, DRI: 60, DEF: 88, PHY: 85 }, rarity: "silver", flag: "🇧🇷", position: "DEF" },
+      { id: "ai1_cb2", name: "Laporte",   rating: 82, stats: { PAC: 68, TIR: 38, PAS: 65, DRI: 58, DEF: 86, PHY: 84 }, rarity: "silver", flag: "🇪🇸", position: "DEF" },
+      { id: "ai1_lb",  name: "Davies",    rating: 83, stats: { PAC: 92, TIR: 52, PAS: 74, DRI: 80, DEF: 72, PHY: 74 }, rarity: "silver", flag: "🇨🇦", position: "DEF" },
+      { id: "ai1_cm1", name: "Fabinho",   rating: 80, stats: { PAC: 70, TIR: 58, PAS: 78, DRI: 70, DEF: 82, PHY: 86 }, rarity: "silver", flag: "🇧🇷", position: "MIL" },
+      { id: "ai1_cm2", name: "Mueller",   rating: 80, stats: { PAC: 75, TIR: 82, PAS: 80, DRI: 78, DEF: 50, PHY: 78 }, rarity: "silver", flag: "🇩🇪", position: "MIL" },
+      { id: "ai1_cm3", name: "Llorente",  rating: 79, stats: { PAC: 72, TIR: 74, PAS: 76, DRI: 72, DEF: 55, PHY: 80 }, rarity: "silver", flag: "🇪🇸", position: "MIL" },
+      { id: "ai1_rw",  name: "Rodriguez", rating: 84, stats: { PAC: 82, TIR: 85, PAS: 78, DRI: 80, DEF: 45, PHY: 82 }, rarity: "silver", flag: "🇧🇷", position: "ATT" },
+      { id: "ai1_lw",  name: "Hernandez", rating: 83, stats: { PAC: 88, TIR: 80, PAS: 75, DRI: 85, DEF: 40, PHY: 75 }, rarity: "silver", flag: "🇲🇽", position: "ATT" },
+      { id: "ai1_st",  name: "Jimenez",   rating: 82, stats: { PAC: 78, TIR: 84, PAS: 65, DRI: 76, DEF: 38, PHY: 88 }, rarity: "silver", flag: "🇲🇽", position: "ATT" },
     ],
   },
   {
@@ -73,9 +81,17 @@ export const AI_TEAMS = [
     color: "from-green-700 to-green-900",
     tactic: TACTICS[2],
     players: [
-      { id: "ai4", name: "Diallo",  rating: 78, stats: { PAC: 90, TIR: 75, PAS: 72, DRI: 82, DEF: 42, PHY: 80 }, rarity: "bronze", flag: "🇸🇳", position: "ATT" },
-      { id: "ai5", name: "Konaté",  rating: 80, stats: { PAC: 75, TIR: 55, PAS: 68, DRI: 65, DEF: 88, PHY: 90 }, rarity: "silver", flag: "🇫🇷", position: "DEF" },
-      { id: "ai6", name: "Traoré",  rating: 79, stats: { PAC: 85, TIR: 78, PAS: 70, DRI: 84, DEF: 38, PHY: 74 }, rarity: "bronze", flag: "🇨🇮", position: "ATT" },
+      { id: "ai2_gk",  name: "Mendy",     rating: 78, stats: { PAC: 50, TIR: 12, PAS: 48, DRI: 32, DEF: 80, PHY: 82 }, rarity: "bronze", flag: "🇸🇳", position: "GK"  },
+      { id: "ai2_rb",  name: "Aurier",    rating: 76, stats: { PAC: 84, TIR: 48, PAS: 68, DRI: 70, DEF: 72, PHY: 78 }, rarity: "bronze", flag: "🇨🇮", position: "DEF" },
+      { id: "ai2_cb1", name: "Konaté",    rating: 80, stats: { PAC: 75, TIR: 35, PAS: 62, DRI: 55, DEF: 88, PHY: 90 }, rarity: "silver", flag: "🇫🇷", position: "DEF" },
+      { id: "ai2_cb2", name: "Bailly",    rating: 76, stats: { PAC: 70, TIR: 30, PAS: 58, DRI: 52, DEF: 82, PHY: 88 }, rarity: "bronze", flag: "🇨🇮", position: "DEF" },
+      { id: "ai2_lb",  name: "Ballo-Touré",rating:74, stats: { PAC: 82, TIR: 42, PAS: 65, DRI: 68, DEF: 68, PHY: 72 }, rarity: "bronze", flag: "🇸🇳", position: "DEF" },
+      { id: "ai2_cm1", name: "Sissoko",   rating: 76, stats: { PAC: 78, TIR: 55, PAS: 70, DRI: 65, DEF: 72, PHY: 88 }, rarity: "bronze", flag: "🇫🇷", position: "MIL" },
+      { id: "ai2_cm2", name: "Sarr M.",   rating: 77, stats: { PAC: 76, TIR: 62, PAS: 74, DRI: 72, DEF: 55, PHY: 76 }, rarity: "bronze", flag: "🇸🇳", position: "MIL" },
+      { id: "ai2_cm3", name: "Ndombele",  rating: 76, stats: { PAC: 72, TIR: 65, PAS: 76, DRI: 74, DEF: 48, PHY: 78 }, rarity: "bronze", flag: "🇫🇷", position: "MIL" },
+      { id: "ai2_rw",  name: "Traoré",    rating: 79, stats: { PAC: 85, TIR: 78, PAS: 70, DRI: 84, DEF: 38, PHY: 74 }, rarity: "bronze", flag: "🇨🇮", position: "ATT" },
+      { id: "ai2_lw",  name: "Diallo",    rating: 78, stats: { PAC: 90, TIR: 75, PAS: 72, DRI: 82, DEF: 42, PHY: 80 }, rarity: "bronze", flag: "🇸🇳", position: "ATT" },
+      { id: "ai2_st",  name: "Dembélé S.",rating: 78, stats: { PAC: 86, TIR: 78, PAS: 68, DRI: 80, DEF: 35, PHY: 76 }, rarity: "bronze", flag: "🇸🇳", position: "ATT" },
     ],
   },
   {
@@ -83,9 +99,17 @@ export const AI_TEAMS = [
     color: "from-purple-700 to-purple-900",
     tactic: TACTICS[1],
     players: [
-      { id: "ai7", name: "Silva",   rating: 88, stats: { PAC: 72, TIR: 60, PAS: 75, DRI: 70, DEF: 92, PHY: 90 }, rarity: "gold", flag: "🇵🇹", position: "DEF" },
-      { id: "ai8", name: "Kroos",   rating: 87, stats: { PAC: 68, TIR: 80, PAS: 95, DRI: 82, DEF: 70, PHY: 72 }, rarity: "gold", flag: "🇩🇪", position: "MIL" },
-      { id: "ai9", name: "Benzema", rating: 90, stats: { PAC: 78, TIR: 92, PAS: 82, DRI: 88, DEF: 38, PHY: 82 }, rarity: "gold", flag: "🇫🇷", position: "ATT" },
+      { id: "ai3_gk",  name: "Alisson",   rating: 89, stats: { PAC: 60, TIR: 18, PAS: 62, DRI: 42, DEF: 90, PHY: 85 }, rarity: "gold", flag: "🇧🇷", position: "GK"  },
+      { id: "ai3_rb",  name: "Alexander-Arnold", rating: 87, stats: { PAC: 85, TIR: 72, PAS: 88, DRI: 80, DEF: 78, PHY: 74 }, rarity: "gold", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", position: "DEF" },
+      { id: "ai3_cb1", name: "Silva",      rating: 88, stats: { PAC: 72, TIR: 42, PAS: 72, DRI: 65, DEF: 92, PHY: 88 }, rarity: "gold", flag: "🇵🇹", position: "DEF" },
+      { id: "ai3_cb2", name: "Rüdiger",   rating: 85, stats: { PAC: 76, TIR: 40, PAS: 65, DRI: 60, DEF: 88, PHY: 90 }, rarity: "gold", flag: "🇩🇪", position: "DEF" },
+      { id: "ai3_lb",  name: "Theo H.",   rating: 84, stats: { PAC: 88, TIR: 62, PAS: 76, DRI: 78, DEF: 74, PHY: 76 }, rarity: "gold", flag: "🇫🇷", position: "DEF" },
+      { id: "ai3_cm1", name: "Kroos",     rating: 87, stats: { PAC: 68, TIR: 80, PAS: 95, DRI: 82, DEF: 70, PHY: 72 }, rarity: "gold", flag: "🇩🇪", position: "MIL" },
+      { id: "ai3_cm2", name: "Modric",    rating: 88, stats: { PAC: 74, TIR: 78, PAS: 90, DRI: 88, DEF: 65, PHY: 68 }, rarity: "gold", flag: "🇭🇷", position: "MIL" },
+      { id: "ai3_cm3", name: "Verratti",  rating: 85, stats: { PAC: 70, TIR: 70, PAS: 88, DRI: 86, DEF: 68, PHY: 70 }, rarity: "gold", flag: "🇮🇹", position: "MIL" },
+      { id: "ai3_rw",  name: "Sané",      rating: 86, stats: { PAC: 94, TIR: 82, PAS: 78, DRI: 88, DEF: 38, PHY: 72 }, rarity: "gold", flag: "🇩🇪", position: "ATT" },
+      { id: "ai3_lw",  name: "Salah",     rating: 90, stats: { PAC: 92, TIR: 88, PAS: 80, DRI: 90, DEF: 42, PHY: 76 }, rarity: "gold", flag: "🇪🇬", position: "ATT" },
+      { id: "ai3_st",  name: "Benzema",   rating: 90, stats: { PAC: 78, TIR: 92, PAS: 82, DRI: 88, DEF: 38, PHY: 82 }, rarity: "gold", flag: "🇫🇷", position: "ATT" },
     ],
   },
   {
@@ -93,9 +117,17 @@ export const AI_TEAMS = [
     color: "from-yellow-600 to-amber-800",
     tactic: TACTICS[1],
     players: [
-      { id: "ai10", name: "El Maestro", rating: 95, stats: { PAC: 88, TIR: 96, PAS: 95, DRI: 98, DEF: 42, PHY: 72 }, rarity: "legendary", flag: "🇦🇷", position: "ATT" },
-      { id: "ai11", name: "CR Legacy",  rating: 94, stats: { PAC: 90, TIR: 96, PAS: 82, DRI: 93, DEF: 36, PHY: 92 }, rarity: "legendary", flag: "🇵🇹", position: "ATT" },
-      { id: "ai12", name: "The Kaiser", rating: 90, stats: { PAC: 75, TIR: 65, PAS: 80, DRI: 75, DEF: 95, PHY: 92 }, rarity: "gold",      flag: "🇩🇪", position: "DEF" },
+      { id: "ai4_gk",  name: "Neuer",     rating: 92, stats: { PAC: 62, TIR: 20, PAS: 68, DRI: 48, DEF: 94, PHY: 90 }, rarity: "legendary", flag: "🇩🇪", position: "GK"  },
+      { id: "ai4_rb",  name: "Cafu",      rating: 90, stats: { PAC: 88, TIR: 65, PAS: 80, DRI: 82, DEF: 85, PHY: 84 }, rarity: "gold",      flag: "🇧🇷", position: "DEF" },
+      { id: "ai4_cb1", name: "Puyol",     rating: 91, stats: { PAC: 74, TIR: 40, PAS: 70, DRI: 62, DEF: 94, PHY: 92 }, rarity: "gold",      flag: "🇪🇸", position: "DEF" },
+      { id: "ai4_cb2", name: "Maldini",   rating: 92, stats: { PAC: 76, TIR: 42, PAS: 72, DRI: 65, DEF: 96, PHY: 90 }, rarity: "legendary", flag: "🇮🇹", position: "DEF" },
+      { id: "ai4_lb",  name: "Roberto C.",rating: 90, stats: { PAC: 86, TIR: 60, PAS: 82, DRI: 80, DEF: 84, PHY: 82 }, rarity: "gold",      flag: "🇧🇷", position: "DEF" },
+      { id: "ai4_cm1", name: "Xavi",      rating: 93, stats: { PAC: 72, TIR: 78, PAS: 96, DRI: 88, DEF: 72, PHY: 72 }, rarity: "legendary", flag: "🇪🇸", position: "MIL" },
+      { id: "ai4_cm2", name: "Iniesta",   rating: 92, stats: { PAC: 76, TIR: 80, PAS: 92, DRI: 92, DEF: 65, PHY: 70 }, rarity: "legendary", flag: "🇪🇸", position: "MIL" },
+      { id: "ai4_cm3", name: "The Kaiser",rating: 90, stats: { PAC: 75, TIR: 65, PAS: 80, DRI: 75, DEF: 95, PHY: 92 }, rarity: "gold",      flag: "🇩🇪", position: "MIL" },
+      { id: "ai4_rw",  name: "CR Legacy", rating: 94, stats: { PAC: 90, TIR: 96, PAS: 82, DRI: 93, DEF: 36, PHY: 92 }, rarity: "legendary", flag: "🇵🇹", position: "ATT" },
+      { id: "ai4_lw",  name: "El Maestro",rating: 95, stats: { PAC: 88, TIR: 96, PAS: 95, DRI: 98, DEF: 42, PHY: 72 }, rarity: "legendary", flag: "🇦🇷", position: "ATT" },
+      { id: "ai4_st",  name: "Ronaldo R.",rating: 93, stats: { PAC: 85, TIR: 94, PAS: 70, DRI: 85, DEF: 38, PHY: 94 }, rarity: "legendary", flag: "🇧🇷", position: "ATT" },
     ],
   },
 ];

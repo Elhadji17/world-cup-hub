@@ -7,6 +7,7 @@ import { Link }                    from "react-router-dom";
 import { useAuth }                 from "../hooks/useAuth";
 import PlayerCard                   from "../components/PlayerCard";
 import { ROLES, getDefaultRole, getRoleById } from "../data/player-roles";
+import { STARTER_PLAYERS, STARTER_TEAM } from "../data/starter-team";
 
 const COLLECTION_KEY = "wch_cards";
 const TEAM_KEY       = "wch_team";
@@ -114,11 +115,46 @@ export default function Team() {
       fetch(`${API}/api/quiz?action=cards`, {
         headers: { "Authorization": `Bearer ${token}` },
       }).then(r => r.json()).then(data => {
-        if (data.cards?.length > 0) setCollection(data.cards);
-        else setCollection(loadCollection());
-      }).catch(() => setCollection(loadCollection()));
+        if (data.cards?.length > 0) {
+          setCollection(data.cards);
+        } else {
+          // Nouveau joueur — on lui offre l'équipe de départ
+          const localCards = loadCollection();
+          if (localCards.length === 0) {
+            setCollection(STARTER_PLAYERS);
+            localStorage.setItem(COLLECTION_KEY, JSON.stringify(STARTER_PLAYERS));
+            // Aussi pré-composer l'équipe si elle est vide
+            const currentTeam = loadTeam();
+            if (Object.keys(currentTeam).length === 0) {
+              const teamWithRoles = Object.fromEntries(
+                Object.entries(STARTER_TEAM).map(([pos, player]) => [
+                  pos, { ...player, role: getDefaultRole(player).id }
+                ])
+              );
+              saveTeam(teamWithRoles);
+              setTeam(teamWithRoles);
+            }
+          } else {
+            setCollection(localCards);
+          }
+        }
+      }).catch(() => {
+        const localCards = loadCollection();
+        if (localCards.length === 0) {
+          setCollection(STARTER_PLAYERS);
+          localStorage.setItem(COLLECTION_KEY, JSON.stringify(STARTER_PLAYERS));
+        } else {
+          setCollection(localCards);
+        }
+      });
     } else {
-      setCollection(loadCollection());
+      const localCards = loadCollection();
+      if (localCards.length === 0) {
+        setCollection(STARTER_PLAYERS);
+        localStorage.setItem(COLLECTION_KEY, JSON.stringify(STARTER_PLAYERS));
+      } else {
+        setCollection(localCards);
+      }
     }
   }, []);
 

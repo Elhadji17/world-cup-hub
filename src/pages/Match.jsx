@@ -173,6 +173,9 @@ export default function MatchGame() {
     );
   }
 
+  // Avertissement gardien manquant — affiché dans la sélection d'adversaire
+  const hasGK = myTeam.some(p => p.position === "GK");
+
   if (lives <= 0 && phase === "select") {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-900 via-black to-red-900 text-white flex items-center justify-center px-4">
@@ -230,6 +233,17 @@ export default function MatchGame() {
             </div>
 
             <h3 className="font-bold text-white mb-3">🎯 Choisis ton adversaire</h3>
+
+            {/* Avertissement gardien manquant */}
+            {!hasGK && (
+              <div className="mb-4 bg-yellow-500/10 border border-yellow-400/30 rounded-xl px-4 py-3 flex items-center gap-3">
+                <span className="text-2xl">🧤</span>
+                <div>
+                  <p className="text-xs font-bold text-yellow-300">Pas de gardien dans ton équipe !</p>
+                  <p className="text-xs text-yellow-200/70">Un gardien générique sera utilisé. <Link to="/team" className="underline">Ajoute un gardien</Link> pour de meilleures performances.</p>
+                </div>
+              </div>
+            )}
             <div className="space-y-3">
               {AI_TEAMS.map((team, i) => {
                 const diff      = myRating - team.rating;
