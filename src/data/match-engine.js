@@ -133,28 +133,47 @@ export const AI_TEAMS = [
 ];
 
 // ── Calcul stats équipe ───────────────────────────────────────────────────
-export function calcTeamStats(players, opponentPlayers = [], formMap = {}, morale = 3) {
-  if (!players || players.length === 0) return { ATT: 50, MIL: 50, DEF: 50, PHY: 50, rating: 50 };
-  const total      = players.length;
-  const moraleInfo = getMoraleInfo(morale);
-  const effectiveStats = key => players.reduce((s, p) => {
-    let stats   = p.role ? applyRoleBoost(p, p.role) : (p.stats ?? {});
-    stats       = applyFormMultiplier(stats, p, formMap);
-    const matchup = opponentPlayers.length ? getMatchupMultiplier(p, opponentPlayers) : 1;
-    const isOff = ["TIR","PAC","DRI","PAS"].includes(key);
-    const isDef = ["DEF","PHY"].includes(key);
-    let val = stats[key] ?? 60;
-    if (isOff) val = val * matchup * moraleInfo.attBonus;
-    if (isDef) val = val * moraleInfo.defBonus;
-    return s + val;
-  }, 0) / total;
-  const avg = key => Math.round(effectiveStats(key));
+
+
+export function calcTeamStats(players) {
+  let totalRating = 0;
+  let count = players.length;
+
+  // Initialisation des secteurs de jeu
+  let attack = 0;
+  let midfield = 0;
+  let defense = 0;
+
+  players.forEach((player) => {
+    // 🧮 CALCUL DE LA FORME LIVE (Même formule que l'interface)
+    let formModifier = 0;
+    if (player.recentForm && player.recentForm.length > 0) {
+      const formAverage = player.recentForm.reduce((a, b) => a + b, 0) / player.recentForm.length;
+      // Un joueur avec 8.0 de moyenne prend un gros boost, un joueur à 6.0 prend un malus
+      formModifier = (formAverage - 7.0) * 2.5;
+    }
+
+    // Note finale ajustée par la forme récente
+    const liveRating = player.rating + formModifier;
+    totalRating += liveRating;
+
+    // Répartition de la puissance par secteur de jeu
+    if (player.position === "ATT") {
+      attack += liveRating;
+    } else if (player.position === "MIL") {
+      midfield += liveRating;
+    } else if (player.position === "DEF" || player.position === "GK") {
+      defense += liveRating;
+    }
+  });
+
+  const avgRating = count > 0 ? totalRating / count : 60;
+
   return {
-    ATT:    Math.round((avg("TIR") + avg("PAC") + avg("DRI")) / 3),
-    MIL:    Math.round((avg("PAS") + avg("DRI")) / 2),
-    DEF:    Math.round((avg("DEF") + avg("PHY")) / 2),
-    PHY:    avg("PHY"),
-    rating: Math.round(players.reduce((s, p) => s + (p.rating ?? 70), 0) / total),
+    overall: Math.round(avgRating),
+    attack: Math.round(attack / (players.filter(p => p.position === "ATT").length || 1)),
+    midfield: Math.round(midfield / (players.filter(p => p.position === "MIL").length || 1)),
+    defense: Math.round(defense / (players.filter(p => p.position === "DEF" || player.position === "GK").length || 1)),
   };
 }
 
