@@ -214,7 +214,7 @@ export default function Simulator() {
                       <span className="text-[9px] text-gray-500 font-bold">#{sub.number}</span>
                       <span>{sub.name}</span>
                       <span className="text-[10px] text-gray-400">{sub.position}</span>
-                      <FormBadge sub={sub} />
+                      <FormBadge player={sub} />
                       <span className="text-[10px] text-gray-400 font-mono">{getLiveRating(sub)}</span>
                     </button>
                   ))}

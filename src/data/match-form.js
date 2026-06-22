@@ -29,7 +29,7 @@ export function rollMatchForm(players) {
 // Pivot à 7.0 — au-dessus = bonus, en-dessous = malus.
 // Si pas de recentForm, retourne 1.0 (neutre).
 export function getRecentFormMultiplier(player) {
-  if (!player.recentForm || player.recentForm.length === 0) return 1.0;
+  if (!player || !player.recentForm || player.recentForm.length === 0) return 1.0;
   const avg = player.recentForm.reduce((a, b) => a + b, 0) / player.recentForm.length;
   // +/- 10% max selon la forme (7.0 = neutre, 8.0 = +10%, 6.0 = -10%)
   return Math.min(1.15, Math.max(0.85, 1.0 + (avg - 7.0) * 0.10));
