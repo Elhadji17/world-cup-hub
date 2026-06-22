@@ -13,7 +13,7 @@ import { rollMatchForm, FORM_STATES } from "../data/match-form";
 import { getMorale, getMoraleInfo, updateMorale } from "../data/match-morale";
 import {
   TEAM_KEY, TACTICS, AI_TEAMS, KEY_ACTIONS,
-  calcTeamStats, simulateHalfGoals, applyTactic, generateHalfEvents, mergeMatchStats,
+  calcTeamStats, applyTactic, generateHalfEvents, mergeMatchStats,
 } from "../data/match-engine";
 
 export default function MatchGame() {
@@ -61,17 +61,17 @@ export default function MatchGame() {
   }
 
   function playHalf(half, currentTactic) {
-    const aiStats = calcTeamStats(selectedAI.players, myTeam, aiFormMap);
+    const aiStats    = calcTeamStats(selectedAI.players, myTeam, aiFormMap);
     const myAdjusted = applyTactic(myStats, currentTactic);
-    const aiAttack    = Math.round(aiStats.ATT * currentTactic.oppAttMult);
-
-    const myGoals = simulateHalfGoals(myAdjusted.ATT, aiStats.DEF);
-    const aiGoals = simulateHalfGoals(aiAttack, myAdjusted.DEF);
+    const aiTactic   = selectedAI.tactic ?? TACTICS[0];
 
     const offset = half === 1 ? 0 : 45;
-    const { events, halfStats } = generateHalfEvents(
-      myGoals, aiGoals, myTeam, selectedAI.players, offset,
-      myAdjusted, aiStats
+
+    // Le nouveau moteur calcule lui-même les buts via la boucle de ticks
+    const { events, halfStats, myGoals, aiGoals } = generateHalfEvents(
+      null, null, myTeam, selectedAI.players, offset,
+      myAdjusted, aiStats,
+      currentTactic, aiTactic
     );
 
     setVisibleEvents([]);

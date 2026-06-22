@@ -1,12 +1,15 @@
 // src/data/match-engine.js
-// Moteur de calcul du Match — logique pure, sans JSX.
-// Match.jsx importe ces fonctions et ne gère que l'affichage.
+// Moteur de match — système de zones + boucle de ticks façon Football Manager.
+// Interface externe inchangée : Match.jsx n'a pas besoin d'être modifié.
 
 import { applyRoleBoost, getMatchupMultiplier } from "./player-roles";
-import { applyFormMultiplier } from "./match-form";
-import { getMoraleInfo } from "./match-morale";
+import { applyFormMultiplier }                   from "./match-form";
+import { getMoraleInfo }                          from "./match-morale";
 
 export const TEAM_KEY = "wch_team";
+
+// ── Zones du terrain ─────────────────────────────────────────────────────
+const ZONES = ["defense", "milieu", "attaque", "surface"];
 
 // ── Tactiques ────────────────────────────────────────────────────────────
 export const TACTICS = [
@@ -15,6 +18,8 @@ export const TACTICS = [
     name:  "Formation équilibrée",
     emoji: "⚖️",
     desc:  "Aucun bonus ni malus — un style solide en toutes circonstances",
+    style: "BALANCED",
+    pressing: "MOYEN", block: "MOYEN", width: "NORMAL", tempo: "NORMAL",
     attMult: 1.0, defMult: 1.0, oppAttMult: 1.0,
     color: "from-blue-600 to-blue-800",
   },
@@ -23,6 +28,8 @@ export const TACTICS = [
     name:  "Attaque totale",
     emoji: "🔥",
     desc:  "+25% d'attaque mais -20% de défense — tout pour marquer",
+    style: "ATTAQUE_PLACEE",
+    pressing: "HAUT", block: "HAUT", width: "LARGE", tempo: "RAPIDE",
     attMult: 1.25, defMult: 0.8, oppAttMult: 1.1,
     color: "from-red-600 to-orange-700",
   },
@@ -31,6 +38,8 @@ export const TACTICS = [
     name:  "Pressing haut",
     emoji: "⚡",
     desc:  "+15% attaque et défense si ton équipe est physique, sinon ça fatigue",
+    style: "PRESSING_HAUT",
+    pressing: "HAUT", block: "HAUT", width: "LARGE", tempo: "RAPIDE",
     attMult: 1.15, defMult: 1.1, oppAttMult: 1.0,
     color: "from-yellow-500 to-amber-700",
     requiresPHY: true,
@@ -40,6 +49,8 @@ export const TACTICS = [
     name:  "Défense solide",
     emoji: "🛡️",
     desc:  "+25% défense mais -20% attaque — bloquer puis contre-attaquer",
+    style: "CONTRE",
+    pressing: "BAS", block: "BAS", width: "ETROIT", tempo: "LENT",
     attMult: 0.8, defMult: 1.25, oppAttMult: 0.85,
     color: "from-gray-600 to-gray-800",
   },
@@ -48,67 +59,62 @@ export const TACTICS = [
 // ── Équipes IA adverses ──────────────────────────────────────────────────
 export const AI_TEAMS = [
   {
-    name:   "Les Étoiles du Monde",
-    emoji:  "🌍",
-    rating: 82,
-    color:  "from-blue-700 to-blue-900",
+    name: "Les Étoiles du Monde", emoji: "🌍", rating: 82,
+    color: "from-blue-700 to-blue-900",
+    tactic: TACTICS[0],
     players: [
-      { id: "ai1", name: "Rodriguez",  rating: 84, stats: { PAC: 82, TIR: 85, PAS: 78, DRI: 80, DEF: 45, PHY: 82 }, rarity: "silver", flag: "🇧🇷", position: "ATT" },
-      { id: "ai2", name: "Mueller",    rating: 80, stats: { PAC: 75, TIR: 82, PAS: 80, DRI: 78, DEF: 50, PHY: 78 }, rarity: "silver", flag: "🇩🇪", position: "MIL" },
-      { id: "ai3", name: "Hernandez",  rating: 83, stats: { PAC: 88, TIR: 80, PAS: 75, DRI: 85, DEF: 40, PHY: 75 }, rarity: "silver", flag: "🇲🇽", position: "ATT" },
+      { id: "ai1", name: "Rodriguez", rating: 84, stats: { PAC: 82, TIR: 85, PAS: 78, DRI: 80, DEF: 45, PHY: 82 }, rarity: "silver", flag: "🇧🇷", position: "ATT" },
+      { id: "ai2", name: "Mueller",   rating: 80, stats: { PAC: 75, TIR: 82, PAS: 80, DRI: 78, DEF: 50, PHY: 78 }, rarity: "silver", flag: "🇩🇪", position: "MIL" },
+      { id: "ai3", name: "Hernandez", rating: 83, stats: { PAC: 88, TIR: 80, PAS: 75, DRI: 85, DEF: 40, PHY: 75 }, rarity: "silver", flag: "🇲🇽", position: "ATT" },
     ],
   },
   {
-    name:   "Dream Team Africa",
-    emoji:  "🌍",
-    rating: 79,
-    color:  "from-green-700 to-green-900",
+    name: "Dream Team Africa", emoji: "🌍", rating: 79,
+    color: "from-green-700 to-green-900",
+    tactic: TACTICS[2],
     players: [
-      { id: "ai4", name: "Diallo",    rating: 78, stats: { PAC: 90, TIR: 75, PAS: 72, DRI: 82, DEF: 42, PHY: 80 }, rarity: "bronze", flag: "🇸🇳", position: "ATT" },
-      { id: "ai5", name: "Konaté",    rating: 80, stats: { PAC: 75, TIR: 55, PAS: 68, DRI: 65, DEF: 88, PHY: 90 }, rarity: "silver", flag: "🇫🇷", position: "DEF" },
-      { id: "ai6", name: "Traoré",    rating: 79, stats: { PAC: 85, TIR: 78, PAS: 70, DRI: 84, DEF: 38, PHY: 74 }, rarity: "bronze", flag: "🇨🇮", position: "ATT" },
+      { id: "ai4", name: "Diallo",  rating: 78, stats: { PAC: 90, TIR: 75, PAS: 72, DRI: 82, DEF: 42, PHY: 80 }, rarity: "bronze", flag: "🇸🇳", position: "ATT" },
+      { id: "ai5", name: "Konaté",  rating: 80, stats: { PAC: 75, TIR: 55, PAS: 68, DRI: 65, DEF: 88, PHY: 90 }, rarity: "silver", flag: "🇫🇷", position: "DEF" },
+      { id: "ai6", name: "Traoré",  rating: 79, stats: { PAC: 85, TIR: 78, PAS: 70, DRI: 84, DEF: 38, PHY: 74 }, rarity: "bronze", flag: "🇨🇮", position: "ATT" },
     ],
   },
   {
-    name:   "Champions d'Europe",
-    emoji:  "🏆",
-    rating: 87,
-    color:  "from-purple-700 to-purple-900",
+    name: "Champions d'Europe", emoji: "🏆", rating: 87,
+    color: "from-purple-700 to-purple-900",
+    tactic: TACTICS[1],
     players: [
-      { id: "ai7", name: "Silva",     rating: 88, stats: { PAC: 72, TIR: 60, PAS: 75, DRI: 70, DEF: 92, PHY: 90 }, rarity: "gold", flag: "🇵🇹", position: "DEF" },
-      { id: "ai8", name: "Kroos",     rating: 87, stats: { PAC: 68, TIR: 80, PAS: 95, DRI: 82, DEF: 70, PHY: 72 }, rarity: "gold", flag: "🇩🇪", position: "MIL" },
-      { id: "ai9", name: "Benzema",   rating: 90, stats: { PAC: 78, TIR: 92, PAS: 82, DRI: 88, DEF: 38, PHY: 82 }, rarity: "gold", flag: "🇫🇷", position: "ATT" },
+      { id: "ai7", name: "Silva",   rating: 88, stats: { PAC: 72, TIR: 60, PAS: 75, DRI: 70, DEF: 92, PHY: 90 }, rarity: "gold", flag: "🇵🇹", position: "DEF" },
+      { id: "ai8", name: "Kroos",   rating: 87, stats: { PAC: 68, TIR: 80, PAS: 95, DRI: 82, DEF: 70, PHY: 72 }, rarity: "gold", flag: "🇩🇪", position: "MIL" },
+      { id: "ai9", name: "Benzema", rating: 90, stats: { PAC: 78, TIR: 92, PAS: 82, DRI: 88, DEF: 38, PHY: 82 }, rarity: "gold", flag: "🇫🇷", position: "ATT" },
     ],
   },
   {
-    name:   "Légendes Mondiales",
-    emoji:  "💎",
-    rating: 93,
-    color:  "from-yellow-600 to-amber-800",
+    name: "Légendes Mondiales", emoji: "💎", rating: 93,
+    color: "from-yellow-600 to-amber-800",
+    tactic: TACTICS[1],
     players: [
-      { id: "ai10", name: "El Maestro",  rating: 95, stats: { PAC: 88, TIR: 96, PAS: 95, DRI: 98, DEF: 42, PHY: 72 }, rarity: "legendary", flag: "🇦🇷", position: "ATT" },
-      { id: "ai11", name: "CR Legacy",   rating: 94, stats: { PAC: 90, TIR: 96, PAS: 82, DRI: 93, DEF: 36, PHY: 92 }, rarity: "legendary", flag: "🇵🇹", position: "ATT" },
-      { id: "ai12", name: "The Kaiser",  rating: 90, stats: { PAC: 75, TIR: 65, PAS: 80, DRI: 75, DEF: 95, PHY: 92 }, rarity: "gold",      flag: "🇩🇪", position: "DEF" },
+      { id: "ai10", name: "El Maestro", rating: 95, stats: { PAC: 88, TIR: 96, PAS: 95, DRI: 98, DEF: 42, PHY: 72 }, rarity: "legendary", flag: "🇦🇷", position: "ATT" },
+      { id: "ai11", name: "CR Legacy",  rating: 94, stats: { PAC: 90, TIR: 96, PAS: 82, DRI: 93, DEF: 36, PHY: 92 }, rarity: "legendary", flag: "🇵🇹", position: "ATT" },
+      { id: "ai12", name: "The Kaiser", rating: 90, stats: { PAC: 75, TIR: 65, PAS: 80, DRI: 75, DEF: 95, PHY: 92 }, rarity: "gold",      flag: "🇩🇪", position: "DEF" },
     ],
   },
 ];
 
-// Calculer les stats moyennes d'une équipe — applique boosts de rôle + interactions
-// croisées avec les rôles de l'effectif adverse + forme du jour + moral (tous optionnels)
+// ── Calcul stats équipe ───────────────────────────────────────────────────
 export function calcTeamStats(players, opponentPlayers = [], formMap = {}, morale = 3) {
   if (!players || players.length === 0) return { ATT: 50, MIL: 50, DEF: 50, PHY: 50, rating: 50 };
-  const total = players.length;
+  const total      = players.length;
   const moraleInfo = getMoraleInfo(morale);
   const effectiveStats = key => players.reduce((s, p) => {
-    let stats = p.role ? applyRoleBoost(p, p.role) : (p.stats ?? {});
-    stats = applyFormMultiplier(stats, p, formMap);
+    let stats   = p.role ? applyRoleBoost(p, p.role) : (p.stats ?? {});
+    stats       = applyFormMultiplier(stats, p, formMap);
     const matchup = opponentPlayers.length ? getMatchupMultiplier(p, opponentPlayers) : 1;
-    const isOffensiveStat = key === "TIR" || key === "PAC" || key === "DRI" || key === "PAS";
-    const isDefensiveStat = key === "DEF" || key === "PHY";
-    let value = stats[key] ?? 60;
-    if (isOffensiveStat) value = value * matchup * moraleInfo.attBonus;
-    if (isDefensiveStat) value = value * moraleInfo.defBonus;
-    return s + value;
+    const isOff = ["TIR","PAC","DRI","PAS"].includes(key);
+    const isDef = ["DEF","PHY"].includes(key);
+    let val = stats[key] ?? 60;
+    if (isOff) val = val * matchup * moraleInfo.attBonus;
+    if (isDef) val = val * moraleInfo.defBonus;
+    return s + val;
   }, 0) / total;
   const avg = key => Math.round(effectiveStats(key));
   return {
@@ -120,26 +126,137 @@ export function calcTeamStats(players, opponentPlayers = [], formMap = {}, moral
   };
 }
 
-// Simuler le score d'une demi (45 min) avec tactique appliquée
-export function simulateHalfGoals(attackStrength, defenseStrength) {
-  const diff = (attackStrength - defenseStrength) / 28;
-  const base = Math.max(0, diff + (Math.random() * 1.3 - 0.3));
-  return Math.round(Math.min(base, 4));
-}
-
-// Appliquer une tactique aux stats d'équipe
+// ── Appliquer tactique ─────────────────────────────────────────────────────
 export function applyTactic(stats, tactic) {
   let attMult = tactic.attMult;
-  if (tactic.requiresPHY && stats.PHY < 78) {
-    attMult = 0.95;
-  }
+  if (tactic.requiresPHY && stats.PHY < 78) attMult = 0.95;
   return {
     ATT: Math.round(stats.ATT * attMult),
     DEF: Math.round(stats.DEF * tactic.defMult),
+    MIL: stats.MIL,
+    PHY: stats.PHY,
   };
 }
 
-// Banque d'actions clés non décisives — ajoute du rythme entre les buts
+// ── Outils internes ────────────────────────────────────────────────────────
+function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+function roll(pct)          { return Math.random() * 100 < pct; }
+function pickRandom(arr)    { return arr[Math.floor(Math.random() * arr.length)]; }
+function randomWeighted(items) {
+  const total = items.reduce((s, i) => s + i.weight, 0);
+  let r = Math.random() * total;
+  for (const item of items) { if (r < item.weight) return item; r -= item.weight; }
+  return items[0];
+}
+
+// ── Bonus/malus tactiques sur les actions ─────────────────────────────────
+function tacticPassBonus(tactic) {
+  let b = 0;
+  if (tactic.style === "BALANCED")       b += 0;
+  if (tactic.style === "ATTAQUE_PLACEE") b += 8;
+  if (tactic.tempo  === "LENT")          b += 5;
+  if (tactic.width  === "ETROIT")        b += 5;
+  return b;
+}
+function tacticShotBonus(tactic) {
+  let b = 0;
+  if (tactic.style === "ATTAQUE_PLACEE") b += 10;
+  if (tactic.tempo  === "RAPIDE")        b += 5;
+  return b;
+}
+function tacticDribbleBonus(tactic) {
+  let b = 0;
+  if (tactic.style === "PRESSING_HAUT") b += 5;
+  if (tactic.width  === "LARGE")        b += 5;
+  return b;
+}
+function tacticDefenseBonus(tactic) {
+  let b = 0;
+  if (tactic.block    === "BAS")  b += 10;
+  if (tactic.pressing === "HAUT") b += 5;
+  return b;
+}
+
+// ── Choix de l'action selon zone + tactique ───────────────────────────────
+function chooseAction(zone, tactic) {
+  if (zone === "surface") {
+    return randomWeighted([
+      { type: "shot",   weight: 55 },
+      { type: "pass",   weight: 25 },
+      { type: "dribble",weight: 20 },
+    ]);
+  }
+  if (zone === "attaque") {
+    return randomWeighted([
+      { type: "shot",   weight: 30 },
+      { type: "pass",   weight: 45 },
+      { type: "dribble",weight: 25 },
+    ]);
+  }
+  // Milieu et défense — influencé par la tactique
+  const style = tactic?.style ?? "BALANCED";
+  if (style === "ATTAQUE_PLACEE") {
+    return randomWeighted([
+      { type: "pass",   weight: 60 },
+      { type: "dribble",weight: 25 },
+      { type: "clear",  weight: 15 },
+    ]);
+  }
+  if (style === "CONTRE") {
+    return randomWeighted([
+      { type: "clear",  weight: 50 },
+      { type: "pass",   weight: 30 },
+      { type: "dribble",weight: 20 },
+    ]);
+  }
+  if (style === "PRESSING_HAUT") {
+    return randomWeighted([
+      { type: "pass",   weight: 45 },
+      { type: "dribble",weight: 35 },
+      { type: "clear",  weight: 20 },
+    ]);
+  }
+  return randomWeighted([
+    { type: "pass",   weight: 55 },
+    { type: "dribble",weight: 25 },
+    { type: "clear",  weight: 20 },
+  ]);
+}
+
+// ── Résolution des actions ─────────────────────────────────────────────────
+function resolveAction(actionType, attackStats, defStats, zone, attackTactic, defTactic) {
+  if (actionType === "pass") {
+    const score = (attackStats.MIL - defStats.MIL)
+      + tacticPassBonus(attackTactic)
+      - tacticDefenseBonus(defTactic);
+    return { success: roll(clamp(50 + score, 10, 90)) };
+  }
+  if (actionType === "dribble") {
+    const score = (attackStats.ATT - defStats.DEF)
+      + tacticDribbleBonus(attackTactic)
+      - tacticDefenseBonus(defTactic);
+    return { success: roll(clamp(45 + score, 10, 85)) };
+  }
+  if (actionType === "shot") {
+    let score = attackStats.ATT - defStats.DEF
+      + tacticShotBonus(attackTactic)
+      - tacticDefenseBonus(defTactic);
+    if (zone === "surface") score += 15;
+    return { success: roll(clamp(20 + score, 2, 65)), isShot: true };
+  }
+  if (actionType === "clear") {
+    return { success: true, turnover: true };
+  }
+  return { success: true };
+}
+
+// ── Progression de zone ────────────────────────────────────────────────────
+function advanceZone(zone) {
+  const idx = ZONES.indexOf(zone);
+  return idx < ZONES.length - 1 ? ZONES[idx + 1] : zone;
+}
+
+// ── Banque d'événements narratifs ─────────────────────────────────────────
 export const KEY_ACTIONS = {
   miss:   { emoji: "😬", label: "rate une occasion en or" },
   save:   { emoji: "🧤", label: "sort une parade décisive" },
@@ -147,69 +264,120 @@ export const KEY_ACTIONS = {
   yellow: { emoji: "🟨", label: "reçoit un carton jaune" },
 };
 
-// Générer les événements d'une demi + stats de match associées
-export function generateHalfEvents(myGoals, aiGoals, myPlayers, aiPlayers, minuteOffset, myStats = {}, aiStats = {}) {
-  const events = [];
+// ── Simuler une mi-temps (boucle de ticks) ────────────────────────────────
+export function generateHalfEvents(
+  _ignored1, _ignored2, // compatibilité ancienne interface (inutilisés)
+  myPlayers, aiPlayers,
+  minuteOffset,
+  myStats = {}, aiStats = {},
+  myTactic = TACTICS[0], aiTactic = TACTICS[0]
+) {
+  const events  = [];
   const minutes = new Set();
 
-  const addEvent = (team, player, minute, type = "goal") => {
-    while (minutes.has(minute)) minute = Math.min(minuteOffset + 45, minute + 1);
-    minutes.add(minute);
-    events.push({ team, player, minute, type });
+  // État de match
+  let zone          = "milieu";
+  let possession    = "me"; // "me" | "ai"
+  let myGoals       = 0;
+  let aiGoals       = 0;
+
+  // Stats accumulées pour le rapport
+  let myShots = 0, aiShots = 0;
+  let myOnTarget = 0, aiOnTarget = 0;
+  let myDuelsWon = 0, aiDuelsWon = 0;
+  let myPossessionTicks = 0;
+
+  const addEvent = (team, player, minute, type) => {
+    let m = minute;
+    while (minutes.has(m)) m = Math.min(minuteOffset + 45, m + 1);
+    minutes.add(m);
+    events.push({ team, player, minute: m, type });
   };
 
-  const attackers = myPlayers.filter(p => p.position === "ATT" || p.position === "MIL");
-  const aiAttackers = aiPlayers;
+  const getPlayerName = (team, zone) => {
+    const pool = team === "me"
+      ? (zone === "surface" || zone === "attaque"
+          ? (myPlayers.filter(p => p.position === "ATT" || p.position === "MIL").length
+              ? myPlayers.filter(p => p.position === "ATT" || p.position === "MIL")
+              : myPlayers)
+          : myPlayers)
+      : aiPlayers;
+    const p = pool[Math.floor(Math.random() * Math.max(pool.length, 1))];
+    return team === "me"
+      ? (p?.name?.split(" ").pop() ?? "Joueur")
+      : (p?.name ?? "Adversaire");
+  };
 
-  for (let i = 0; i < myGoals; i++) {
-    const scorer = attackers[Math.floor(Math.random() * Math.max(attackers.length, 1))];
-    addEvent("me", scorer?.name?.split(" ").pop() ?? "Joueur", minuteOffset + Math.floor(Math.random() * 43) + 1, "goal");
+  // 45 ticks = 45 minutes simulées
+  for (let tick = 1; tick <= 45; tick++) {
+    const minute      = minuteOffset + tick;
+    const atkStats    = possession === "me" ? myStats : aiStats;
+    const defStats    = possession === "me" ? aiStats : myStats;
+    const atkTactic   = possession === "me" ? myTactic : aiTactic;
+    const defTacticObj = possession === "me" ? aiTactic : myTactic;
+
+    if (possession === "me") myPossessionTicks++;
+
+    const action = chooseAction(zone, atkTactic);
+    const result = resolveAction(action.type, atkStats, defStats, zone, atkTactic, defTacticObj);
+
+    if (action.type === "shot") {
+      if (possession === "me") { myShots++; }
+      else                     { aiShots++; }
+
+      if (result.success) {
+        // BUT !
+        if (possession === "me") { myGoals++; myOnTarget++; }
+        else                     { aiGoals++; aiOnTarget++; }
+        addEvent(possession, getPlayerName(possession, zone), minute, "goal");
+        zone = "milieu";
+        possession = possession === "me" ? "ai" : "me"; // relance adverse
+      } else {
+        // Tir raté
+        if (possession === "me") { if (Math.random() < 0.6) myOnTarget++; }
+        else                     { if (Math.random() < 0.6) aiOnTarget++; }
+        // Événement narratif
+        const evType = Math.random() < 0.5 ? "miss" : "save";
+        addEvent(possession, getPlayerName(possession, zone), minute, evType);
+        possession = possession === "me" ? "ai" : "me";
+        zone = "milieu";
+      }
+    } else if (action.type === "dribble") {
+      if (possession === "me") myDuelsWon += result.success ? 1 : 0;
+      else                     aiDuelsWon += result.success ? 1 : 0;
+
+      if (result.success) {
+        zone = advanceZone(zone);
+      } else {
+        possession = possession === "me" ? "ai" : "me";
+        zone = "milieu";
+      }
+    } else if (action.type === "pass") {
+      if (result.success) {
+        zone = advanceZone(zone);
+      } else {
+        possession = possession === "me" ? "ai" : "me";
+        zone = "milieu";
+      }
+    } else if (action.type === "clear") {
+      possession = possession === "me" ? "ai" : "me";
+      zone = "milieu";
+    }
+
+    // Événements narratifs aléatoires (carton jaune, corner) — hors tirs
+    if (action.type !== "shot" && Math.random() < 0.08) {
+      const evType = Math.random() < 0.5 ? "corner" : "yellow";
+      const team   = Math.random() < 0.5 ? "me" : "ai";
+      addEvent(team, getPlayerName(team, zone), minute, evType);
+    }
   }
-  for (let i = 0; i < aiGoals; i++) {
-    const scorer = aiAttackers[Math.floor(Math.random() * Math.max(aiAttackers.length, 1))];
-    addEvent("ai", scorer?.name ?? "Adversaire", minuteOffset + Math.floor(Math.random() * 43) + 1, "goal");
-  }
 
-  // Actions clés non décisives — 5 à 8 par mi-temps
-  const actionTypes = Object.keys(KEY_ACTIONS);
-  const keyActionCount = 5 + Math.floor(Math.random() * 4);
-  for (let i = 0; i < keyActionCount; i++) {
-    const team = Math.random() < 0.5 ? "me" : "ai";
-    const pool = team === "me" ? (myPlayers.length ? myPlayers : attackers) : aiPlayers;
-    const actor = pool[Math.floor(Math.random() * Math.max(pool.length, 1))];
-    const actionType = actionTypes[Math.floor(Math.random() * actionTypes.length)];
-    const name = team === "me" ? (actor?.name?.split(" ").pop() ?? "Joueur") : (actor?.name ?? "Adversaire");
-    addEvent(team, name, minuteOffset + Math.floor(Math.random() * 43) + 1, actionType);
-  }
+  // Possession en %
+  const myPoss = Math.round((myPossessionTicks / 45) * 100);
 
-  // Calculer les stats de cette demi-temps
-  const myATT  = myStats.ATT  ?? 70;
-  const aiATT  = aiStats.ATT  ?? 70;
-  const myDEF  = myStats.DEF  ?? 70;
-  const aiDEF  = aiStats.DEF  ?? 70;
-  const myMIL  = myStats.MIL  ?? 70;
-  const aiMIL  = aiStats.MIL  ?? 70;
-
-  // Possession estimée (basée sur milieu)
-  const totalMIL = myMIL + aiMIL;
-  const myPoss = Math.round((myMIL / totalMIL) * 100);
-
-  // Tirs = buts + occasions manquées (events "miss" + "save") + variance aléatoire
-  const myMissEvents  = events.filter(e => e.team === "me" && (e.type === "miss" || e.type === "save")).length;
-  const aiMissEvents  = events.filter(e => e.team === "ai" && (e.type === "miss" || e.type === "save")).length;
-  const myShots  = myGoals + myMissEvents + Math.floor(Math.random() * 2);
-  const aiShots  = aiGoals + aiMissEvents + Math.floor(Math.random() * 2);
-  const myOnTarget  = myGoals + Math.max(0, myMissEvents - 1);
-  const aiOnTarget  = aiGoals + Math.max(0, aiMissEvents - 1);
-
-  // xG simplifié : qualité des occasions = ATT / (ATT + DEF adverse)
-  const myXG = parseFloat(((myATT / (myATT + aiDEF)) * (myShots * 0.35)).toFixed(1));
-  const aiXG = parseFloat(((aiATT / (aiATT + myDEF)) * (aiShots * 0.35)).toFixed(1));
-
-  // Duels gagnés : ratio ATT vs DEF
-  const totalDuels = 8 + Math.floor(Math.random() * 5);
-  const myDuelsWon = Math.round((myATT / (myATT + aiDEF)) * totalDuels);
-  const aiDuelsWon = totalDuels - myDuelsWon;
+  // xG simplifié
+  const myXG = parseFloat(((myStats.ATT ?? 70) / ((myStats.ATT ?? 70) + (aiStats.DEF ?? 70)) * myShots * 0.35).toFixed(1));
+  const aiXG = parseFloat(((aiStats.ATT ?? 70) / ((aiStats.ATT ?? 70) + (myStats.DEF ?? 70)) * aiShots * 0.35).toFixed(1));
 
   const halfStats = {
     possession: { me: myPoss, ai: 100 - myPoss },
@@ -219,10 +387,22 @@ export function generateHalfEvents(myGoals, aiGoals, myPlayers, aiPlayers, minut
     duels:      { me: myDuelsWon, ai: aiDuelsWon },
   };
 
-  return { events: events.sort((a, b) => a.minute - b.minute), halfStats };
+  return {
+    events:  events.sort((a, b) => a.minute - b.minute),
+    halfStats,
+    myGoals,
+    aiGoals,
+  };
 }
 
-// Agréger les stats de deux mi-temps en stats complètes de match
+// simulateHalfGoals maintenu pour compatibilité (inutilisé si on utilise generateHalfEvents)
+export function simulateHalfGoals(attackStrength, defenseStrength) {
+  const diff = (attackStrength - defenseStrength) / 28;
+  const base = Math.max(0, diff + (Math.random() * 1.3 - 0.3));
+  return Math.round(Math.min(base, 4));
+}
+
+// Agréger les stats de deux mi-temps
 export function mergeMatchStats(stats1, stats2) {
   if (!stats1) return stats2;
   if (!stats2) return stats1;
@@ -231,9 +411,9 @@ export function mergeMatchStats(stats1, stats2) {
       me: Math.round((stats1.possession.me + stats2.possession.me) / 2),
       ai: Math.round((stats1.possession.ai + stats2.possession.ai) / 2),
     },
-    shots:    { me: stats1.shots.me + stats2.shots.me,       ai: stats1.shots.ai + stats2.shots.ai },
+    shots:    { me: stats1.shots.me    + stats2.shots.me,    ai: stats1.shots.ai    + stats2.shots.ai    },
     onTarget: { me: stats1.onTarget.me + stats2.onTarget.me, ai: stats1.onTarget.ai + stats2.onTarget.ai },
     xG:       { me: parseFloat((stats1.xG.me + stats2.xG.me).toFixed(1)), ai: parseFloat((stats1.xG.ai + stats2.xG.ai).toFixed(1)) },
-    duels:    { me: stats1.duels.me + stats2.duels.me,       ai: stats1.duels.ai + stats2.duels.ai },
+    duels:    { me: stats1.duels.me    + stats2.duels.me,    ai: stats1.duels.ai    + stats2.duels.ai    },
   };
 }
