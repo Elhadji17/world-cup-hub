@@ -1,63 +1,66 @@
-// src/pages/Simulator.jsx
-// Simulateur Tactique — Sénégal vs Norvège · Coupe du Monde 2026
+// src/pages/Simulator.jsx — Simulateur Tactique · Sénégal vs Norvège · CdM 2026
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence }      from "framer-motion";
 import { useGameStats }                 from "../hooks/useGameStats.jsx";
-import { TACTICS, generateHalfEvents, mergeMatchStats, calcTeamStats, applyTactic, KEY_ACTIONS } from "../data/match-engine";
+import { TACTICS, KEY_ACTIONS }         from "../data/match-engine";
 import { SENEGAL_MATCH, NORWAY_MATCH, getScriptedEventsForHalf } from "../data/matchData";
 import { getRecentFormMultiplier }      from "../data/match-form";
 import MatchField                        from "../components/MatchField";
 
-function getLiveRating(player) {
-  const mult = getRecentFormMultiplier(player);
-  return Math.round(player.rating * mult * 10) / 10;
-}
-
 const FORMATIONS = ["4-3-3", "4-2-3-1", "4-4-2", "5-3-2"];
 
-// ── Récap des actions d'une mi-temps ou du match complet ─────────────────
+function getLiveRating(player) {
+  const mult = getRecentFormMultiplier(player);
+  return Math.round((player.rating ?? player.ratingBase ?? 70) * mult * 10) / 10;
+}
+
+function FormBadge({ player }) {
+  if (!player) return null;
+  const mult = getRecentFormMultiplier(player);
+  if (mult >= 1.05) return <span className="text-[9px] text-orange-400 font-bold">🔥</span>;
+  if (mult <= 0.95) return <span className="text-[9px] text-blue-400 font-bold">😴</span>;
+  return null;
+}
+
+// Récap des actions d'une mi-temps ou du match complet
 function MatchRecap({ events, title }) {
   if (!events || events.length === 0) return null;
-
   const goals   = events.filter(e => e.type === "goal");
-  const shots   = events.filter(e => e.type === "shot" || e.type === "miss" || e.type === "save" || e.type === "header" || e.type === "goal");
-  const senGoals = goals.filter(e => e.team === "me").length;
-  const norGoals = goals.filter(e => e.team === "ai").length;
-  const corners  = events.filter(e => e.type === "corner").length;
-  const yellows  = events.filter(e => e.type === "yellow").length;
-  const saves    = events.filter(e => e.type === "save").length;
-  const misses   = events.filter(e => e.type === "miss").length;
-  const headers  = events.filter(e => e.type === "header").length;
+  const shots   = events.filter(e => ["shot","miss","save","header","goal"].includes(e.type));
+  const corners = events.filter(e => e.type === "corner").length;
+  const yellows = events.filter(e => e.type === "yellow").length;
+  const saves   = events.filter(e => e.type === "save").length;
+  const misses  = events.filter(e => e.type === "miss").length;
+  const headers = events.filter(e => e.type === "header").length;
 
   return (
     <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-4">
       <h3 className="font-bold text-white mb-3 text-sm">{title}</h3>
-
-      {/* Buts */}
       {goals.length > 0 && (
         <div className="mb-3">
           <p className="text-[10px] text-gray-500 uppercase tracking-wide mb-1.5">⚽ Buts</p>
-          {goals.map((g, i) => (
-            <div key={i} className={`flex items-center gap-2 text-xs mb-1 ${g.team === "me" ? "text-green-300" : "text-red-300"}`}>
-              <span className="font-mono text-gray-400 w-8">{g.minute}'</span>
-              <span>⚽</span>
-              <span className="font-bold">{g.player}</span>
-              <span className="ml-auto">{g.team === "me" ? "🇸🇳" : "🇳🇴"}</span>
-            </div>
-          ))}
+          {goals.map((g, i) => {
+            const isSen = g.team === "me" || g.team === "sen";
+            return (
+              <div key={i} className={`flex items-center gap-2 text-xs mb-1 ${isSen ? "text-green-300" : "text-red-300"}`}>
+                <span className="font-mono text-gray-400 w-8">{g.minute}'</span>
+                <span>⚽</span>
+                <span className="font-bold">{g.player}</span>
+                <span className="ml-auto">{isSen ? "🇸🇳" : "🇳🇴"}</span>
+              </div>
+            );
+          })}
         </div>
       )}
-
-      {/* Stats rapides */}
       <div className="grid grid-cols-3 gap-2">
         {[
           { label: "Tirs/têtes", value: shots.length, emoji: "🎯" },
-          { label: "Parades", value: saves, emoji: "🧤" },
-          { label: "Occasions ratées", value: misses, emoji: "😬" },
-          { label: "Corners", value: corners, emoji: "🚩" },
-          { label: "Cartons jaunes", value: yellows, emoji: "🟨" },
-          { label: "Duels aériens", value: headers, emoji: "🤯" },
+          { label: "Parades",    value: saves,         emoji: "🧤" },
+          { label: "Ratés",      value: misses,        emoji: "😬" },
+          { label: "Corners",    value: corners,       emoji: "🚩" },
+          { label: "Cartons",    value: yellows,       emoji: "🟨" },
+          { label: "Aériens",    value: headers,       emoji: "🤯" },
         ].map(({ label, value, emoji }) => (
           <div key={label} className="bg-white/5 rounded-xl p-2 text-center">
             <div className="text-lg">{emoji}</div>
@@ -70,40 +73,38 @@ function MatchRecap({ events, title }) {
   );
 }
 
-function FormBadge({ player }) {
-  if (!player) return null;
-  const mult = getRecentFormMultiplier(player);
-  if (mult >= 1.05) return <span className="text-[9px] text-orange-400 font-bold">🔥</span>;
-  if (mult <= 0.95) return <span className="text-[9px] text-blue-400 font-bold">😴</span>;
-  return null;
-}
-const getTacticalAnalysis = (formation) => {
-  return [
-    {
-      title: "1. Haaland vs Koulibaly",
-      type: "Duel clé",
-      badgeColor: "bg-amber-500",
-      desc: "La Norvège a cherché le jeu direct vers Erling Haaland. Le Sénégal a dû bloquer les centres précoces et couper la relation Martin Ødegaard → Haaland.",
-      source: "worldcuphub2026.vercel.app"
-    },
-    {
-      title: "2. Les couloirs sénégalais",
-      type: "Avantage SEN",
-      badgeColor: "bg-green-600",
-      desc: "Ismaïla Sarr a attaqué l’espace derrière Meling. C'est l'une des meilleures armes sénégalaises en transition rapide.",
-      source: "worldcuphub2026.vercel.app"
-    },
-    {
-      title: "3. Le pressing",
-      type: "Risque NOR",
-      badgeColor: "bg-red-500",
-      desc: ["5-3-2", "5-4-1"].includes(formation)
-        ? "En optant pour un bloc bas, le Sénégal a subi ce pressing haut, limitant les contres mais s'exposant aux coups de pied arrêtés."
-        : "La Norvège a pressé très haut, s’exposant aux appels de Nicolas Jackson dans le dos de la défense. Le Sénégal a su sortir proprement sous pression.",
-      source: "worldcuphub2026.vercel.app"
-    }
+// Clés tactiques affichées en fin de match
+function TacticalKeys({ formation }) {
+  const keys = [
+    { title: "1. Haaland vs Koulibaly", type: "Duel clé", color: "bg-amber-500",
+      desc: "La Norvège cherche le jeu direct vers Haaland. Le Sénégal doit bloquer les centres précoces et couper la relation Ødegaard → Haaland." },
+    { title: "2. Les couloirs sénégalais", type: "Avantage SEN", color: "bg-green-600",
+      desc: "Ismaïla Sarr attaque l'espace derrière la défense norvégienne. C'est la meilleure arme sénégalaise en transition rapide." },
+    { title: "3. Le pressing", type: ["5-3-2"].includes(formation) ? "Bloc bas" : "Risque NOR", color: "bg-red-500",
+      desc: ["5-3-2"].includes(formation)
+        ? "En optant pour un bloc bas, le Sénégal subit le pressing mais s'expose moins aux contres norvégiens."
+        : "La Norvège presse très haut, s'exposant aux appels de Jackson dans le dos de la défense. Le Sénégal peut sortir proprement sous pression." },
   ];
-};
+  return (
+    <div className="bg-white/5 border border-white/10 rounded-2xl p-5 mb-4">
+      <div className="flex items-center gap-2.5 mb-4">
+        <span className="text-xl">🔑</span>
+        <h3 className="text-sm font-black text-white uppercase tracking-wider">Clés Tactiques</h3>
+      </div>
+      <div className="space-y-3">
+        {keys.map((k, i) => (
+          <div key={i} className="bg-black/30 p-3.5 rounded-xl border border-white/5">
+            <div className="flex justify-between items-start gap-3 mb-1.5">
+              <h4 className="font-bold text-gray-200 text-xs">{k.title}</h4>
+              <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded text-white ${k.color}`}>{k.type}</span>
+            </div>
+            <p className="text-xs text-gray-400 leading-relaxed">{k.desc}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function Simulator() {
   const { coins } = useGameStats();
@@ -125,7 +126,6 @@ export default function Simulator() {
   const intervalRef = useRef(null);
 
   const norwayPlayers = NORWAY_MATCH.players;
-  const norwayTactic  = TACTICS[2];
 
   function handleSubstitute(benchPlayer) {
     if (!subTarget) return;
@@ -134,204 +134,87 @@ export default function Simulator() {
     setSubTarget(null);
   }
 
-  // Dans src/pages/Simulator.jsx -> Fonction playHalf()
-
-// Dans src/pages/Simulator.jsx
-
-// Dans Simulator_3.jsx
-
-// Remplacer la fonction playHalf dans src/pages/Simulator.jsx par cette version corrigée :
-
-function playHalf(half, currentTactic) {
+  function playHalf(half, currentTactic) {
+    const f = formation || "4-3-3";
     const offset = half === 1 ? 0 : 45;
 
-    // 1. Définition des objectifs de buts globaux selon la formation choisie
-    let targetSenTotal = 2; // Par défaut (ex: 4-3-3 -> 2-1)
-    let targetNorTotal = 1;
+    // Score cible selon la formation (storytelling)
+    let targetSenTotal = 2, targetNorTotal = 1;
+    if (["4-2-3-1","4-4-2"].includes(f))      { targetSenTotal = 3; targetNorTotal = 1; }
+    else if (f === "5-3-2")                    { targetSenTotal = 1; targetNorTotal = 1; }
 
-    if (formation === "4-3-3") {
-      targetSenTotal = 2;
-      targetNorTotal = 1;
-    } else if (formation === "4-2-3-1" || formation === "4-4-2") {
-      targetSenTotal = 3;
-      targetNorTotal = 1;
-    } else if (formation === "5-3-2") { // (Ou 3-5-2 si c'est le nom dans ton tableau FORMATIONS)
-      targetSenTotal = 1;
-      targetNorTotal = 1; // Match nul !
-    }
+    const halfSenGoals = half === 1 ? 0 : targetSenTotal;
+    const halfNorGoals = half === 1 ? 1 : 0;
 
-    // Répartition des buts par mi-temps pour le storytelling
-    // MT1: La Norvège mène toujours ou fait nul pour créer du suspense
-    const targetNorMT1 = targetNorTotal; // La Norvège marque son/ses buts en MT1
-    const targetSenMT1 = 0;              // Le Sénégal court après le score
+    // Récupérer les événements scénarisés
+    const events = getScriptedEventsForHalf(half, currentTactic.id, senegalPlayers, f);
 
-    // MT2: Le Sénégal fait sa remontada selon le scénario
-    const targetNorMT2 = 0;
-    const targetSenMT2 = targetSenTotal; 
-
-    // 2. Récupération et nettoyage des événements de matchData
-    const baseEvents = getScriptedEventsForHalf(half, currentTactic.id, senegalPlayers, formation);
-
-    // On filtre pour ne pas garder les "vieux" buts générés aléatoirement par matchData
-    // afin de contrôler nous-mêmes le scénario exact des buteurs
-    const scripted = baseEvents
-      .filter(e => e.type !== "goal") 
-      .map(e => ({
-        ...e,
-        team: (e.team === "nor" || e.team === "ai") ? "ai" : "me",
-        player: e.player || "Joueur",
-        scripted: true
-      }));
-
-    // 3. Injection dynamique et propre des buts selon la Mi-temps et la Formation
-    if (half === 1) {
-      // Événement du but de la Norvège (Haaland)
-      if (targetNorMT1 > 0) {
-        scripted.push({
-          id: "nor_goal_haaland",
-          team: "ai",
-          player: "E. Haaland",
-          minute: 33,
-          type: "goal",
-          scripted: true,
-          desc: `⚡ BUT POUR LA NORVÈGE ! Erling Haaland frappe encore. Idéalement lancé par Martin Ødegaard à la limite du hors-jeu, le cyborg scandinave ajuste Édouard Mendy d'un plat du pied clinique. (0-${targetNorMT1})`
-        });
-      }
-    } 
-    else if (half === 2) {
-      // Remplacement tactique automatique à la 80e minute
-      const subIn = senegalBench[0]?.name || "Iliman Ndiaye";
-      const subOut = senegalPlayers.find(p => p.position === "MIL" && p.name !== "L. Camara")?.name || "I. Gueye";
-      
-      scripted.push({
-        id: "tactical_sub_senegal",
-        team: "me",
-        player: subIn,
-        minute: 80,
-        type: "sub",
+    // Si 2e mi-temps et scénario 2-1 ou 3-1 : injecter le 2e/3e but sénégalais
+    if (half === 2 && targetSenTotal >= 2) {
+      const attacker = senegalPlayers.find(p => p.position === "ATT" && p.name !== "N. Jackson");
+      events.push({
+        minute: 88, type: "goal", team: "me",
+        player: attacker?.name ?? "S. Mané",
+        desc: `🔥 BUT HISTORIQUE À LA 88e MINUTE ! ${attacker?.name ?? "S. Mané"} ajuste Nyland d'un tir chirurgical en pleine lucarne. Le Sénégal prend l'avantage ! (${targetSenTotal}-${targetNorTotal})`,
         scripted: true,
-        desc: `🔄 CHANGEMENT TACTIQUE : Le coach fait entrer ${subIn} à la place de ${subOut} pour amener de la fraîcheur et du dynamisme en fin de match.`
       });
-
-      // Injection des buts du Sénégal pour la remontada
-      const attacker1 = senegalPlayers.find(p => p.position === "ATT")?.name || "N. Jackson";
-      const attacker2 = senegalPlayers.find(p => p.position === "ATT" && p.name !== attacker1)?.name || "Sadio Mané";
-
-      if (targetSenMT2 >= 1) {
-        // Premier but du Sénégal : Égalisation
-        scripted.push({
-          id: "sen_goal_1",
-          team: "me",
-          player: attacker1,
-          minute: 52,
-          type: "goal",
-          scripted: true,
-          desc: `⚽ BUT POUR LE SÉNÉGAL !!! L'égalisation tant attendue ! Magnifique une-deux entre Lamine Camara et ${attacker1}. Notre attaquant conclut d'une frappe puissante à ras de terre ! Le stade chavire !`
-        });
-      }
-
-      if (targetSenMT2 >= 2) {
-        // Deuxième but : Avantage ou Victoire (2-1)
-        scripted.push({
-          id: "sen_goal_2",
-          team: "me",
-          player: attacker2,
-          minute: 88,
-          type: "goal",
-          scripted: true,
-          desc: `🔥 BUT EXCEPTIONNEL POUR LE SÉNÉGAL À LA 88e MINUTE !!! Incroyable scénario ! Sur un centre parfait, ${attacker2} s'élève plus haut que la défense norvégienne et propulse le ballon sous la barre ! Le système en ${formation} porte ses fruits !`
-        });
-      }
-
-      if (targetSenMT2 >= 3) {
-        // Troisième but : Le break (3-1)
-        scripted.push({
-          id: "sen_goal_3",
-          team: "me",
-          player: senegalPlayers.find(p => p.position === "ATT" && p.name !== attacker1 && p.name !== attacker2)?.name || "I. Sarr",
-          minute: 91,
-          type: "goal",
-          scripted: true,
-          desc: `🌟 LE BUT DU BREAK POUR LE SÉNÉGAL ! Dans le temps additionnel, la Norvège a tout tenté et s'est découverte. En contre-attaque, notre ailier élimine le gardien sorti de sa surface et marque dans le but vide ! Magique !`
-        });
-      }
+    }
+    if (half === 2 && targetSenTotal >= 3) {
+      events.push({
+        minute: 91, type: "goal", team: "me",
+        player: "I. Sarr",
+        desc: `🌟 LE BUT DU BREAK ! En contre-attaque sur la Norvège dégarnie, Sarr conclut dans le but vide. (3-1)`,
+        scripted: true,
+      });
     }
 
-    // 4. Calcul et ajustement des Statistiques Match selon le Scénario
-    let possessionBonusSen = 0;
-    let extraShotsSen = 0;
-    if (formation === "4-3-3") { possessionBonusSen = 3; extraShotsSen = 5; }
-    else if (formation === "4-2-3-1" || formation === "4-4-2") { possessionBonusSen = 5; extraShotsSen = 8; }
-    else if (formation === "5-3-2") { possessionBonusSen = -4; extraShotsSen = 2; } // Match plus fermé
+    const sorted = events.sort((a, b) => a.minute - b.minute);
 
-    const currentHalfSenGoals = half === 1 ? targetSenMT1 : targetSenMT2;
-    const currentHalfNorGoals = half === 1 ? targetNorMT1 : targetNorMT2;
-
-    const basePossessionSen = (half === 1 ? 52 : 50) + possessionBonusSen;
-    const tirsSen = Math.max(currentHalfSenGoals + 4, 6 + extraShotsSen);
-    const cadresSen = Math.max(currentHalfSenGoals + 1, Math.floor(tirsSen * 0.45));
-    const xgSen = Number((cadresSen * 0.24 + currentHalfSenGoals * 0.35).toFixed(2));
-
-    const tirsNor = Math.max(currentHalfNorGoals + 2, 5);
-    const cadresNor = Math.max(currentHalfNorGoals + 1, Math.floor(tirsNor * 0.38));
-    const xgNor = Number((cadresNor * 0.20 + currentHalfNorGoals * 0.40).toFixed(2));
-
+    // Stats simulées
+    const possSen = half === 1 ? 45 : 55;
     const halfStats = {
-      senegal: { possession: basePossessionSen, tirs: tirsSen, cadres: cadresSen, xg: xgSen },
-      norvege: { possession: 100 - basePossessionSen, tirs: tirsNor, cadres: cadresNor, xg: xgNor }
+      possession: { me: possSen,        ai: 100 - possSen },
+      shots:      { me: 6 + halfSenGoals * 2, ai: 5 + halfNorGoals * 2 },
+      onTarget:   { me: 2 + halfSenGoals,     ai: 2 + halfNorGoals },
+      xG:         { me: parseFloat((halfSenGoals * 0.7 + 0.4).toFixed(1)),
+                    ai: parseFloat((halfNorGoals * 0.8 + 0.3).toFixed(1)) },
     };
 
-    // 5. Animation du Chronomètre (1200ms pour savourer le Live-Texte)
     setVisibleEvents([]);
     setCurrentMin(offset);
     setPhase(half === 1 ? "playing" : "playing2");
 
     let min = offset;
-    const sortedHalfEvents = scripted.sort((a, b) => a.minute - b.minute);
-
     intervalRef.current = setInterval(() => {
       min += 1;
-      setCurrentMin(min);
-      setVisibleEvents(sortedHalfEvents.filter(e => e.minute <= min));
+      setCurrentMin(Math.min(min, offset + 45));
+      setVisibleEvents(sorted.filter(e => e.minute <= min));
 
       if (min >= offset + 45) {
         clearInterval(intervalRef.current);
-        
         setTimeout(() => {
           if (half === 1) {
-            setHomeScore(currentHalfSenGoals);
-            setAwayScore(currentHalfNorGoals);
-            setAllEvents(sortedHalfEvents);
-            setHalf1Events(sortedHalfEvents);
-            
-            setMatchStats({
-              possession: { me: halfStats.senegal.possession, ai: halfStats.norvege.possession },
-              shots:      { me: halfStats.senegal.tirs,       ai: halfStats.norvege.tirs },
-              onTarget:   { me: halfStats.senegal.cadres,     ai: halfStats.norvege.cadres },
-              xG:         { me: halfStats.senegal.xg,         ai: halfStats.norvege.xg }
-            });
+            setHomeScore(halfSenGoals);
+            setAwayScore(halfNorGoals);
+            setAllEvents(sorted);
+            setHalf1Events(sorted);
+            setMatchStats(halfStats);
             setPhase("halftime");
           } else {
-            // Cumul Fin de Match définitif basé sur la matrice complète
             setHomeScore(targetSenTotal);
             setAwayScore(targetNorTotal);
-            setAllEvents(prev => [...prev, ...sortedHalfEvents]);
-            
-            setMatchStats(prev => {
-              const prevPosMe = prev?.possession?.me || 50;
-              const prevPosAi = prev?.possession?.ai || 50;
-              return {
-                possession: { me: Math.round((prevPosMe + halfStats.senegal.possession) / 2), ai: Math.round((prevPosAi + halfStats.norvege.possession) / 2) },
-                shots:      { me: (prev?.shots?.me || 0) + halfStats.senegal.tirs,       ai: (prev?.shots?.ai || 0) + halfStats.norvege.tirs },
-                onTarget:   { me: (prev?.onTarget?.me || 0) + halfStats.senegal.cadres,   ai: (prev?.onTarget?.ai || 0) + halfStats.norvege.cadres },
-                xG:         { me: Number(((prev?.xG?.me || 0) + halfStats.senegal.xg).toFixed(2)), ai: Number(((prev?.xG?.ai || 0) + halfStats.norvege.xg).toFixed(2)) }
-              };
-            });
+            setAllEvents(prev => [...prev, ...sorted]);
+            setMatchStats(prev => prev ? {
+              possession: { me: Math.round((prev.possession.me + halfStats.possession.me) / 2), ai: Math.round((prev.possession.ai + halfStats.possession.ai) / 2) },
+              shots:      { me: prev.shots.me + halfStats.shots.me,         ai: prev.shots.ai + halfStats.shots.ai },
+              onTarget:   { me: prev.onTarget.me + halfStats.onTarget.me,   ai: prev.onTarget.ai + halfStats.onTarget.ai },
+              xG:         { me: parseFloat((prev.xG.me + halfStats.xG.me).toFixed(1)), ai: parseFloat((prev.xG.ai + halfStats.xG.ai).toFixed(1)) },
+            } : halfStats);
             setPhase("result");
           }
-        }, 1200);
+        }, 800);
       }
-    }, 1200);
+    }, 1000);
   }
 
   useEffect(() => () => clearInterval(intervalRef.current), []);
@@ -342,23 +225,18 @@ function playHalf(half, currentTactic) {
     setFormation(SENEGAL_MATCH.formation);
     setTactic(TACTICS[0]);
     setPhase("lineup");
-    setAllEvents([]);
-    setHalf1Events([]);
-    setVisibleEvents([]);
-    setMatchStats(null);
-    setHomeScore(0);
-    setAwayScore(0);
+    setAllEvents([]); setHalf1Events([]);
+    setVisibleEvents([]); setMatchStats(null);
+    setHomeScore(0); setAwayScore(0);
   }
 
   function shareOnWhatsApp() {
-    const text = `⚽ J'ai simulé Sénégal 🇸🇳 vs Norvège 🇳🇴 sur World Cup Hub !\n\n🎯 Ma tactique : ${tactic.emoji} ${tactic.name} · Formation : ${formation}\n📊 Résultat simulé : ${homeScore}-${awayScore}\n\nSimule toi aussi 👉 worldcuphub2026.vercel.app/simulator`;
+    const text = `⚽ J'ai simulé Sénégal 🇸🇳 vs Norvège 🇳🇴 sur World Cup Hub !\n\n🎯 Tactique : ${tactic.emoji} ${tactic.name} · Formation : ${formation}\n📊 Score simulé : ${homeScore}-${awayScore}\n\nSimule aussi 👉 worldcuphub2026.vercel.app/simulator`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-950 via-black to-green-950 text-white pb-20">
-
-      {/* Header */}
       <div className="sticky top-0 z-20 bg-black/60 backdrop-blur-md border-b border-white/10 px-4 py-3">
         <div className="max-w-2xl mx-auto flex justify-between items-center">
           <div>
@@ -373,13 +251,13 @@ function playHalf(half, currentTactic) {
 
       <div className="max-w-2xl mx-auto px-4 pt-5">
 
-        {/* ── COMPOSITION ─────────────────────────────────────────────── */}
+        {/* ── COMPOSITION ── */}
         {phase === "lineup" && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             <div className="bg-red-500/10 border border-red-400/20 rounded-2xl p-4 mb-5">
               <p className="text-xs text-red-300 font-bold mb-1">🚨 Contexte</p>
               <p className="text-xs text-gray-300 leading-relaxed">
-                Sénégal dos au mur après 3-1 contre la France. Norvège en confiance avec 4-1 contre l'Irak (Haaland ⚠️). C'est un match de survie !
+                Sénégal dos au mur après 3-1 contre la France. Norvège en confiance avec 4-1 contre l'Irak — Haaland ⚠️ (57 buts en 51 sélections). C'est un match de survie pour les Lions !
               </p>
             </div>
 
@@ -451,7 +329,7 @@ function playHalf(half, currentTactic) {
                     <span className="text-[10px] text-gray-500 font-bold w-6">{pos}</span>
                     {norwayPlayers.filter(p => p.position === pos).map(p => (
                       <span key={p.id} className="text-[10px] bg-white/5 px-1.5 py-0.5 rounded text-gray-400">
-                        #{p.number} {p.name}{p.ratingBase >= 88 ? " ★" : ""}
+                        #{p.number} {p.name}{(p.ratingBase ?? 0) >= 88 ? " ★" : ""}
                       </span>
                     ))}
                   </div>
@@ -466,7 +344,7 @@ function playHalf(half, currentTactic) {
           </motion.div>
         )}
 
-        {/* ── CHOIX TACTIQUE ───────────────────────────────────────────── */}
+        {/* ── CHOIX TACTIQUE ── */}
         {phase === "tactic" && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             <div className="text-center mb-5">
@@ -487,7 +365,7 @@ function playHalf(half, currentTactic) {
                       <div className="text-2xl">{t.emoji}</div>
                       <div className="flex-1">
                         <div className="font-bold text-white text-sm flex items-center gap-2">
-                          {t.name} {selected && <span className="text-green-400 text-xs">✓</span>}
+                          {t.name} {selected && <span className="text-green-400">✓</span>}
                         </div>
                         <div className="text-xs text-gray-400 mt-1">{t.desc}</div>
                       </div>
@@ -507,7 +385,7 @@ function playHalf(half, currentTactic) {
           </motion.div>
         )}
 
-        {/* ── MATCH EN COURS ───────────────────────────────────────────── */}
+        {/* ── MATCH EN COURS ── */}
         {(phase === "playing" || phase === "playing2") && (
           <div>
             <div className="bg-white/10 border border-white/20 rounded-2xl px-4 py-3 mb-3 flex items-center justify-between">
@@ -525,23 +403,22 @@ function playHalf(half, currentTactic) {
               </div>
               <span className="text-xs text-gray-400">{tactic.emoji}</span>
             </div>
-
             <div className="w-full bg-white/10 rounded-full h-1.5 mb-3">
               <motion.div animate={{ width: `${Math.min((currentMin / 90) * 100, 100)}%` }}
                 transition={{ duration: 0.2 }} className="h-1.5 bg-green-400 rounded-full" />
             </div>
-
             <div className="mb-3">
               <MatchField events={visibleEvents} currentMin={currentMin} phase={phase}
                 senScore={phase === "playing" ? 0 : homeScore}
                 norScore={phase === "playing" ? 0 : awayScore} />
             </div>
-
             <div className="space-y-2">
               <AnimatePresence>
                 {[...visibleEvents].reverse().map((event, i) => {
                   const isGoal = event.type === "goal";
-                  const action = !isGoal ? KEY_ACTIONS[event.type] : null;
+                  const isSub  = event.type === "sub";
+                  const isText = event.type === "text";
+                  const action = (!isGoal && !isSub && !isText) ? KEY_ACTIONS[event.type] : null;
                   const isSen  = event.team === "me" || event.team === "sen";
                   return (
                     <motion.div key={`${event.minute}-${i}`}
@@ -549,21 +426,25 @@ function playHalf(half, currentTactic) {
                       className={`px-4 py-2.5 rounded-xl border ${
                         isGoal
                           ? isSen ? "bg-green-500/20 border-green-400/30" : "bg-red-500/20 border-red-400/30"
+                          : isText ? "bg-transparent border-transparent"
                           : "bg-white/5 border-white/10"
                       }`}>
                       <div className="flex items-center gap-3">
-                        <span className="text-lg">{isGoal ? "⚽" : action?.emoji}</span>
+                        <span className="text-lg">{isGoal ? "⚽" : isSub ? "🔄" : isText ? "💬" : action?.emoji ?? "▸"}</span>
                         <span className="text-xs text-gray-400 font-mono w-8 shrink-0">{event.minute}'</span>
                         <span className={`text-sm font-bold flex-1 ${isSen ? "text-green-200" : "text-red-200"}`}>
-                          {event.player}
+                          {event.player || ""}
                         </span>
-                        <span className="text-xs text-gray-400">
-                          {isGoal ? (isSen ? "✅ But 🇸🇳" : "❌ But 🇳🇴") : action?.label}
-                        </span>
+                        {!isText && !isSub && (
+                          <span className="text-xs text-gray-400">
+                            {isGoal ? (isSen ? "✅ 🇸🇳" : "❌ 🇳🇴") : action?.label}
+                          </span>
+                        )}
                       </div>
-                      {/* Description narrative pour les événements scénarisés */}
-                      {event.scripted && event.desc && (
-                        <p className="text-[11px] text-gray-400 mt-1 ml-11 italic">{event.desc}</p>
+                      {event.desc && (
+                        <p className={`text-[11px] mt-1 ml-11 ${isGoal ? "text-white font-medium" : "text-gray-400 italic"}`}>
+                          {event.desc}
+                        </p>
                       )}
                     </motion.div>
                   );
@@ -576,14 +457,13 @@ function playHalf(half, currentTactic) {
           </div>
         )}
 
-        {/* ── MI-TEMPS ─────────────────────────────────────────────────── */}
+        {/* ── MI-TEMPS ── */}
         {phase === "halftime" && (
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
             <div className="text-center mb-4">
               <div className="text-4xl mb-2">⏸️</div>
               <h2 className="text-2xl font-black">Mi-temps</h2>
             </div>
-
             <div className="bg-white/10 border border-white/20 rounded-2xl p-5 mb-4 text-center">
               <div className="flex items-center justify-center gap-8">
                 <div><div className="text-xs text-gray-400">🇸🇳 Sénégal</div><div className="text-5xl font-black">{homeScore}</div></div>
@@ -593,14 +473,11 @@ function playHalf(half, currentTactic) {
               <p className="text-sm text-gray-400 mt-3">
                 {homeScore > awayScore ? "🟢 Le Sénégal mène — continuez !" :
                  homeScore === awayScore ? "🟡 Nul — un but peut tout changer" :
-                 "🔴 Le Sénégal est mené — il faut réagir !"}
+                 "🔴 Le Sénégal est mené — réagissez maintenant !"}
               </p>
             </div>
-
-            {/* Récap des actions de la 1ère mi-temps */}
             <MatchRecap events={half1Events} title="📊 Récap — 1ère mi-temps" />
-
-            <p className="text-xs text-gray-400 mb-3 text-center font-bold">Ajuste ta tactique :</p>
+            <p className="text-xs text-gray-400 mb-3 text-center font-bold">Ajuste ta tactique pour la 2e mi-temps :</p>
             <div className="grid grid-cols-2 gap-2 mb-4">
               {TACTICS.map(t => (
                 <button key={t.id} onClick={() => setTactic(t)}
@@ -612,7 +489,6 @@ function playHalf(half, currentTactic) {
                 </button>
               ))}
             </div>
-
             <motion.button whileTap={{ scale: 0.97 }} onClick={() => playHalf(2, tactic)}
               className="w-full bg-green-500 hover:bg-green-400 text-white font-black py-4 rounded-2xl text-lg transition">
               ⚽ Reprendre la simulation
@@ -620,7 +496,7 @@ function playHalf(half, currentTactic) {
           </motion.div>
         )}
 
-        {/* ── RÉSULTAT ─────────────────────────────────────────────────── */}
+        {/* ── RÉSULTAT ── */}
         {phase === "result" && (
           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
             <div className={`rounded-2xl p-6 text-center mb-4 border ${
@@ -628,9 +504,7 @@ function playHalf(half, currentTactic) {
               homeScore === awayScore ? "bg-yellow-500/20 border-yellow-400/40" :
               "bg-red-500/20 border-red-400/40"
             }`}>
-              <div className="text-4xl mb-2">
-                {homeScore > awayScore ? "🏆" : homeScore === awayScore ? "🤝" : "😔"}
-              </div>
+              <div className="text-4xl mb-2">{homeScore > awayScore ? "🏆" : homeScore === awayScore ? "🤝" : "😔"}</div>
               <h2 className="text-lg font-black mb-1">Résultat simulé</h2>
               <p className="text-xs text-gray-400 mb-4">{tactic.emoji} {tactic.name} · {formation}</p>
               <div className="flex items-center justify-center gap-8">
@@ -652,10 +526,8 @@ function playHalf(half, currentTactic) {
               </div>
             </div>
 
-            {/* Récap complet du match */}
             <MatchRecap events={allEvents} title="📊 Récap complet du match" />
 
-            {/* Stats possession */}
             {matchStats && (
               <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-4">
                 <h3 className="font-bold text-white mb-3 text-sm">📈 Statistiques</h3>
@@ -671,9 +543,9 @@ function playHalf(half, currentTactic) {
                   </div>
                 </div>
                 {[
-                  { label: "Tirs", me: matchStats.shots.me, ai: matchStats.shots.ai },
+                  { label: "Tirs", me: matchStats.shots.me,    ai: matchStats.shots.ai },
                   { label: "Cadrés", me: matchStats.onTarget.me, ai: matchStats.onTarget.ai },
-                  { label: "xG", me: matchStats.xG.me, ai: matchStats.xG.ai },
+                  { label: "xG",   me: matchStats.xG.me,      ai: matchStats.xG.ai },
                 ].map(({ label, me, ai }) => {
                   const total = me + ai || 1;
                   return (
@@ -696,41 +568,8 @@ function playHalf(half, currentTactic) {
                 </div>
               </div>
             )}
-            {/* ── 🔑 CLÉS TACTIQUES ET BILAN DE FIN DE MATCH ────────────────────────── */}
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-5 mb-4 shadow-2xl">
-              <div className="flex items-center gap-2.5 mb-4">
-                <span className="text-xl">🔑</span>
-                <div>
-                  <h3 className="text-sm font-black text-white tracking-wider uppercase">
-                    Clés Tactiques du Match
-                  </h3>
-                  <p className="text-[10px] text-gray-400">
-                    Bilan des forces et risques qui ont dicté le résultat :
-                  </p>
-                </div>
-              </div>
 
-              <div className="space-y-3.5">
-                {getTacticalAnalysis(formation).map((key, idx) => (
-                  <div key={idx} className="bg-black/30 p-3.5 rounded-xl border border-white/5 hover:border-white/10 transition">
-                    <div className="flex justify-between items-start gap-3 mb-1.5">
-                      <h4 className="font-bold text-gray-200 text-xs">
-                        {key.title}
-                      </h4>
-                      <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded text-white ${key.badgeColor}`}>
-                        {key.type}
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-400 leading-relaxed">
-                      {key.desc}
-                    </p>
-                    <div className="flex justify-end text-[9px] text-gray-600 mt-1">
-                      <span>{key.source}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <TacticalKeys formation={formation} />
 
             <div className="space-y-3">
               <motion.button whileTap={{ scale: 0.97 }} onClick={shareOnWhatsApp}
