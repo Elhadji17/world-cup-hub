@@ -9,7 +9,7 @@ import AuthModal                   from "../components/AuthModal";
 
 // Découverte secondaire — grille compacte 2x2
 const DISCOVER = [
-  { to: "/simulator",   emoji: "🎮", title: "Simulateur" }, // ← ajoute cette ligne en premier
+  { to: "/simulator",   emoji: "🎮", title: "Simulateur" },
   { to: "/cards",       emoji: "🃏", title: "Cartes" },
   { to: "/leaderboard", emoji: "🏆", title: "Classement" },
   { to: "/matches",     emoji: "📅", title: "Matchs" },
@@ -82,32 +82,6 @@ export default function Home() {
             </span>
           </motion.h1>
 
-          {/* 🔥 BANDEAU ACCÈS RAPIDE SIMULATEUR (À LA UNE AUJOURD'HUI) */}
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.15 }}
-            className="mb-5 max-w-sm mx-auto"
-          >
-            <Link to="/simulator">
-              <motion.div 
-                whileTap={{ scale: 0.97 }}
-                className="bg-gradient-to-r from-amber-500 to-yellow-500 p-3 rounded-2xl flex items-center justify-between shadow-lg shadow-amber-500/10 border border-amber-400/30 text-left"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">🎮</span>
-                  <div>
-                    <div className="text-xs font-black text-black uppercase tracking-wide">Événement de ce soir</div>
-                    <div className="text-sm font-black text-slate-950">Simuler Sénégal vs Norvège</div>
-                  </div>
-                </div>
-                <span className="bg-slate-950 text-yellow-400 font-mono text-[10px] font-bold px-2 py-1 rounded-lg shrink-0">
-                  +200 💰 Bonus
-                </span>
-              </motion.div>
-            </Link>
-          </motion.div>
-
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -142,8 +116,39 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── ACTION PRINCIPALE : MATCH ───────────────────────────────────────── */}
-      <section className="px-4 pb-3 max-w-2xl mx-auto">
+      {/* ── ACTIONS PRINCIPALES : SIMULATEUR & MATCH ───────────────────────── */}
+      <section className="px-4 pb-3 max-w-2xl mx-auto space-y-3">
+        
+        {/* 🎮 BOUTON SIMULATEUR (À LA UNE AUJOURD'HUI) */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.28 }}
+        >
+          <Link to="/simulator">
+            <motion.div whileTap={{ scale: 0.98 }}
+              className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-600 to-orange-600 p-5 flex items-center gap-4 shadow-lg shadow-orange-600/20 border border-amber-500/20"
+            >
+              {/* Badge bonus absolu */}
+              <div className="absolute top-3 right-3 bg-black/40 border border-white/15 text-yellow-400 font-mono text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider">
+                +200 💰 Bonus
+              </div>
+
+              <div className="text-4xl shrink-0 animate-pulse">🎮</div>
+              <div className="flex-1 min-w-0">
+                <h2 className="font-black text-white text-lg flex items-center gap-2">
+                  Simulateur Tactique
+                </h2>
+                <p className="text-xs text-amber-100 mt-0.5 font-medium">
+                  Sénégal 🇸🇳 vs Norvège 🇳🇴 : Déjoue les pièges du match ce soir
+                </p>
+              </div>
+              <div className="text-2xl shrink-0 text-white/80">→</div>
+            </motion.div>
+          </Link>
+        </motion.div>
+
+        {/* ⚽ BOUTON COMPOSITION / MATCH DE BASE */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
