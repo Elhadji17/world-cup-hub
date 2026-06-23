@@ -150,12 +150,19 @@ const GENERAL_2ND = [
 ];
 
 // ── FONCTION DE DISTRIBUTION DES ÉVÉNEMENTS ───────────────────────
-export function getScriptedEventsForHalf(half, tacticId, senegalPlayers, formation) {
+// Dans matchData_2.js ── Tout en bas du fichier
+
+export function getScriptedEventsForHalf(half, tacticId, senegalPlayers, formation = "4-3-3") {
+  // En mettant = "4-3-3", si la variable est undefined, l'application prendra le 4-3-3 par défaut au lieu de crasher !
+  
   let pool = [];
+  
+  // Sécurité supplémentaire : s'assurer que formation est bien une chaîne de caractères
+  const safeFormation = formation || "4-3-3";
 
   if (half === 1) {
-    if (["4-3-3", "4-2-3-1"].includes(formation)) pool = OFFENSIVE_1ST;
-    else if (["5-3-2", "5-4-1"].includes(formation)) pool = DEFENSIVE_1ST;
+    if (["4-3-3", "4-2-3-1"].includes(safeFormation)) pool = OFFENSIVE_1ST;
+    else if (["5-3-2", "5-4-1"].includes(safeFormation)) pool = DEFENSIVE_1ST;
     else pool = BALANCED_1ST;
   } else {
     pool = GENERAL_2ND;
@@ -165,7 +172,8 @@ export function getScriptedEventsForHalf(half, tacticId, senegalPlayers, formati
   return pool.map(event => ({
     ...event,
     scripted: true,
-    desc: event.descFn(senegalPlayers, formation),
+    // On passe safeFormation ici aussi
+    desc: event.descFn ? event.descFn(senegalPlayers, safeFormation) : "",
     rawStats: {
       senegal: {
         tirs: event.type === "shot" || event.type === "goal" ? 1 : 0,
@@ -173,9 +181,9 @@ export function getScriptedEventsForHalf(half, tacticId, senegalPlayers, formati
         xg: event.type === "goal" ? 0.65 : (event.type === "shot" ? 0.25 : 0)
       },
       norvege: {
-        tirs: event.type === "save" || (event.type === "goal" && event.desc.includes("NORVÈGE")) ? 1 : 0,
-        cadres: event.type === "save" || (event.type === "goal" && event.desc.includes("NORVÈGE")) ? 1 : 0,
-        xg: event.type === "goal" && event.desc.includes("NORVÈGE") ? 0.55 : 0
+        tirs: event.type === "save" || (event.type === "goal" && event.descFn && event.descFn([], safeFormation).includes("NORVÈGE")) ? 1 : 0,
+        cadres: event.type === "save" || (event.type === "goal" && event.descFn && event.descFn([], safeFormation).includes("NORVÈGE")) ? 1 : 0,
+        xg: event.type === "goal" && event.descFn && event.descFn([], safeFormation).includes("NORVÈGE") ? 0.55 : 0
       }
     }
   }));
