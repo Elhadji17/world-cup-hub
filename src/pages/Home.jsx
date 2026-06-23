@@ -82,6 +82,32 @@ export default function Home() {
             </span>
           </motion.h1>
 
+          {/* 🔥 BANDEAU ACCÈS RAPIDE SIMULATEUR (À LA UNE AUJOURD'HUI) */}
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.15 }}
+            className="mb-5 max-w-sm mx-auto"
+          >
+            <Link to="/simulator">
+              <motion.div 
+                whileTap={{ scale: 0.97 }}
+                className="bg-gradient-to-r from-amber-500 to-yellow-500 p-3 rounded-2xl flex items-center justify-between shadow-lg shadow-amber-500/10 border border-amber-400/30 text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">🎮</span>
+                  <div>
+                    <div className="text-xs font-black text-black uppercase tracking-wide">Événement de ce soir</div>
+                    <div className="text-sm font-black text-slate-950">Simuler Sénégal vs Norvège</div>
+                  </div>
+                </div>
+                <span className="bg-slate-950 text-yellow-400 font-mono text-[10px] font-bold px-2 py-1 rounded-lg shrink-0">
+                  +200 💰 Bonus
+                </span>
+              </motion.div>
+            </Link>
+          </motion.div>
+
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

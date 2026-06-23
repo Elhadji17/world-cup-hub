@@ -84,14 +84,14 @@ const getTacticalAnalysis = (formation) => {
       type: "Duel clé",
       badgeColor: "bg-amber-500",
       desc: "La Norvège a cherché le jeu direct vers Erling Haaland. Le Sénégal a dû bloquer les centres précoces et couper la relation Martin Ødegaard → Haaland.",
-      source: "reuters.com"
+      source: "worldcuphub2026.vercel.app"
     },
     {
       title: "2. Les couloirs sénégalais",
       type: "Avantage SEN",
       badgeColor: "bg-green-600",
       desc: "Ismaïla Sarr a attaqué l’espace derrière Meling. C'est l'une des meilleures armes sénégalaises en transition rapide.",
-      source: "worldcuphub.com"
+      source: "worldcuphub2026.vercel.app"
     },
     {
       title: "3. Le pressing",
@@ -100,7 +100,7 @@ const getTacticalAnalysis = (formation) => {
       desc: ["5-3-2", "5-4-1"].includes(formation)
         ? "En optant pour un bloc bas, le Sénégal a subi ce pressing haut, limitant les contres mais s'exposant aux coups de pied arrêtés."
         : "La Norvège a pressé très haut, s’exposant aux appels de Nicolas Jackson dans le dos de la défense. Le Sénégal a su sortir proprement sous pression.",
-      source: "lemonde.fr"
+      source: "worldcuphub2026.vercel.app"
     }
   ];
 };
