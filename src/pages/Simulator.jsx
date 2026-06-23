@@ -77,6 +77,33 @@ function FormBadge({ player }) {
   if (mult <= 0.95) return <span className="text-[9px] text-blue-400 font-bold">😴</span>;
   return null;
 }
+const getTacticalAnalysis = (formation) => {
+  return [
+    {
+      title: "1. Haaland vs Koulibaly",
+      type: "Duel clé",
+      badgeColor: "bg-amber-500",
+      desc: "La Norvège a cherché le jeu direct vers Erling Haaland. Le Sénégal a dû bloquer les centres précoces et couper la relation Martin Ødegaard → Haaland.",
+      source: "reuters.com"
+    },
+    {
+      title: "2. Les couloirs sénégalais",
+      type: "Avantage SEN",
+      badgeColor: "bg-green-600",
+      desc: "Ismaïla Sarr a attaqué l’espace derrière Meling. C'est l'une des meilleures armes sénégalaises en transition rapide.",
+      source: "worldcuphub.com"
+    },
+    {
+      title: "3. Le pressing",
+      type: "Risque NOR",
+      badgeColor: "bg-red-500",
+      desc: ["5-3-2", "5-4-1"].includes(formation)
+        ? "En optant pour un bloc bas, le Sénégal a subi ce pressing haut, limitant les contres mais s'exposant aux coups de pied arrêtés."
+        : "La Norvège a pressé très haut, s’exposant aux appels de Nicolas Jackson dans le dos de la défense. Le Sénégal a su sortir proprement sous pression.",
+      source: "lemonde.fr"
+    }
+  ];
+};
 
 export default function Simulator() {
   const { coins } = useGameStats();
@@ -669,6 +696,41 @@ function playHalf(half, currentTactic) {
                 </div>
               </div>
             )}
+            {/* ── 🔑 CLÉS TACTIQUES ET BILAN DE FIN DE MATCH ────────────────────────── */}
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-5 mb-4 shadow-2xl">
+              <div className="flex items-center gap-2.5 mb-4">
+                <span className="text-xl">🔑</span>
+                <div>
+                  <h3 className="text-sm font-black text-white tracking-wider uppercase">
+                    Clés Tactiques du Match
+                  </h3>
+                  <p className="text-[10px] text-gray-400">
+                    Bilan des forces et risques qui ont dicté le résultat :
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3.5">
+                {getTacticalAnalysis(formation).map((key, idx) => (
+                  <div key={idx} className="bg-black/30 p-3.5 rounded-xl border border-white/5 hover:border-white/10 transition">
+                    <div className="flex justify-between items-start gap-3 mb-1.5">
+                      <h4 className="font-bold text-gray-200 text-xs">
+                        {key.title}
+                      </h4>
+                      <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded text-white ${key.badgeColor}`}>
+                        {key.type}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-400 leading-relaxed">
+                      {key.desc}
+                    </p>
+                    <div className="flex justify-end text-[9px] text-gray-600 mt-1">
+                      <span>{key.source}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
 
             <div className="space-y-3">
               <motion.button whileTap={{ scale: 0.97 }} onClick={shareOnWhatsApp}
