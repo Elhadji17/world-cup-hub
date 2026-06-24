@@ -1,12 +1,22 @@
-// src/pages/Simulator.jsx — Simulateur Tactique · Sénégal vs Norvège · CdM 2026
+// src/pages/Simulator.jsx — Simulateur Tactique · Coupe du Monde 2026
+// Architecture générique : charge n'importe quel match depuis matchRegistry
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence }      from "framer-motion";
 import { useGameStats }                 from "../hooks/useGameStats.jsx";
 import { TACTICS, KEY_ACTIONS }         from "../data/match-engine";
-import { SENEGAL_MATCH, NORWAY_MATCH, getScriptedEventsForHalf } from "../data/matchData";
 import { getRecentFormMultiplier }      from "../data/match-form";
+import { MATCH_REGISTRY }               from "../data/matchRegistry";
 import MatchField                        from "../components/MatchField";
+
+// Import statique des deux matchs disponibles
+import * as SenNor from "../data/matches/sen_nor_2026.js";
+import * as SenIra from "../data/matches/sen_ira_2026.js";
+
+const MATCH_MODULES = {
+  sen_nor_2026: SenNor,
+  sen_ira_2026: SenIra,
+};
 
 const FORMATIONS = ["4-3-3", "4-2-3-1", "4-4-2", "5-3-2"];
 
@@ -23,7 +33,6 @@ function FormBadge({ player }) {
   return null;
 }
 
-// Récap des actions d'une mi-temps ou du match complet
 function MatchRecap({ events, title }) {
   if (!events || events.length === 0) return null;
   const goals   = events.filter(e => e.type === "goal");
@@ -47,7 +56,7 @@ function MatchRecap({ events, title }) {
                 <span className="font-mono text-gray-400 w-8">{g.minute}'</span>
                 <span>⚽</span>
                 <span className="font-bold">{g.player}</span>
-                <span className="ml-auto">{isSen ? "🇸🇳" : "🇳🇴"}</span>
+                <span className="ml-auto">{isSen ? "🇸🇳" : "🏳️"}</span>
               </div>
             );
           })}
@@ -55,12 +64,12 @@ function MatchRecap({ events, title }) {
       )}
       <div className="grid grid-cols-3 gap-2">
         {[
-          { label: "Tirs/têtes", value: shots.length, emoji: "🎯" },
-          { label: "Parades",    value: saves,         emoji: "🧤" },
-          { label: "Ratés",      value: misses,        emoji: "😬" },
-          { label: "Corners",    value: corners,       emoji: "🚩" },
-          { label: "Cartons",    value: yellows,       emoji: "🟨" },
-          { label: "Aériens",    value: headers,       emoji: "🤯" },
+          { label: "Tirs", value: shots.length, emoji: "🎯" },
+          { label: "Parades", value: saves, emoji: "🧤" },
+          { label: "Ratés", value: misses, emoji: "😬" },
+          { label: "Corners", value: corners, emoji: "🚩" },
+          { label: "Cartons", value: yellows, emoji: "🟨" },
+          { label: "Aériens", value: headers, emoji: "🤯" },
         ].map(({ label, value, emoji }) => (
           <div key={label} className="bg-white/5 rounded-xl p-2 text-center">
             <div className="text-lg">{emoji}</div>
@@ -73,59 +82,45 @@ function MatchRecap({ events, title }) {
   );
 }
 
-// Clés tactiques affichées en fin de match
-function TacticalKeys({ formation }) {
-  const keys = [
-    { title: "1. Haaland vs Koulibaly", type: "Duel clé", color: "bg-amber-500",
-      desc: "La Norvège cherche le jeu direct vers Haaland. Le Sénégal doit bloquer les centres précoces et couper la relation Ødegaard → Haaland." },
-    { title: "2. Les couloirs sénégalais", type: "Avantage SEN", color: "bg-green-600",
-      desc: "Ismaïla Sarr attaque l'espace derrière la défense norvégienne. C'est la meilleure arme sénégalaise en transition rapide." },
-    { title: "3. Le pressing", type: ["5-3-2"].includes(formation) ? "Bloc bas" : "Risque NOR", color: "bg-red-500",
-      desc: ["5-3-2"].includes(formation)
-        ? "En optant pour un bloc bas, le Sénégal subit le pressing mais s'expose moins aux contres norvégiens."
-        : "La Norvège presse très haut, s'exposant aux appels de Jackson dans le dos de la défense. Le Sénégal peut sortir proprement sous pression." },
-  ];
-  return (
-    <div className="bg-white/5 border border-white/10 rounded-2xl p-5 mb-4">
-      <div className="flex items-center gap-2.5 mb-4">
-        <span className="text-xl">🔑</span>
-        <h3 className="text-sm font-black text-white uppercase tracking-wider">Clés Tactiques</h3>
-      </div>
-      <div className="space-y-3">
-        {keys.map((k, i) => (
-          <div key={i} className="bg-black/30 p-3.5 rounded-xl border border-white/5">
-            <div className="flex justify-between items-start gap-3 mb-1.5">
-              <h4 className="font-bold text-gray-200 text-xs">{k.title}</h4>
-              <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded text-white ${k.color}`}>{k.type}</span>
-            </div>
-            <p className="text-xs text-gray-400 leading-relaxed">{k.desc}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export default function Simulator() {
   const { coins } = useGameStats();
 
-  const [senegalPlayers, setSenegalPlayers] = useState(SENEGAL_MATCH.players);
-  const [senegalBench,   setSenegalBench]   = useState(SENEGAL_MATCH.bench);
-  const [formation,      setFormation]      = useState(SENEGAL_MATCH.formation);
-  const [tactic,         setTactic]         = useState(TACTICS[0]);
-  const [subTarget,      setSubTarget]      = useState(null);
+  // Sélection du match
+  const [selectedMatchId,  setSelectedMatchId]  = useState(null);
+  const [matchModule,      setMatchModule]       = useState(null);
+  const [matchMeta,        setMatchMeta]         = useState(null);
 
-  const [phase,         setPhase]         = useState("lineup");
-  const [visibleEvents, setVisibleEvents] = useState([]);
-  const [homeScore,     setHomeScore]     = useState(0);
-  const [awayScore,     setAwayScore]     = useState(0);
-  const [currentMin,    setCurrentMin]    = useState(0);
-  const [allEvents,     setAllEvents]     = useState([]);
-  const [half1Events,   setHalf1Events]   = useState([]);
-  const [matchStats,    setMatchStats]    = useState(null);
+  // Composition
+  const [senegalPlayers,   setSenegalPlayers]   = useState([]);
+  const [senegalBench,     setSenegalBench]     = useState([]);
+  const [formation,        setFormation]        = useState("4-3-3");
+  const [tactic,           setTactic]           = useState(TACTICS[0]);
+  const [subTarget,        setSubTarget]        = useState(null);
+
+  // Simulation
+  const [phase,            setPhase]            = useState("select");
+  const [visibleEvents,    setVisibleEvents]    = useState([]);
+  const [homeScore,        setHomeScore]        = useState(0);
+  const [awayScore,        setAwayScore]        = useState(0);
+  const [currentMin,       setCurrentMin]       = useState(0);
+  const [allEvents,        setAllEvents]        = useState([]);
+  const [half1Events,      setHalf1Events]      = useState([]);
+  const [matchStats,       setMatchStats]       = useState(null);
   const intervalRef = useRef(null);
 
-  const norwayPlayers = NORWAY_MATCH.players;
+  function selectMatch(matchId) {
+    const meta   = MATCH_REGISTRY.find(m => m.id === matchId);
+    const module = MATCH_MODULES[matchId];
+    if (!meta || !module) return;
+
+    setSelectedMatchId(matchId);
+    setMatchMeta(meta);
+    setMatchModule(module);
+    setSenegalPlayers(module.SENEGAL_MATCH.players);
+    setSenegalBench(module.SENEGAL_MATCH.bench);
+    setFormation(module.SENEGAL_MATCH.formation ?? "4-3-3");
+    setPhase("lineup");
+  }
 
   function handleSubstitute(benchPlayer) {
     if (!subTarget) return;
@@ -135,49 +130,39 @@ export default function Simulator() {
   }
 
   function playHalf(half, currentTactic) {
+    if (!matchModule) return;
     const f = formation || "4-3-3";
     const offset = half === 1 ? 0 : 45;
 
-    // Score cible selon la formation (storytelling)
-    let targetSenTotal = 2, targetNorTotal = 1;
-    if (["4-2-3-1","4-4-2"].includes(f))      { targetSenTotal = 3; targetNorTotal = 1; }
-    else if (f === "5-3-2")                    { targetSenTotal = 1; targetNorTotal = 1; }
+    // Score cible selon formation
+    let targetSenTotal = 2, targetAwayTotal = 1;
+    if (["4-2-3-1","4-4-2"].includes(f))   { targetSenTotal = 3; targetAwayTotal = 1; }
+    else if (f === "5-3-2")                 { targetSenTotal = 1; targetAwayTotal = 0; }
 
-    const halfSenGoals = half === 1 ? 0 : targetSenTotal;
-    const halfNorGoals = half === 1 ? 1 : 0;
+    const halfSenGoals  = half === 1 ? (targetSenTotal >= 2 ? 1 : 1) : (targetSenTotal - (targetSenTotal >= 2 ? 1 : 1));
+    const halfAwayGoals = half === 1 ? (targetAwayTotal > 0 ? targetAwayTotal : 0) : 0;
 
-    // Récupérer les événements scénarisés
-    const events = getScriptedEventsForHalf(half, currentTactic.id, senegalPlayers, f);
+    const events = matchModule.getScriptedEventsForHalf(half, currentTactic.id, senegalPlayers, f);
 
-    // Si 2e mi-temps et scénario 2-1 ou 3-1 : injecter le 2e/3e but sénégalais
+    // Injecter buts 2e mi-temps si nécessaire
     if (half === 2 && targetSenTotal >= 2) {
-      const attacker = senegalPlayers.find(p => p.position === "ATT" && p.name !== "N. Jackson");
+      const attacker = senegalPlayers.find(p => p.position === "ATT" && p.name !== "N. Jackson" && p.name !== "S. Mané");
       events.push({
-        minute: 88, type: "goal", team: "me",
-        player: attacker?.name ?? "S. Mané",
-        desc: `🔥 BUT HISTORIQUE À LA 88e MINUTE ! ${attacker?.name ?? "S. Mané"} ajuste Nyland d'un tir chirurgical en pleine lucarne. Le Sénégal prend l'avantage ! (${targetSenTotal}-${targetNorTotal})`,
-        scripted: true,
-      });
-    }
-    if (half === 2 && targetSenTotal >= 3) {
-      events.push({
-        minute: 91, type: "goal", team: "me",
-        player: "I. Sarr",
-        desc: `🌟 LE BUT DU BREAK ! En contre-attaque sur la Norvège dégarnie, Sarr conclut dans le but vide. (3-1)`,
+        minute: 78, type: "goal", team: "me",
+        player: attacker?.name ?? "I. Ndiaye",
+        desc: `⚽ BUT ! ${attacker?.name ?? "I. Ndiaye"} enfonce le clou pour le Sénégal ! Le Sénégal fait le break ! (${targetSenTotal}-${targetAwayTotal})`,
         scripted: true,
       });
     }
 
     const sorted = events.sort((a, b) => a.minute - b.minute);
-
-    // Stats simulées
-    const possSen = half === 1 ? 45 : 55;
+    const possSen = half === 1 ? 58 : 62;
     const halfStats = {
-      possession: { me: possSen,        ai: 100 - possSen },
-      shots:      { me: 6 + halfSenGoals * 2, ai: 5 + halfNorGoals * 2 },
-      onTarget:   { me: 2 + halfSenGoals,     ai: 2 + halfNorGoals },
-      xG:         { me: parseFloat((halfSenGoals * 0.7 + 0.4).toFixed(1)),
-                    ai: parseFloat((halfNorGoals * 0.8 + 0.3).toFixed(1)) },
+      possession: { me: possSen, ai: 100 - possSen },
+      shots:      { me: 7 + halfSenGoals * 2,  ai: 3 + halfAwayGoals },
+      onTarget:   { me: 3 + halfSenGoals,       ai: 1 + halfAwayGoals },
+      xG:         { me: parseFloat((halfSenGoals * 0.7 + 0.5).toFixed(1)),
+                    ai: parseFloat((halfAwayGoals * 0.5 + 0.2).toFixed(1)) },
     };
 
     setVisibleEvents([]);
@@ -195,19 +180,19 @@ export default function Simulator() {
         setTimeout(() => {
           if (half === 1) {
             setHomeScore(halfSenGoals);
-            setAwayScore(halfNorGoals);
+            setAwayScore(halfAwayGoals);
             setAllEvents(sorted);
             setHalf1Events(sorted);
             setMatchStats(halfStats);
             setPhase("halftime");
           } else {
             setHomeScore(targetSenTotal);
-            setAwayScore(targetNorTotal);
+            setAwayScore(targetAwayTotal);
             setAllEvents(prev => [...prev, ...sorted]);
             setMatchStats(prev => prev ? {
               possession: { me: Math.round((prev.possession.me + halfStats.possession.me) / 2), ai: Math.round((prev.possession.ai + halfStats.possession.ai) / 2) },
-              shots:      { me: prev.shots.me + halfStats.shots.me,         ai: prev.shots.ai + halfStats.shots.ai },
-              onTarget:   { me: prev.onTarget.me + halfStats.onTarget.me,   ai: prev.onTarget.ai + halfStats.onTarget.ai },
+              shots:      { me: prev.shots.me + halfStats.shots.me,       ai: prev.shots.ai + halfStats.shots.ai },
+              onTarget:   { me: prev.onTarget.me + halfStats.onTarget.me, ai: prev.onTarget.ai + halfStats.onTarget.ai },
               xG:         { me: parseFloat((prev.xG.me + halfStats.xG.me).toFixed(1)), ai: parseFloat((prev.xG.ai + halfStats.xG.ai).toFixed(1)) },
             } : halfStats);
             setPhase("result");
@@ -220,20 +205,28 @@ export default function Simulator() {
   useEffect(() => () => clearInterval(intervalRef.current), []);
 
   function reset() {
-    setSenegalPlayers(SENEGAL_MATCH.players);
-    setSenegalBench(SENEGAL_MATCH.bench);
-    setFormation(SENEGAL_MATCH.formation);
-    setTactic(TACTICS[0]);
-    setPhase("lineup");
+    setPhase("select");
+    setSelectedMatchId(null);
+    setMatchModule(null);
+    setMatchMeta(null);
+    setSenegalPlayers([]);
+    setSenegalBench([]);
     setAllEvents([]); setHalf1Events([]);
     setVisibleEvents([]); setMatchStats(null);
     setHomeScore(0); setAwayScore(0);
+    setTactic(TACTICS[0]);
   }
 
   function shareOnWhatsApp() {
-    const text = `⚽ J'ai simulé Sénégal 🇸🇳 vs Norvège 🇳🇴 sur World Cup Hub !\n\n🎯 Tactique : ${tactic.emoji} ${tactic.name} · Formation : ${formation}\n📊 Score simulé : ${homeScore}-${awayScore}\n\nSimule aussi 👉 worldcuphub2026.vercel.app/simulator`;
+    if (!matchMeta) return;
+    const text = `⚽ J'ai simulé ${matchMeta.homeTeam.flag} ${matchMeta.homeTeam.name} vs ${matchMeta.awayTeam.flag} ${matchMeta.awayTeam.name} sur World Cup Hub !\n\n🎯 Tactique : ${tactic.emoji} ${tactic.name} · Formation : ${formation}\n📊 Score simulé : ${homeScore}-${awayScore}\n\nSimule aussi 👉 worldcuphub2026.vercel.app/simulator`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   }
+
+  const awayTeamName  = matchMeta?.awayTeam?.name  ?? "Adversaire";
+  const awayTeamFlag  = matchMeta?.awayTeam?.flag  ?? "🏳️";
+  const awayPlayers   = matchModule?.AWAY_MATCH?.players ?? matchModule?.NORWAY_MATCH?.players ?? [];
+  const matchContext  = matchModule?.MATCH_CONTEXT;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-950 via-black to-green-950 text-white pb-20">
@@ -241,7 +234,7 @@ export default function Simulator() {
         <div className="max-w-2xl mx-auto flex justify-between items-center">
           <div>
             <h1 className="text-xl font-bold">🎮 Simulateur Tactique</h1>
-            <p className="text-xs text-gray-400">🇸🇳 Sénégal vs Norvège 🇳🇴 · CdM 2026</p>
+            <p className="text-xs text-gray-400">Coupe du Monde 2026 · 🇸🇳 Sénégal</p>
           </div>
           <div className="bg-yellow-500/20 border border-yellow-400/30 rounded-xl px-3 py-1">
             <div className="text-sm font-bold text-yellow-400">{coins} 💰</div>
@@ -251,15 +244,78 @@ export default function Simulator() {
 
       <div className="max-w-2xl mx-auto px-4 pt-5">
 
-        {/* ── COMPOSITION ── */}
-        {phase === "lineup" && (
+        {/* ── SÉLECTION DU MATCH ── */}
+        {phase === "select" && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <div className="bg-red-500/10 border border-red-400/20 rounded-2xl p-4 mb-5">
-              <p className="text-xs text-red-300 font-bold mb-1">🚨 Contexte</p>
+            <div className="bg-yellow-500/10 border border-yellow-400/20 rounded-2xl p-4 mb-5">
+              <p className="text-xs text-yellow-300 font-bold mb-1">💡 Comment ça marche ?</p>
               <p className="text-xs text-gray-300 leading-relaxed">
-                Sénégal dos au mur après 3-1 contre la France. Norvège en confiance avec 4-1 contre l'Irak — Haaland ⚠️ (57 buts en 51 sélections). C'est un match de survie pour les Lions !
+                Choisis un match, configure la tactique du Sénégal, et regarde la simulation se dérouler. Si ton score prédit correspond au vrai résultat → 200 💰 bonus !
               </p>
             </div>
+
+            <h3 className="font-bold text-white mb-3 text-sm uppercase tracking-wide">📅 Matchs disponibles</h3>
+            <div className="space-y-3">
+              {MATCH_REGISTRY.map(match => (
+                <motion.div key={match.id}
+                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                  className={`relative rounded-2xl border overflow-hidden ${
+                    match.status === "finished" ? "border-white/5 opacity-70" : "border-white/10"
+                  }`}>
+                  <div className="absolute inset-0 bg-gradient-to-r from-green-900/30 to-blue-900/30" />
+                  <div className="relative p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] text-gray-400 bg-white/10 px-2 py-0.5 rounded-full">{match.group}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-gray-400">{match.date}</span>
+                        {match.status === "finished" && (
+                          <span className="text-[9px] bg-gray-600 text-gray-300 px-2 py-0.5 rounded-full">Terminé</span>
+                        )}
+                        {match.status === "upcoming" && (
+                          <span className="text-[9px] bg-green-600 text-white px-2 py-0.5 rounded-full">À venir</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-center gap-6 my-3">
+                      <div className="text-center">
+                        <div className="text-3xl">{match.homeTeam.flag}</div>
+                        <div className="text-xs font-bold text-white mt-1">{match.homeTeam.name}</div>
+                        <div className="text-[9px] text-green-400">← Tu joues</div>
+                      </div>
+                      <div className="text-xl font-black text-gray-500">VS</div>
+                      <div className="text-center">
+                        <div className="text-3xl">{match.awayTeam.flag}</div>
+                        <div className="text-xs font-bold text-white mt-1">{match.awayTeam.name}</div>
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-gray-500 text-center mb-3">📍 {match.stadium}</p>
+                    <motion.button whileTap={{ scale: 0.97 }}
+                      onClick={() => selectMatch(match.id)}
+                      className="w-full bg-green-500 hover:bg-green-400 text-white font-bold py-2.5 rounded-xl transition text-sm">
+                      🎮 {match.status === "finished" ? "Rejouer cette simulation" : "Simuler ce match"}
+                    </motion.button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
+        {/* ── COMPOSITION ── */}
+        {phase === "lineup" && matchMeta && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            {matchContext && (
+              <div className={`border rounded-2xl p-4 mb-5 ${
+                matchContext.urgency === "critical"
+                  ? "bg-red-500/10 border-red-400/20"
+                  : "bg-blue-500/10 border-blue-400/20"
+              }`}>
+                <p className={`text-xs font-bold mb-1 ${matchContext.urgency === "critical" ? "text-red-300" : "text-blue-300"}`}>
+                  {matchContext.urgency === "critical" ? "🚨" : "ℹ️"} {matchContext.title}
+                </p>
+                <p className="text-xs text-gray-300 leading-relaxed">{matchContext.description}</p>
+              </div>
+            )}
 
             <div className="mb-4">
               <p className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wide">Formation</p>
@@ -321,15 +377,21 @@ export default function Simulator() {
               </motion.div>
             )}
 
+            {/* Adversaire */}
             <div className="mb-5 bg-white/5 border border-white/10 rounded-xl p-3">
-              <p className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wide">🇳🇴 Norvège (4-3-3)</p>
+              <p className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wide">
+                {awayTeamFlag} {awayTeamName}
+              </p>
+              {matchContext?.awayContext && (
+                <p className="text-[10px] text-gray-500 mb-2 italic">{matchContext.awayContext}</p>
+              )}
               <div className="space-y-1">
                 {["GK","DEF","MIL","ATT"].map(pos => (
                   <div key={pos} className="flex flex-wrap gap-1 items-center">
                     <span className="text-[10px] text-gray-500 font-bold w-6">{pos}</span>
-                    {norwayPlayers.filter(p => p.position === pos).map(p => (
+                    {awayPlayers.filter(p => p.position === pos).map(p => (
                       <span key={p.id} className="text-[10px] bg-white/5 px-1.5 py-0.5 rounded text-gray-400">
-                        #{p.number} {p.name}{(p.ratingBase ?? 0) >= 88 ? " ★" : ""}
+                        #{p.number} {p.name}{(p.ratingBase ?? 0) >= 85 ? " ★" : ""}
                       </span>
                     ))}
                   </div>
@@ -337,10 +399,14 @@ export default function Simulator() {
               </div>
             </div>
 
-            <motion.button whileTap={{ scale: 0.97 }} onClick={() => setPhase("tactic")}
-              className="w-full bg-green-500 hover:bg-green-400 text-white font-black py-4 rounded-2xl text-lg transition">
-              ✅ Valider la composition →
-            </motion.button>
+            <div className="flex gap-3">
+              <motion.button whileTap={{ scale: 0.97 }} onClick={() => setPhase("select")}
+                className="flex-1 bg-white/10 text-white font-bold py-3 rounded-2xl">← Matchs</motion.button>
+              <motion.button whileTap={{ scale: 0.97 }} onClick={() => setPhase("tactic")}
+                className="flex-2 bg-green-500 hover:bg-green-400 text-white font-black py-3 px-8 rounded-2xl">
+                ✅ Valider →
+              </motion.button>
+            </div>
           </motion.div>
         )}
 
@@ -350,7 +416,7 @@ export default function Simulator() {
             <div className="text-center mb-5">
               <div className="text-3xl mb-2">🎯</div>
               <h2 className="text-xl font-bold">Choisis ta tactique</h2>
-              <p className="text-sm text-gray-400">Formation : {formation} · Adversaire : Pressing haut ⚡</p>
+              <p className="text-sm text-gray-400">Formation : {formation} · vs {awayTeamFlag} {awayTeamName}</p>
             </div>
             <div className="space-y-3 mb-5">
               {TACTICS.map(t => {
@@ -399,7 +465,7 @@ export default function Simulator() {
                 <span className="text-2xl font-black">{phase === "playing" ? 0 : homeScore}</span>
                 <span className="text-gray-400">-</span>
                 <span className="text-2xl font-black">{phase === "playing" ? 0 : awayScore}</span>
-                <span className="text-xl">🇳🇴</span>
+                <span className="text-xl">{awayTeamFlag}</span>
               </div>
               <span className="text-xs text-gray-400">{tactic.emoji}</span>
             </div>
@@ -424,20 +490,17 @@ export default function Simulator() {
                     <motion.div key={`${event.minute}-${i}`}
                       initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
                       className={`px-4 py-2.5 rounded-xl border ${
-                        isGoal
-                          ? isSen ? "bg-green-500/20 border-green-400/30" : "bg-red-500/20 border-red-400/30"
-                          : isText ? "bg-transparent border-transparent"
-                          : "bg-white/5 border-white/10"
+                        isGoal ? (isSen ? "bg-green-500/20 border-green-400/30" : "bg-red-500/20 border-red-400/30")
+                        : isText ? "bg-transparent border-transparent"
+                        : "bg-white/5 border-white/10"
                       }`}>
                       <div className="flex items-center gap-3">
-                        <span className="text-lg">{isGoal ? "⚽" : isSub ? "🔄" : isText ? "💬" : action?.emoji ?? "▸"}</span>
+                        <span className="text-lg">{isGoal ? "⚽" : isSub ? "🔄" : isText ? "💬" : (action?.emoji ?? "▸")}</span>
                         <span className="text-xs text-gray-400 font-mono w-8 shrink-0">{event.minute}'</span>
-                        <span className={`text-sm font-bold flex-1 ${isSen ? "text-green-200" : "text-red-200"}`}>
-                          {event.player || ""}
-                        </span>
+                        <span className={`text-sm font-bold flex-1 ${isSen ? "text-green-200" : "text-red-200"}`}>{event.player || ""}</span>
                         {!isText && !isSub && (
                           <span className="text-xs text-gray-400">
-                            {isGoal ? (isSen ? "✅ 🇸🇳" : "❌ 🇳🇴") : action?.label}
+                            {isGoal ? (isSen ? `✅ 🇸🇳` : `❌ ${awayTeamFlag}`) : action?.label}
                           </span>
                         )}
                       </div>
@@ -468,16 +531,16 @@ export default function Simulator() {
               <div className="flex items-center justify-center gap-8">
                 <div><div className="text-xs text-gray-400">🇸🇳 Sénégal</div><div className="text-5xl font-black">{homeScore}</div></div>
                 <span className="text-2xl text-gray-400">-</span>
-                <div><div className="text-xs text-gray-400">🇳🇴 Norvège</div><div className="text-5xl font-black">{awayScore}</div></div>
+                <div><div className="text-xs text-gray-400">{awayTeamFlag} {awayTeamName}</div><div className="text-5xl font-black">{awayScore}</div></div>
               </div>
               <p className="text-sm text-gray-400 mt-3">
                 {homeScore > awayScore ? "🟢 Le Sénégal mène — continuez !" :
-                 homeScore === awayScore ? "🟡 Nul — un but peut tout changer" :
-                 "🔴 Le Sénégal est mené — réagissez maintenant !"}
+                 homeScore === awayScore ? "🟡 Nul — il faut marquer !" :
+                 "🔴 Le Sénégal est mené — réagissez !"}
               </p>
             </div>
             <MatchRecap events={half1Events} title="📊 Récap — 1ère mi-temps" />
-            <p className="text-xs text-gray-400 mb-3 text-center font-bold">Ajuste ta tactique pour la 2e mi-temps :</p>
+            <p className="text-xs text-gray-400 mb-3 text-center font-bold">Ajuste ta tactique :</p>
             <div className="grid grid-cols-2 gap-2 mb-4">
               {TACTICS.map(t => (
                 <button key={t.id} onClick={() => setTactic(t)}
@@ -515,14 +578,14 @@ export default function Simulator() {
                 </div>
                 <span className="text-2xl text-gray-400">-</span>
                 <div className="text-center">
-                  <div className="text-4xl">🇳🇴</div>
-                  <div className="text-xs text-gray-400 mb-1">Norvège</div>
+                  <div className="text-4xl">{awayTeamFlag}</div>
+                  <div className="text-xs text-gray-400 mb-1">{awayTeamName}</div>
                   <div className="text-6xl font-black">{awayScore}</div>
                 </div>
               </div>
               <div className="mt-4 bg-yellow-500/20 border border-yellow-400/30 rounded-xl px-4 py-2">
                 <p className="text-yellow-400 font-bold text-sm">🎯 Score sauvegardé !</p>
-                <p className="text-xs text-gray-400 mt-0.5">Si c'est le vrai résultat ce soir → 200 💰 bonus</p>
+                <p className="text-xs text-gray-400 mt-0.5">Si c'est le vrai résultat → 200 💰 bonus</p>
               </div>
             </div>
 
@@ -543,9 +606,9 @@ export default function Simulator() {
                   </div>
                 </div>
                 {[
-                  { label: "Tirs", me: matchStats.shots.me,    ai: matchStats.shots.ai },
+                  { label: "Tirs",   me: matchStats.shots.me,    ai: matchStats.shots.ai },
                   { label: "Cadrés", me: matchStats.onTarget.me, ai: matchStats.onTarget.ai },
-                  { label: "xG",   me: matchStats.xG.me,      ai: matchStats.xG.ai },
+                  { label: "xG",     me: matchStats.xG.me,       ai: matchStats.xG.ai },
                 ].map(({ label, me, ai }) => {
                   const total = me + ai || 1;
                   return (
@@ -564,21 +627,19 @@ export default function Simulator() {
                 })}
                 <div className="flex justify-between text-[10px] text-gray-500 mt-2">
                   <span className="text-green-400">🇸🇳 Sénégal</span>
-                  <span className="text-red-400">🇳🇴 Norvège</span>
+                  <span className="text-red-400">{awayTeamFlag} {awayTeamName}</span>
                 </div>
               </div>
             )}
-
-            <TacticalKeys formation={formation} />
 
             <div className="space-y-3">
               <motion.button whileTap={{ scale: 0.97 }} onClick={shareOnWhatsApp}
                 className="w-full bg-green-500 hover:bg-green-400 text-white font-bold py-4 rounded-2xl transition">
                 📲 Partager ma simulation sur WhatsApp
               </motion.button>
-              <motion.button whileTap={{ scale: 0.97 }} onClick={reset}
+              <motion.button whileTap={{ scale: 0.97 }} onClick={() => { reset(); }}
                 className="w-full bg-white/10 hover:bg-white/20 text-white font-bold py-4 rounded-2xl transition">
-                🔄 Nouvelle simulation
+                🔄 Choisir un autre match
               </motion.button>
             </div>
           </motion.div>
