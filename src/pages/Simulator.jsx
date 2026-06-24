@@ -36,10 +36,12 @@ function FormBadge({ player }) {
 function MatchRecap({ events, title }) {
   if (!events || events.length === 0) return null;
   const goals   = events.filter(e => e.type === "goal");
-  const shots   = events.filter(e => ["shot","miss","save","header","goal"].includes(e.type));
+  const shots   = events.filter(e => ["shot","miss","header","goal"].includes(e.type));
   const corners = events.filter(e => e.type === "corner").length;
   const yellows = events.filter(e => e.type === "yellow").length;
+  // Parades = événements "save" peu importe l'équipe
   const saves   = events.filter(e => e.type === "save").length;
+  // Ratés = événements "miss" peu importe l'équipe
   const misses  = events.filter(e => e.type === "miss").length;
   const headers = events.filter(e => e.type === "header").length;
 
@@ -134,26 +136,16 @@ export default function Simulator() {
     const f = formation || "4-3-3";
     const offset = half === 1 ? 0 : 45;
 
-    // Score cible selon formation
-    let targetSenTotal = 2, targetAwayTotal = 1;
-    if (["4-2-3-1","4-4-2"].includes(f))   { targetSenTotal = 3; targetAwayTotal = 1; }
-    else if (f === "5-3-2")                 { targetSenTotal = 1; targetAwayTotal = 0; }
-
-    const halfSenGoals  = half === 1 ? (targetSenTotal >= 2 ? 1 : 1) : (targetSenTotal - (targetSenTotal >= 2 ? 1 : 1));
-    const halfAwayGoals = half === 1 ? (targetAwayTotal > 0 ? targetAwayTotal : 0) : 0;
-
+    // Récupérer les événements scénarisés — ils contiennent déjà les buts
     const events = matchModule.getScriptedEventsForHalf(half, currentTactic.id, senegalPlayers, f);
 
-    // Injecter buts 2e mi-temps si nécessaire
-    if (half === 2 && targetSenTotal >= 2) {
-      const attacker = senegalPlayers.find(p => p.position === "ATT" && p.name !== "N. Jackson" && p.name !== "S. Mané");
-      events.push({
-        minute: 78, type: "goal", team: "me",
-        player: attacker?.name ?? "I. Ndiaye",
-        desc: `⚽ BUT ! ${attacker?.name ?? "I. Ndiaye"} enfonce le clou pour le Sénégal ! Le Sénégal fait le break ! (${targetSenTotal}-${targetAwayTotal})`,
-        scripted: true,
-      });
-    }
+    // Compter les buts depuis les événements scénarisés (pas de doublon)
+    const halfSenGoals  = events.filter(e => e.type === "goal" && (e.team === "me" || e.team === "sen")).length;
+    const halfAwayGoals = events.filter(e => e.type === "goal" && e.team === "ai").length;
+
+    // Score total cumulé (1ère + 2e mi-temps)
+    const totalSenGoals  = half === 1 ? halfSenGoals : homeScore + halfSenGoals;
+    const totalAwayGoals = half === 1 ? halfAwayGoals : awayScore + halfAwayGoals;
 
     const sorted = events.sort((a, b) => a.minute - b.minute);
     const possSen = half === 1 ? 58 : 62;
@@ -186,8 +178,8 @@ export default function Simulator() {
             setMatchStats(halfStats);
             setPhase("halftime");
           } else {
-            setHomeScore(targetSenTotal);
-            setAwayScore(targetAwayTotal);
+            setHomeScore(totalSenGoals);
+            setAwayScore(totalAwayGoals);
             setAllEvents(prev => [...prev, ...sorted]);
             setMatchStats(prev => prev ? {
               possession: { me: Math.round((prev.possession.me + halfStats.possession.me) / 2), ai: Math.round((prev.possession.ai + halfStats.possession.ai) / 2) },
