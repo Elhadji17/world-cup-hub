@@ -7,13 +7,14 @@ import { useGameStats }                 from "../hooks/useGameStats.jsx";
 import { TACTICS, KEY_ACTIONS }         from "../data/match-engine";
 import { getRecentFormMultiplier }      from "../data/match-form";
 import { MATCH_REGISTRY }               from "../data/matchRegistry";
+import { registryToModule }             from "../data/matchGenerator";
 import MatchField                        from "../components/MatchField";
 
-// Import statique des deux matchs disponibles
+// Import statique des matchs avec données complètes
 import * as SenNor from "../data/matches/sen_nor_2026.js";
 import * as SenIra from "../data/matches/sen_ira_2026.js";
 
-const MATCH_MODULES = {
+const MATCH_MODULES_FULL = {
   sen_nor_2026: SenNor,
   sen_ira_2026: SenIra,
 };
@@ -111,15 +112,24 @@ export default function Simulator() {
   const intervalRef = useRef(null);
 
   function selectMatch(matchId) {
-    const meta   = MATCH_REGISTRY.find(m => m.id === matchId);
-    const module = MATCH_MODULES[matchId];
-    if (!meta || !module) return;
+    const meta = MATCH_REGISTRY.find(m => m.id === matchId);
+    if (!meta) return;
+
+    // Charger le module selon le niveau de données
+    let module;
+    if (meta.dataLevel === "full" && MATCH_MODULES_FULL[matchId]) {
+      // Données complètes — fichier dédié
+      module = MATCH_MODULES_FULL[matchId];
+    } else {
+      // Données auto — génération depuis les notes FIFA
+      module = registryToModule(meta);
+    }
 
     setSelectedMatchId(matchId);
     setMatchMeta(meta);
     setMatchModule(module);
     setSenegalPlayers(module.SENEGAL_MATCH.players);
-    setSenegalBench(module.SENEGAL_MATCH.bench);
+    setSenegalBench(module.SENEGAL_MATCH.bench ?? []);
     setFormation(module.SENEGAL_MATCH.formation ?? "4-3-3");
     setPhase("lineup");
   }
@@ -247,48 +257,88 @@ export default function Simulator() {
             </div>
 
             <h3 className="font-bold text-white mb-3 text-sm uppercase tracking-wide">📅 Matchs disponibles</h3>
-            <div className="space-y-3">
-              {MATCH_REGISTRY.map(match => (
-                <motion.div key={match.id}
-                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                  className={`relative rounded-2xl border overflow-hidden ${
-                    match.status === "finished" ? "border-white/5 opacity-70" : "border-white/10"
-                  }`}>
-                  <div className="absolute inset-0 bg-gradient-to-r from-green-900/30 to-blue-900/30" />
-                  <div className="relative p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[10px] text-gray-400 bg-white/10 px-2 py-0.5 rounded-full">{match.group}</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-gray-400">{match.date}</span>
-                        {match.status === "finished" && (
-                          <span className="text-[9px] bg-gray-600 text-gray-300 px-2 py-0.5 rounded-full">Terminé</span>
-                        )}
-                        {match.status === "upcoming" && (
-                          <span className="text-[9px] bg-green-600 text-white px-2 py-0.5 rounded-full">À venir</span>
-                        )}
+
+            {/* Matchs Sénégal en premier */}
+            <div className="mb-2">
+              <p className="text-[10px] text-green-400 font-bold uppercase tracking-wide mb-2">🇸🇳 Matchs Sénégal — Données complètes</p>
+              <div className="space-y-3">
+                {MATCH_REGISTRY.filter(m => m.dataLevel === "full").map(match => (
+                  <motion.div key={match.id}
+                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                    className="relative rounded-2xl border border-green-500/20 overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-r from-green-900/20 to-blue-900/20" />
+                    <div className="relative p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] text-gray-400 bg-white/10 px-2 py-0.5 rounded-full">{match.group}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9px] bg-green-600/80 text-white px-2 py-0.5 rounded-full">✅ Données complètes</span>
+                          {match.status === "finished" && <span className="text-[9px] bg-gray-600 text-gray-300 px-2 py-0.5 rounded-full">Terminé</span>}
+                          {match.status === "upcoming" && <span className="text-[9px] bg-yellow-600 text-white px-2 py-0.5 rounded-full font-bold">⚡ À venir</span>}
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-center gap-6 my-3">
+                        <div className="text-center">
+                          <div className="text-3xl">{match.homeTeam.flag}</div>
+                          <div className="text-xs font-bold text-white mt-1">{match.homeTeam.name}</div>
+                          <div className="text-[9px] text-gray-500">{match.homeTeam.fifaRating} FIFA</div>
+                          <div className="text-[9px] text-green-400">← Tu joues</div>
+                        </div>
+                        <div className="text-xl font-black text-gray-500">VS</div>
+                        <div className="text-center">
+                          <div className="text-3xl">{match.awayTeam.flag}</div>
+                          <div className="text-xs font-bold text-white mt-1">{match.awayTeam.name}</div>
+                          <div className="text-[9px] text-gray-500">{match.awayTeam.fifaRating} FIFA</div>
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-gray-500 text-center mb-3">📍 {match.stadium} · {match.date}</p>
+                      <motion.button whileTap={{ scale: 0.97 }}
+                        onClick={() => selectMatch(match.id)}
+                        className="w-full bg-green-500 hover:bg-green-400 text-white font-bold py-2.5 rounded-xl transition text-sm">
+                        🎮 {match.status === "finished" ? "Rejouer" : "Simuler ce match"}
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+
+            {/* Autres matchs auto */}
+            <div className="mt-5">
+              <p className="text-[10px] text-blue-400 font-bold uppercase tracking-wide mb-2">🌍 Autres matchs — Simulation automatique</p>
+              <div className="space-y-2">
+                {MATCH_REGISTRY.filter(m => m.dataLevel === "auto").map(match => (
+                  <motion.div key={match.id}
+                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                    className="relative rounded-xl border border-white/10 overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-900/15 to-purple-900/15" />
+                    <div className="relative p-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="text-center">
+                            <div className="text-xl">{match.homeTeam.flag}</div>
+                            <div className="text-[9px] text-gray-400">{match.homeTeam.name}</div>
+                            <div className="text-[8px] text-gray-600">{match.homeTeam.fifaRating}</div>
+                          </div>
+                          <span className="text-xs text-gray-500 font-black">VS</span>
+                          <div className="text-center">
+                            <div className="text-xl">{match.awayTeam.flag}</div>
+                            <div className="text-[9px] text-gray-400">{match.awayTeam.name}</div>
+                            <div className="text-[8px] text-gray-600">{match.awayTeam.fifaRating}</div>
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                          <span className="text-[8px] bg-blue-600/50 text-blue-300 px-1.5 py-0.5 rounded">🤖 Auto</span>
+                          <motion.button whileTap={{ scale: 0.97 }}
+                            onClick={() => selectMatch(match.id)}
+                            className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-3 py-1.5 rounded-lg transition text-xs">
+                            Simuler
+                          </motion.button>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center justify-center gap-6 my-3">
-                      <div className="text-center">
-                        <div className="text-3xl">{match.homeTeam.flag}</div>
-                        <div className="text-xs font-bold text-white mt-1">{match.homeTeam.name}</div>
-                        <div className="text-[9px] text-green-400">← Tu joues</div>
-                      </div>
-                      <div className="text-xl font-black text-gray-500">VS</div>
-                      <div className="text-center">
-                        <div className="text-3xl">{match.awayTeam.flag}</div>
-                        <div className="text-xs font-bold text-white mt-1">{match.awayTeam.name}</div>
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-gray-500 text-center mb-3">📍 {match.stadium}</p>
-                    <motion.button whileTap={{ scale: 0.97 }}
-                      onClick={() => selectMatch(match.id)}
-                      className="w-full bg-green-500 hover:bg-green-400 text-white font-bold py-2.5 rounded-xl transition text-sm">
-                      🎮 {match.status === "finished" ? "Rejouer cette simulation" : "Simuler ce match"}
-                    </motion.button>
-                  </div>
-                </motion.div>
-              ))}
+                  </motion.div>
+                ))}
+              </div>
             </div>
           </motion.div>
         )}
