@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence }      from "framer-motion";
+import { PLAYER_PROFILES, getDynamicPosition, getBehaviourDescription } from "../data/playerProfiles";
 
 const FIELD_W = 320;
 const FIELD_H = 500;
@@ -118,19 +119,19 @@ const TACTIC_TO_STATE = {
   defense:  "bloc_bas",
 };
 
-// Joueurs Sénégal avec leurs vrais numéros et noms
+// Joueurs Sénégal avec leurs profils individuels
 const SEN_PLAYERS_433 = [
-  { key: "GK",   num: 16, name: "Mendy",    role: "GK",  star: false },
-  { key: "DEF1", num: 15, name: "Diatta",   role: "DEF", star: false },
-  { key: "DEF2", num:  3, name: "Kouli.",   role: "DEF", star: false },
-  { key: "DEF3", num: 19, name: "Niakh.",   role: "DEF", star: false },
-  { key: "DEF4", num: 25, name: "Diouf",    role: "DEF", star: false },
-  { key: "MIL1", num:  5, name: "I.Gueye", role: "MIL", star: false },
-  { key: "MIL2", num:  8, name: "Camara",   role: "MIL", star: true  },
-  { key: "MIL3", num: 26, name: "P.Gueye", role: "MIL", star: false },
-  { key: "ATT1", num: 18, name: "I.Sarr",  role: "ATT", star: false },
-  { key: "ATT2", num: 11, name: "Jackson",  role: "ATT", star: false },
-  { key: "ATT3", num: 10, name: "Mané",     role: "ATT", star: true  },
+  { key: "GK",   num: 16, name: "Mendy",    role: "GK",  star: false, profileId: "mendy_16"    },
+  { key: "DEF1", num: 15, name: "Diatta",   role: "DEF", star: false, profileId: "diatta_15"   },
+  { key: "DEF2", num:  3, name: "Kouli.",   role: "DEF", star: false, profileId: "koulibaly_3" },
+  { key: "DEF3", num: 19, name: "Niakh.",   role: "DEF", star: false, profileId: "niakhate_19" },
+  { key: "DEF4", num: 25, name: "Diouf",    role: "DEF", star: false, profileId: "diouf_25"    },
+  { key: "MIL1", num:  5, name: "I.Gueye",  role: "MIL", star: false, profileId: "gueye_5"     },
+  { key: "MIL2", num:  8, name: "Camara",   role: "MIL", star: true,  profileId: "camara_8"    },
+  { key: "MIL3", num: 26, name: "P.Gueye",  role: "MIL", star: false, profileId: "gueye_26"    },
+  { key: "ATT1", num: 18, name: "I.Sarr",   role: "ATT", star: false, profileId: "sarr_18"     },
+  { key: "ATT2", num: 11, name: "Jackson",  role: "ATT", star: false, profileId: "jackson_11"  },
+  { key: "ATT3", num: 10, name: "Mané",     role: "ATT", star: true,  profileId: "mane_10"     },
 ];
 
 // Norvège — positions miroir (joue vers le haut, GK en bas)
@@ -216,6 +217,7 @@ export default function MatchField({
   const [highlightedNum, setHighlightedNum] = useState(null);
   const [tacticalLabel,  setTacticalLabel]  = useState("");
   const [possession,     setPossession]     = useState("me");
+  const [behaviourDesc,  setBehaviourDesc]  = useState(""); // description comportement individuel
   const autoRef = useRef(null);
 
   // Formations disponibles pour Sénégal
@@ -238,21 +240,24 @@ export default function MatchField({
     setLastMinute(last.minute);
 
     if (last.type === "goal" && (last.team === "me" || last.team === "sen")) {
-      // But Sénégal — célébration
       setTacticalState("celebration");
       setTacticalLabel("⚽ BUT DU SÉNÉGAL ! 🇸🇳");
       setBallX(FIELD_W / 2);
-      setBallY(FIELD_H * 0.92); // ballon dans le but adverse (bas)
+      setBallY(FIELD_H * 0.92);
       setFlash("goal_sen");
-      // Trouver le numéro du buteur
-      const num = SEN_PLAYERS_433.find(p =>
+      const scorerPlayer = SEN_PLAYERS_433.find(p =>
         last.player && (p.name.toLowerCase().includes(last.player.toLowerCase().split(".")[0]) ||
         last.player.toLowerCase().includes(p.name.toLowerCase()))
-      )?.num;
-      setHighlightedNum(num ?? null);
+      );
+      setHighlightedNum(scorerPlayer?.num ?? null);
+      if (scorerPlayer?.profileId) {
+        const desc = getBehaviourDescription(scorerPlayer.profileId, "attaque");
+        setBehaviourDesc(desc ? `✨ ${desc}` : "");
+      }
       setTimeout(() => {
         setFlash(null);
         setHighlightedNum(null);
+        setBehaviourDesc("");
         const baseState = TACTIC_TO_STATE[tacticId] ?? "bloc_median";
         setTacticalState(baseState);
         setTacticalLabel(TACTICAL_STATES[baseState]?.label ?? "");
@@ -420,12 +425,31 @@ export default function MatchField({
           );
         })}
 
-        {/* ── Joueurs Sénégal (positions selon formation + état tactique) ── */}
+        {/* ── Joueurs Sénégal (positions individuelles selon profil + état tactique) ── */}
         {SEN_PLAYERS_433.map(p => {
           const base = senFormation[p.key];
           if (!base) return null;
-          const pos = calcPosition(base, p.role, tacticalState, true);
+
+          // Position individuelle selon le profil du joueur
+          const dynBase = getDynamicPosition(p.profileId, base, tacticalState);
+
+          // Appliquer le décalage tactique global EN PLUS du comportement individuel
+          const state = TACTICAL_STATES[tacticalState] ?? TACTICAL_STATES.bloc_median;
+          const roleState = state[p.role] ?? { dy: 0, spread: 1 };
+          const extraDy = roleState.dy;
+          const finalBase = [
+            dynBase[0],
+            Math.min(0.95, Math.max(0.05, dynBase[1] + extraDy * 0.5)), // combiner les deux décalages
+          ];
+
+          const pos = {
+            x: Math.min(0.95, Math.max(0.05, finalBase[0] * (roleState.spread ?? 1) + 0.5 * (1 - (roleState.spread ?? 1)))) * FIELD_W,
+            y: finalBase[1] * FIELD_H,
+          };
+
           const isHighlighted = highlightedNum === p.num;
+          const profile = PLAYER_PROFILES[p.profileId];
+
           return (
             <Player key={`sen-${p.key}`} pos={pos}
               color="#1a6b2f" borderColor={p.star ? "#ffd700" : "rgba(255,255,255,0.85)"}
@@ -460,8 +484,7 @@ export default function MatchField({
       </svg>
 
       {/* ── Légende tactique ── */}
-      <motion.div
-        key={tacticalLabel}
+      <motion.div key={tacticalLabel}
         initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
         style={{
@@ -473,6 +496,14 @@ export default function MatchField({
         }}>
         {tacticalLabel}
       </motion.div>
+
+      {/* ── Info joueur en action ── */}
+      {behaviourDesc && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          style={{ textAlign: "center", fontSize: "10px", color: "#fbbf24", marginTop: "2px", fontStyle: "italic" }}>
+          {behaviourDesc}
+        </motion.div>
+      )}
 
       {/* Légende */}
       <div style={{ display:"flex", gap:"16px", justifyContent:"center", marginTop:"6px", fontSize:"10px", color:"#64748b" }}>
