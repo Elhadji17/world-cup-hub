@@ -518,7 +518,11 @@ export default function Simulator() {
             <div className="mb-3">
               <MatchField events={visibleEvents} currentMin={currentMin} phase={phase}
                 senScore={phase === "playing" ? 0 : homeScore}
-                norScore={phase === "playing" ? 0 : awayScore} />
+                norScore={phase === "playing" ? 0 : awayScore}
+                formation={formation}
+                tacticId={tactic.id}
+                awayFlag={awayTeamFlag}
+                awayName={awayTeamName} />
             </div>
             <div className="space-y-2">
               <AnimatePresence>

@@ -1,88 +1,234 @@
 // src/components/MatchField.jsx
-// Terrain de football animé — pions qui bougent selon la zone de jeu
-// Fix: utilise motion.g + translateX/Y au lieu de motion.circle cx/cy
+// Terrain de football tactique — positions réalistes par formation
+// Déplacements selon état du jeu (pressing, bloc bas, attaque, défense)
+// Synchronisation avec les événements scénarisés
 
-import { useState, useEffect }     from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence }      from "framer-motion";
 
 const FIELD_W = 320;
-const FIELD_H = 480;
+const FIELD_H = 500;
 
-const SEN_BASE = {
-  GK:   [0.50, 0.08], DEF1: [0.15, 0.22], DEF2: [0.35, 0.20],
-  DEF3: [0.65, 0.20], DEF4: [0.85, 0.22], MIL1: [0.20, 0.38],
-  MIL2: [0.50, 0.36], MIL3: [0.80, 0.38], ATT1: [0.15, 0.52],
-  ATT2: [0.50, 0.50], ATT3: [0.85, 0.52],
+// ── Positions par formation (x%, y%) ─────────────────────────────────────
+// Sénégal joue vers le bas (GK en haut y~0.06)
+// y=0 = but sénégalais, y=1 = but adverse
+const FORMATIONS = {
+  "4-3-3": {
+    GK:   [0.50, 0.06],
+    DEF1: [0.15, 0.20], DEF2: [0.37, 0.18], DEF3: [0.63, 0.18], DEF4: [0.85, 0.20],
+    MIL1: [0.20, 0.38], MIL2: [0.50, 0.35], MIL3: [0.80, 0.38],
+    ATT1: [0.15, 0.54], ATT2: [0.50, 0.52], ATT3: [0.85, 0.54],
+  },
+  "4-2-3-1": {
+    GK:   [0.50, 0.06],
+    DEF1: [0.15, 0.20], DEF2: [0.37, 0.18], DEF3: [0.63, 0.18], DEF4: [0.85, 0.20],
+    MIL1: [0.30, 0.34], MIL2: [0.70, 0.34],
+    MIL3: [0.15, 0.46], MIL4: [0.50, 0.44], MIL5: [0.85, 0.46],
+    ATT1: [0.50, 0.58],
+  },
+  "4-4-2": {
+    GK:   [0.50, 0.06],
+    DEF1: [0.15, 0.20], DEF2: [0.37, 0.18], DEF3: [0.63, 0.18], DEF4: [0.85, 0.20],
+    MIL1: [0.15, 0.38], MIL2: [0.38, 0.36], MIL3: [0.62, 0.36], MIL4: [0.85, 0.38],
+    ATT1: [0.32, 0.54], ATT2: [0.68, 0.54],
+  },
+  "5-3-2": {
+    GK:   [0.50, 0.06],
+    DEF1: [0.10, 0.20], DEF2: [0.30, 0.17], DEF3: [0.50, 0.16], DEF4: [0.70, 0.17], DEF5: [0.90, 0.20],
+    MIL1: [0.22, 0.36], MIL2: [0.50, 0.34], MIL3: [0.78, 0.36],
+    ATT1: [0.35, 0.52], ATT2: [0.65, 0.52],
+  },
 };
 
-const NOR_BASE = {
-  GK:   [0.50, 0.92], DEF1: [0.15, 0.78], DEF2: [0.35, 0.80],
-  DEF3: [0.65, 0.80], DEF4: [0.85, 0.78], MIL1: [0.20, 0.64],
-  MIL2: [0.50, 0.66], MIL3: [0.80, 0.64], ATT1: [0.15, 0.50],
-  ATT2: [0.50, 0.48], ATT3: [0.85, 0.50],
+// ── Décalages tactiques selon l état du jeu ───────────────────────────────
+// dy = décalage vertical (positif = vers le bas = vers le but adverse)
+// dx = décalage horizontal (élargissement/resserrement)
+const TACTICAL_STATES = {
+  // Sénégal en possession, construction depuis l arrière
+  possession_build: {
+    label: "Construction depuis l'arrière",
+    GK:   { dy: 0.03,  spread: 1.0 },
+    DEF:  { dy: 0.06,  spread: 1.1 }, // défenseurs montent légèrement
+    MIL:  { dy: 0.04,  spread: 1.15 }, // milieux s écartent
+    ATT:  { dy: 0.0,   spread: 1.2 }, // attaquants très larges
+  },
+  // Pressing haut — tout le monde monte
+  pressing_haut: {
+    label: "Pressing haut — on va les chercher !",
+    GK:   { dy: 0.05,  spread: 1.0 },
+    DEF:  { dy: 0.14,  spread: 1.05 },
+    MIL:  { dy: 0.16,  spread: 1.1 },
+    ATT:  { dy: 0.12,  spread: 1.0 },
+  },
+  // Attaque placée — on avance organisés
+  attaque_placee: {
+    label: "Attaque placée — progression organisée",
+    GK:   { dy: 0.02,  spread: 1.0 },
+    DEF:  { dy: 0.10,  spread: 1.05 },
+    MIL:  { dy: 0.14,  spread: 1.1 },
+    ATT:  { dy: 0.18,  spread: 1.15 },
+  },
+  // Bloc médian — équilibre attaque/défense
+  bloc_median: {
+    label: "Bloc médian — équilibre tactique",
+    GK:   { dy: 0.0,   spread: 1.0 },
+    DEF:  { dy: 0.04,  spread: 1.0 },
+    MIL:  { dy: 0.06,  spread: 1.05 },
+    ATT:  { dy: 0.08,  spread: 1.1 },
+  },
+  // Bloc bas — défense compacte
+  bloc_bas: {
+    label: "Bloc bas — on défend en bloc",
+    GK:   { dy: -0.02, spread: 1.0 },
+    DEF:  { dy: -0.04, spread: 0.9 }, // défenseurs reculent et se resserrent
+    MIL:  { dy: -0.06, spread: 0.85 },
+    ATT:  { dy: 0.0,   spread: 0.7 }, // attaquants restent hauts pour le contre
+  },
+  // Contre-attaque — explosion en profondeur
+  contre_attaque: {
+    label: "Contre-attaque — explosion en profondeur !",
+    GK:   { dy: -0.02, spread: 1.0 },
+    DEF:  { dy: -0.02, spread: 0.9 },
+    MIL:  { dy: 0.08,  spread: 1.2 },
+    ATT:  { dy: 0.22,  spread: 1.1 }, // attaquants explosent vers le but
+  },
+  // Phase défensive — l adversaire attaque
+  defence: {
+    label: "Phase défensive — on résiste !",
+    GK:   { dy: -0.01, spread: 1.0 },
+    DEF:  { dy: -0.03, spread: 0.85 },
+    MIL:  { dy: -0.02, spread: 0.9 },
+    ATT:  { dy: 0.04,  spread: 0.8 },
+  },
+  // But — célébration, joueurs qui convergent
+  celebration: {
+    label: "⚽ BUT DU SÉNÉGAL !!! 🇸🇳",
+    GK:   { dy: 0.0,   spread: 1.0 },
+    DEF:  { dy: 0.12,  spread: 1.3 },
+    MIL:  { dy: 0.18,  spread: 1.4 },
+    ATT:  { dy: 0.25,  spread: 1.5 }, // tous convergent vers le buteur
+  },
 };
 
-const ZONE_DY = {
-  defense: { sen: -0.05, nor: +0.05 },
-  milieu:  { sen:  0,    nor:  0    },
-  attaque: { sen: +0.08, nor: -0.05 },
-  surface: { sen: +0.14, nor: -0.10 },
+// Mapping tactique → état initial selon la tactique choisie
+const TACTIC_TO_STATE = {
+  balanced: "bloc_median",
+  attack:   "attaque_placee",
+  press:    "pressing_haut",
+  defense:  "bloc_bas",
 };
 
-const SEN_PLAYERS = [
-  { key: "GK",   num: 16, name: "Mendy",   star: false },
-  { key: "DEF1", num: 15, name: "Diatta",  star: false },
-  { key: "DEF2", num:  3, name: "Kouli",   star: false },
-  { key: "DEF3", num: 19, name: "Niakh",   star: false },
-  { key: "DEF4", num: 25, name: "Diouf",   star: false },
-  { key: "MIL1", num:  5, name: "I.Gueye", star: false },
-  { key: "MIL2", num:  8, name: "Camara",  star: true  },
-  { key: "MIL3", num: 26, name: "P.Gueye", star: false },
-  { key: "ATT1", num: 18, name: "I.Sarr",  star: false },
-  { key: "ATT2", num: 11, name: "Jackson", star: false },
-  { key: "ATT3", num: 10, name: "Mané",    star: true  },
+// Joueurs Sénégal avec leurs vrais numéros et noms
+const SEN_PLAYERS_433 = [
+  { key: "GK",   num: 16, name: "Mendy",    role: "GK",  star: false },
+  { key: "DEF1", num: 15, name: "Diatta",   role: "DEF", star: false },
+  { key: "DEF2", num:  3, name: "Kouli.",   role: "DEF", star: false },
+  { key: "DEF3", num: 19, name: "Niakh.",   role: "DEF", star: false },
+  { key: "DEF4", num: 25, name: "Diouf",    role: "DEF", star: false },
+  { key: "MIL1", num:  5, name: "I.Gueye", role: "MIL", star: false },
+  { key: "MIL2", num:  8, name: "Camara",   role: "MIL", star: true  },
+  { key: "MIL3", num: 26, name: "P.Gueye", role: "MIL", star: false },
+  { key: "ATT1", num: 18, name: "I.Sarr",  role: "ATT", star: false },
+  { key: "ATT2", num: 11, name: "Jackson",  role: "ATT", star: false },
+  { key: "ATT3", num: 10, name: "Mané",     role: "ATT", star: true  },
 ];
+
+// Norvège — positions miroir (joue vers le haut, GK en bas)
+const NOR_BASE = {
+  GK:   [0.50, 0.94],
+  DEF1: [0.15, 0.80], DEF2: [0.37, 0.82], DEF3: [0.63, 0.82], DEF4: [0.85, 0.80],
+  MIL1: [0.20, 0.65], MIL2: [0.50, 0.66], MIL3: [0.80, 0.65],
+  ATT1: [0.15, 0.50], ATT2: [0.50, 0.48], ATT3: [0.85, 0.50],
+};
 
 const NOR_PLAYERS = [
-  { key: "GK",   num:  1, name: "Nyland",   star: false },
-  { key: "DEF1", num: 14, name: "Ryerson",  star: false },
-  { key: "DEF2", num:  4, name: "Østigård", star: false },
-  { key: "DEF3", num:  6, name: "Ajer",     star: false },
-  { key: "DEF4", num:  2, name: "Wolfe",    star: false },
-  { key: "MIL1", num:  8, name: "Berge",    star: false },
-  { key: "MIL2", num: 10, name: "Ødegaard", star: true  },
-  { key: "MIL3", num: 16, name: "Thorst.",  star: false },
-  { key: "ATT1", num:  7, name: "Nusa",     star: false },
-  { key: "ATT2", num:  9, name: "Haaland",  star: true  },
-  { key: "ATT3", num: 11, name: "Sørloth",  star: false },
+  { key: "GK",   num:  1, name: "Nyland",   role: "GK",  star: false },
+  { key: "DEF1", num: 14, name: "Ryerson",  role: "DEF", star: false },
+  { key: "DEF2", num:  4, name: "Østig.",   role: "DEF", star: false },
+  { key: "DEF3", num:  6, name: "Ajer",     role: "DEF", star: false },
+  { key: "DEF4", num:  2, name: "Wolfe",    role: "DEF", star: false },
+  { key: "MIL1", num:  8, name: "Berge",    role: "MIL", star: false },
+  { key: "MIL2", num: 10, name: "Ødeg.",    role: "MIL", star: true  },
+  { key: "MIL3", num: 16, name: "Thorst.",  role: "MIL", star: false },
+  { key: "ATT1", num:  7, name: "Nusa",     role: "ATT", star: false },
+  { key: "ATT2", num:  9, name: "Haaland",  role: "ATT", star: true  },
+  { key: "ATT3", num: 11, name: "Sørloth",  role: "ATT", star: false },
 ];
 
-function Player({ base, dy, color, borderColor, num, name, star }) {
-  const x = base[0] * FIELD_W;
-  const y = Math.min(0.95, Math.max(0.05, base[1] + dy)) * FIELD_H;
-  const r = star ? 11 : 9;
+// ── Calcul de la position d un joueur selon la formation + état tactique ──
+function calcPosition(base, role, tacticalState, isHome = true) {
+  const state = TACTICAL_STATES[tacticalState] ?? TACTICAL_STATES.bloc_median;
+  const roleState = state[role] ?? { dy: 0, spread: 1 };
 
+  let [bx, by] = base;
+
+  // Décalage vertical (vers le bas pour attaque si home)
+  const dy = isHome ? roleState.dy : -roleState.dy;
+  by = Math.min(0.95, Math.max(0.05, by + dy));
+
+  // Élargissement horizontal autour du centre (0.5)
+  bx = 0.5 + (bx - 0.5) * roleState.spread;
+  bx = Math.min(0.95, Math.max(0.05, bx));
+
+  return { x: bx * FIELD_W, y: by * FIELD_H };
+}
+
+// ── Composant Joueur ──────────────────────────────────────────────────────
+function Player({ pos, color, borderColor, num, name, star, highlighted, yellowCard }) {
+  const r = star ? 12 : 10;
   return (
     <motion.g
-      animate={{ x, y }}
-      initial={{ x, y }}
-      transition={{ duration: 1.2, ease: "easeInOut" }}
+      animate={{ x: pos.x, y: pos.y }}
+      initial={{ x: pos.x, y: pos.y }}
+      transition={{ duration: 1.4, ease: "easeInOut" }}
     >
-      <circle r={r} fill={color} stroke={borderColor} strokeWidth={star ? 2 : 1.5}/>
-      <text textAnchor="middle" y="3" fill="white" fontSize="7" fontWeight="500">{num}</text>
-      <text textAnchor="middle" y="17" fill={star ? "#ffd700" : (color === "#1a8c3c" ? "#b8f0c8" : "#ffc0bb")} fontSize="6">{name}</text>
+      {/* Halo si joueur impliqué dans l action */}
+      {highlighted && (
+        <motion.circle r={r + 6} fill="rgba(255,215,0,0.3)"
+          animate={{ r: [r+4, r+10, r+4] }}
+          transition={{ duration: 0.8, repeat: 2 }}/>
+      )}
+      <circle r={r} fill={color} stroke={yellowCard ? "#ffd700" : borderColor}
+        strokeWidth={star || highlighted ? 2.5 : 1.5}/>
+      <text textAnchor="middle" y="3.5" fill="white" fontSize="7" fontWeight="600">{num}</text>
+      <text textAnchor="middle" y="18" fill={star ? "#ffd700" : (color === "#1a6b2f" ? "#a8f0c0" : "#ffc0bb")} fontSize="5.5">{name}</text>
     </motion.g>
   );
 }
 
-export default function MatchField({ events = [], currentMin = 0, phase = "idle", senScore = 0, norScore = 0 }) {
-  const [possession, setPossession] = useState("me");
-  const [zone,       setZone]       = useState("milieu");
-  const [ballX,      setBallX]      = useState(FIELD_W / 2);
-  const [ballY,      setBallY]      = useState(FIELD_H / 2);
-  const [flash,      setFlash]      = useState(null);
-  const [lastMinute, setLastMinute] = useState(-1);
+// ── Composant principal ───────────────────────────────────────────────────
+export default function MatchField({
+  events        = [],
+  currentMin    = 0,
+  phase         = "idle",
+  senScore      = 0,
+  norScore      = 0,
+  formation     = "4-3-3",
+  tacticId      = "balanced",
+  awayFlag      = "🇳🇴",
+  awayName      = "Norvège",
+}) {
+  const [tacticalState,  setTacticalState]  = useState(TACTIC_TO_STATE[tacticId] ?? "bloc_median");
+  const [ballX,          setBallX]          = useState(FIELD_W / 2);
+  const [ballY,          setBallY]          = useState(FIELD_H / 2);
+  const [flash,          setFlash]          = useState(null);
+  const [lastMinute,     setLastMinute]     = useState(-1);
+  const [highlightedNum, setHighlightedNum] = useState(null);
+  const [tacticalLabel,  setTacticalLabel]  = useState("");
+  const [possession,     setPossession]     = useState("me");
+  const autoRef = useRef(null);
 
+  // Formations disponibles pour Sénégal
+  const senFormation = FORMATIONS[formation] ?? FORMATIONS["4-3-3"];
+
+  // Mise à jour de l état tactique selon la tactique choisie
+  useEffect(() => {
+    const baseState = TACTIC_TO_STATE[tacticId] ?? "bloc_median";
+    setTacticalState(baseState);
+    setTacticalLabel(TACTICAL_STATES[baseState]?.label ?? "");
+  }, [tacticId]);
+
+  // Synchronisation avec les événements du match
   useEffect(() => {
     if (events.length === 0) return;
     const visible = events.filter(e => e.minute <= currentMin);
@@ -91,62 +237,133 @@ export default function MatchField({ events = [], currentMin = 0, phase = "idle"
     if (last.minute === lastMinute) return;
     setLastMinute(last.minute);
 
-    if (last.type === "goal") {
-      setPossession(last.team === "me" ? "ai" : "me");
-      setZone("milieu");
+    if (last.type === "goal" && (last.team === "me" || last.team === "sen")) {
+      // But Sénégal — célébration
+      setTacticalState("celebration");
+      setTacticalLabel("⚽ BUT DU SÉNÉGAL ! 🇸🇳");
       setBallX(FIELD_W / 2);
-      setBallY(FIELD_H / 2);
-      setFlash(last.team === "me" ? "goal_sen" : "goal_nor");
-      setTimeout(() => setFlash(null), 1800);
-    } else if (last.type === "miss" || last.type === "save") {
-      setPossession(last.team === "me" ? "ai" : "me");
-      setZone("milieu");
+      setBallY(FIELD_H * 0.92); // ballon dans le but adverse (bas)
+      setFlash("goal_sen");
+      // Trouver le numéro du buteur
+      const num = SEN_PLAYERS_433.find(p =>
+        last.player && (p.name.toLowerCase().includes(last.player.toLowerCase().split(".")[0]) ||
+        last.player.toLowerCase().includes(p.name.toLowerCase()))
+      )?.num;
+      setHighlightedNum(num ?? null);
+      setTimeout(() => {
+        setFlash(null);
+        setHighlightedNum(null);
+        const baseState = TACTIC_TO_STATE[tacticId] ?? "bloc_median";
+        setTacticalState(baseState);
+        setTacticalLabel(TACTICAL_STATES[baseState]?.label ?? "");
+        setPossession("ai");
+        setBallX(FIELD_W / 2);
+        setBallY(FIELD_H / 2);
+      }, 2500);
+
+    } else if (last.type === "goal" && last.team === "ai") {
+      // But adverse
+      setFlash("goal_nor");
+      setTacticalState("defence");
+      setTacticalLabel("😰 But encaissé — on repart !");
+      setBallX(FIELD_W / 2);
+      setBallY(FIELD_H * 0.08); // ballon dans le but sénégalais (haut)
+      setPossession("ai");
+      setTimeout(() => {
+        setFlash(null);
+        setPossession("me");
+        setBallX(FIELD_W / 2);
+        setBallY(FIELD_H / 2);
+        setTacticalState(TACTIC_TO_STATE[tacticId] ?? "bloc_median");
+        setTacticalLabel(TACTICAL_STATES[TACTIC_TO_STATE[tacticId]]?.label ?? "");
+      }, 2500);
+
+    } else if (last.type === "shot" || last.type === "miss") {
+      setTacticalState("attaque_placee");
+      setTacticalLabel("🎯 Occasion dangereuse !");
       setBallX(FIELD_W * (0.3 + Math.random() * 0.4));
-      setBallY(FIELD_H * (last.team === "me" ? 0.65 + Math.random() * 0.1 : 0.25 + Math.random() * 0.1));
+      setBallY(FIELD_H * 0.82);
+      setPossession("me");
+      setTimeout(() => {
+        setPossession("ai");
+        setTacticalState("defence");
+        setTacticalLabel(TACTICAL_STATES["defence"].label);
+      }, 2000);
+
+    } else if (last.type === "save") {
+      setTacticalState("defence");
+      setTacticalLabel("🧤 Parade décisive !");
+      setBallX(FIELD_W * 0.5);
+      setBallY(FIELD_H * 0.10);
+      setPossession("me");
+      setTimeout(() => {
+        setTacticalState(TACTIC_TO_STATE[tacticId] ?? "bloc_median");
+        setTacticalLabel(TACTICAL_STATES[TACTIC_TO_STATE[tacticId]]?.label ?? "");
+      }, 2000);
+
     } else if (last.type === "corner") {
-      setZone("surface");
-      setBallX(FIELD_W * (Math.random() < 0.5 ? 0.03 : 0.97));
-      setBallY(FIELD_H * (last.team === "me" ? 0.90 : 0.10));
+      setTacticalState("attaque_placee");
+      setTacticalLabel("🚩 Corner — tous en surface !");
+      setBallX(Math.random() < 0.5 ? FIELD_W * 0.02 : FIELD_W * 0.98);
+      setBallY(FIELD_H * 0.88);
+      setPossession("me");
+
+    } else if (last.type === "yellow") {
+      setTacticalLabel("🟨 Carton jaune !");
+      setTimeout(() => {
+        setTacticalLabel(TACTICAL_STATES[tacticalState]?.label ?? "");
+      }, 2000);
+
+    } else if (last.type === "text") {
+      // Commentaire narratif — ajuster état selon le contexte
+      if (last.desc?.toLowerCase().includes("pressing")) {
+        setTacticalState("pressing_haut");
+        setTacticalLabel(TACTICAL_STATES["pressing_haut"].label);
+      } else if (last.desc?.toLowerCase().includes("contre")) {
+        setTacticalState("contre_attaque");
+        setTacticalLabel(TACTICAL_STATES["contre_attaque"].label);
+      } else if (last.desc?.toLowerCase().includes("bloc")) {
+        setTacticalState("bloc_bas");
+        setTacticalLabel(TACTICAL_STATES["bloc_bas"].label);
+      }
     }
   }, [currentMin, events]);
 
-  // Animation de fond — le ballon bouge entre les événements
+  // Animation automatique du ballon entre les événements
   useEffect(() => {
     if (phase !== "playing" && phase !== "playing2") return;
-    const id = setInterval(() => {
-      const rand = Math.random();
-      if (rand < 0.25) setPossession(p => p === "me" ? "ai" : "me");
-      if (rand < 0.5)  setZone(z => {
-        const zs = ["defense","milieu","attaque","surface"];
-        return zs[(zs.indexOf(z) + 1) % zs.length];
-      });
-      setBallX(FIELD_W * (0.15 + Math.random() * 0.7));
-      setBallY(FIELD_H * (0.1 + Math.random() * 0.8));
-    }, 3500);
-    return () => clearInterval(id);
-  }, [phase]);
-
-  const { sen: senDy, nor: norDy } = ZONE_DY[zone] ?? ZONE_DY.milieu;
+    autoRef.current = setInterval(() => {
+      if (possession === "me") {
+        // Sénégal a le ballon — simulation de progression
+        setBallX(FIELD_W * (0.2 + Math.random() * 0.6));
+        setBallY(FIELD_H * (0.35 + Math.random() * 0.45));
+      } else {
+        // Adversaire a le ballon
+        setBallX(FIELD_W * (0.2 + Math.random() * 0.6));
+        setBallY(FIELD_H * (0.15 + Math.random() * 0.35));
+      }
+    }, 2800);
+    return () => clearInterval(autoRef.current);
+  }, [phase, possession]);
 
   return (
-    <div style={{ position: "relative", width: "100%", maxWidth: "320px", margin: "0 auto" }}>
+    <div style={{ position: "relative", width: "100%", maxWidth: "340px", margin: "0 auto" }}>
 
+      {/* Flash de but */}
       <AnimatePresence>
         {flash && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
+          <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
             style={{
-              position: "absolute", inset: 0, zIndex: 10, borderRadius: "8px", pointerEvents: "none",
+              position: "absolute", inset: 0, zIndex: 10, borderRadius: "10px", pointerEvents: "none",
               display: "flex", alignItems: "center", justifyContent: "center",
-              background: flash === "goal_sen" ? "rgba(26,140,60,0.88)" : "rgba(192,57,43,0.88)",
-            }}
-          >
+              background: flash === "goal_sen" ? "rgba(22,120,50,0.90)" : "rgba(180,40,30,0.90)",
+            }}>
             <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: "44px" }}>⚽</div>
-              <div style={{ color: "white", fontWeight: 700, fontSize: "22px" }}>
-                {flash === "goal_sen" ? "BUT ! 🇸🇳" : "BUT ! 🇳🇴"}
+              <div style={{ fontSize: "52px" }}>⚽</div>
+              <div style={{ color: "white", fontWeight: 800, fontSize: "24px", letterSpacing: "1px" }}>
+                {flash === "goal_sen" ? "BUT ! 🇸🇳" : `BUT ! ${awayFlag}`}
               </div>
-              <div style={{ color: "rgba(255,255,255,0.9)", fontSize: "30px", fontWeight: 700 }}>
+              <div style={{ color: "rgba(255,255,255,0.9)", fontSize: "36px", fontWeight: 800 }}>
                 {senScore} - {norScore}
               </div>
             </div>
@@ -154,76 +371,118 @@ export default function MatchField({ events = [], currentMin = 0, phase = "idle"
         )}
       </AnimatePresence>
 
-      <svg viewBox={`0 0 ${FIELD_W} ${FIELD_H}`} style={{ width: "100%", display: "block", borderRadius: "8px" }}>
-        {/* Terrain */}
-        <rect width={FIELD_W} height={FIELD_H} fill="#2d7a3a" rx="8"/>
-        <rect x="8" y="8" width={FIELD_W-16} height={FIELD_H-16} fill="none" stroke="#3d9a4a" strokeWidth="1" rx="4"/>
-        {[0,1,2,3,4,5,6,7].map(i => (
-          <rect key={i} x="8" y={8 + i*58} width={FIELD_W-16} height="29" fill={i%2===0?"rgba(0,0,0,0.04)":"transparent"}/>
+      <svg viewBox={`0 0 ${FIELD_W} ${FIELD_H}`} style={{ width: "100%", display: "block", borderRadius: "10px" }}>
+
+        {/* ── Terrain ── */}
+        <rect width={FIELD_W} height={FIELD_H} fill="#1e6b2f" rx="10"/>
+        {/* Rayures */}
+        {[0,1,2,3,4,5,6,7,8].map(i => (
+          <rect key={i} x="0" y={i * (FIELD_H/9)} width={FIELD_W} height={FIELD_H/9}
+            fill={i%2===0 ? "rgba(0,0,0,0.06)" : "transparent"}/>
         ))}
+        {/* Bordure */}
+        <rect x="8" y="8" width={FIELD_W-16} height={FIELD_H-16} fill="none" stroke="#2d8a42" strokeWidth="1.5" rx="6"/>
 
         {/* Ligne médiane */}
-        <line x1="8" y1={FIELD_H/2} x2={FIELD_W-8} y2={FIELD_H/2} stroke="#3d9a4a" strokeWidth="1"/>
-        <circle cx={FIELD_W/2} cy={FIELD_H/2} r="35" fill="none" stroke="#3d9a4a" strokeWidth="1"/>
-        <circle cx={FIELD_W/2} cy={FIELD_H/2} r="3" fill="#3d9a4a"/>
+        <line x1="8" y1={FIELD_H/2} x2={FIELD_W-8} y2={FIELD_H/2} stroke="#2d8a42" strokeWidth="1.2"/>
+        <circle cx={FIELD_W/2} cy={FIELD_H/2} r="38" fill="none" stroke="#2d8a42" strokeWidth="1.2"/>
+        <circle cx={FIELD_W/2} cy={FIELD_H/2} r="3" fill="#2d8a42"/>
 
-        {/* Surfaces */}
-        <rect x="80" y="8" width="160" height="70" fill="none" stroke="#3d9a4a" strokeWidth="1"/>
-        <rect x="110" y="8" width="100" height="35" fill="none" stroke="#3d9a4a" strokeWidth="1"/>
-        <rect x="80" y={FIELD_H-78} width="160" height="70" fill="none" stroke="#3d9a4a" strokeWidth="1"/>
-        <rect x="110" y={FIELD_H-43} width="100" height="35" fill="none" stroke="#3d9a4a" strokeWidth="1"/>
+        {/* Surface Sénégal (haut) */}
+        <rect x="78" y="8" width="164" height="78" fill="none" stroke="#2d8a42" strokeWidth="1"/>
+        <rect x="108" y="8" width="104" height="38" fill="none" stroke="#2d8a42" strokeWidth="1"/>
+        <circle cx={FIELD_W/2} cy="78" r="22" fill="none" stroke="#2d8a42" strokeWidth="1"
+          clipPath="url(#clipTop)"/>
+        <clipPath id="clipTop"><rect x="0" y="78" width={FIELD_W} height={FIELD_H}/></clipPath>
+
+        {/* Surface adverse (bas) */}
+        <rect x="78" y={FIELD_H-86} width="164" height="78" fill="none" stroke="#2d8a42" strokeWidth="1"/>
+        <rect x="108" y={FIELD_H-46} width="104" height="38" fill="none" stroke="#2d8a42" strokeWidth="1"/>
+        <circle cx={FIELD_W/2} cy={FIELD_H-78} r="22" fill="none" stroke="#2d8a42" strokeWidth="1"
+          clipPath="url(#clipBot)"/>
+        <clipPath id="clipBot"><rect x="0" y="0" width={FIELD_W} height={FIELD_H-78}/></clipPath>
 
         {/* Buts */}
-        <rect x="120" y="4" width="80" height="9" fill="none" stroke="white" strokeWidth="1.5"/>
-        <rect x="120" y={FIELD_H-13} width="80" height="9" fill="none" stroke="white" strokeWidth="1.5"/>
+        <rect x="118" y="4" width="84" height="10" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="1.5"/>
+        <rect x="118" y={FIELD_H-14} width="84" height="10" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="1.5"/>
 
-        {/* Joueurs Sénégal */}
-        {SEN_PLAYERS.map(p => (
-          <Player key={`sen-${p.key}`} base={SEN_BASE[p.key]} dy={senDy}
-            color="#1a8c3c" borderColor={p.star ? "#ffd700" : "white"}
-            num={p.num} name={p.name} star={p.star}/>
-        ))}
+        {/* ── Joueurs Norvège (positions fixes miroir) ── */}
+        {NOR_PLAYERS.map(p => {
+          const base = NOR_BASE[p.key];
+          if (!base) return null;
+          // Décalage adverse selon possession
+          const norDy = possession === "me" ? 0.06 : -0.08;
+          const pos = { x: base[0] * FIELD_W, y: Math.min(0.95, Math.max(0.05, base[1] + norDy)) * FIELD_H };
+          return (
+            <Player key={`nor-${p.key}`} pos={pos}
+              color="#a83228" borderColor={p.star ? "#ffd700" : "rgba(255,255,255,0.8)"}
+              num={p.num} name={p.name} star={p.star} highlighted={false} yellowCard={false}/>
+          );
+        })}
 
-        {/* Joueurs Norvège */}
-        {NOR_PLAYERS.map(p => (
-          <Player key={`nor-${p.key}`} base={NOR_BASE[p.key]} dy={norDy}
-            color="#c0392b" borderColor={p.star ? "#ffd700" : "white"}
-            num={p.num} name={p.name} star={p.star}/>
-        ))}
+        {/* ── Joueurs Sénégal (positions selon formation + état tactique) ── */}
+        {SEN_PLAYERS_433.map(p => {
+          const base = senFormation[p.key];
+          if (!base) return null;
+          const pos = calcPosition(base, p.role, tacticalState, true);
+          const isHighlighted = highlightedNum === p.num;
+          return (
+            <Player key={`sen-${p.key}`} pos={pos}
+              color="#1a6b2f" borderColor={p.star ? "#ffd700" : "rgba(255,255,255,0.85)"}
+              num={p.num} name={p.name} star={p.star}
+              highlighted={isHighlighted} yellowCard={false}/>
+          );
+        })}
 
-        {/* Ballon */}
+        {/* ── Ballon ── */}
         <motion.g animate={{ x: ballX, y: ballY }} initial={{ x: FIELD_W/2, y: FIELD_H/2 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}>
-          <circle r="5.5" fill="white" stroke="#999" strokeWidth="0.5"/>
-          <circle r="2.5" fill="#bbb"/>
+          transition={{ duration: 0.9, ease: "easeOut" }}>
+          <circle r="6" fill="white" stroke="#ccc" strokeWidth="0.8"/>
+          <circle r="3" fill="#bbb"/>
         </motion.g>
 
-        {/* Indicateurs */}
-        <rect x="8" y="8" width="76" height="16" fill={possession==="me"?"#1a8c3c":"#c0392b"} rx="3" opacity="0.9"/>
-        <text x="46" y="19" textAnchor="middle" fill="white" fontSize="8" fontWeight="500">
-          {possession==="me" ? "🇸🇳 balle" : "🇳🇴 balle"}
+        {/* ── Indicateurs ── */}
+        {/* Possession */}
+        <rect x="8" y="8" width="80" height="17" fill={possession==="me" ? "#1a6b2f" : "#a83228"} rx="4" opacity="0.92"/>
+        <text x="48" y="20" textAnchor="middle" fill="white" fontSize="8.5" fontWeight="600">
+          {possession==="me" ? "🇸🇳 Balle" : `${awayFlag} Balle`}
         </text>
 
-        <rect x={FIELD_W-84} y="8" width="76" height="16" fill="rgba(0,0,0,0.45)" rx="3"/>
-        <text x={FIELD_W-46} y="19" textAnchor="middle" fill="white" fontSize="8" fontWeight="500">
-          {zone==="defense"?"Défense":zone==="milieu"?"Milieu":zone==="attaque"?"Attaque":"Surface"}
-        </text>
-
-        {/* Score central */}
-        <rect x={FIELD_W/2-28} y={FIELD_H/2-13} width="56" height="17" fill="rgba(0,0,0,0.65)" rx="4"/>
-        <text x={FIELD_W/2} y={FIELD_H/2-1} textAnchor="middle" fill="white" fontSize="10" fontWeight="500">
+        {/* Score */}
+        <rect x={FIELD_W/2-32} y={FIELD_H/2-14} width="64" height="19" fill="rgba(0,0,0,0.70)" rx="5"/>
+        <text x={FIELD_W/2} y={FIELD_H/2-1} textAnchor="middle" fill="white" fontSize="11" fontWeight="700">
           {senScore} - {norScore}
         </text>
+
+        {/* Étiquettes équipes */}
+        <text x={FIELD_W/2} y="24" textAnchor="middle" fill="rgba(255,255,255,0.5)" fontSize="7">🇸🇳 SÉN</text>
+        <text x={FIELD_W/2} y={FIELD_H-6} textAnchor="middle" fill="rgba(255,255,255,0.5)" fontSize="7">{awayFlag} {awayName.substring(0,3).toUpperCase()}</text>
       </svg>
 
-      <div style={{ display:"flex", gap:"12px", justifyContent:"center", marginTop:"6px", fontSize:"10px", color:"var(--color-text-secondary)" }}>
+      {/* ── Légende tactique ── */}
+      <motion.div
+        key={tacticalLabel}
+        initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        style={{
+          marginTop: "6px", textAlign: "center", fontSize: "11px",
+          color: tacticalLabel.includes("BUT") ? "#4ade80" :
+                 tacticalLabel.includes("😰") ? "#f87171" : "#94a3b8",
+          fontWeight: tacticalLabel.includes("BUT") ? 700 : 400,
+          minHeight: "18px",
+        }}>
+        {tacticalLabel}
+      </motion.div>
+
+      {/* Légende */}
+      <div style={{ display:"flex", gap:"16px", justifyContent:"center", marginTop:"6px", fontSize:"10px", color:"#64748b" }}>
         <span style={{ display:"flex", alignItems:"center", gap:"4px" }}>
-          <svg width="10" height="10"><circle cx="5" cy="5" r="4" fill="#1a8c3c" stroke="#ffd700" strokeWidth="1.5"/></svg>
-          Joueur clé Sénégal
+          <svg width="10" height="10"><circle cx="5" cy="5" r="4" fill="#1a6b2f" stroke="#ffd700" strokeWidth="1.5"/></svg>
+          Joueur clé 🇸🇳
         </span>
         <span style={{ display:"flex", alignItems:"center", gap:"4px" }}>
-          <svg width="10" height="10"><circle cx="5" cy="5" r="4" fill="#c0392b" stroke="#ffd700" strokeWidth="1.5"/></svg>
-          Joueur clé Norvège
+          <svg width="10" height="10"><circle cx="5" cy="5" r="4" fill="#a83228" stroke="#ffd700" strokeWidth="1.5"/></svg>
+          Joueur clé {awayFlag}
         </span>
       </div>
     </div>
