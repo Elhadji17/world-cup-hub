@@ -327,17 +327,34 @@ export default function MatchField({
   const [lastMinute,      setLastMinute]      = useState(-1);
   const [highlightedNum,  setHighlightedNum]  = useState(null);
   const [tacticalLabel,   setTacticalLabel]   = useState("Bloc médian — construction");
+  // Momentum : 0 = domination totale adverse, 100 = domination totale Sénégal, 50 = équilibre
+  const [momentum,        setMomentum]        = useState(50);
   const autoRef  = useRef(null);
 
   const senFormation = FORMATIONS[formation] ?? FORMATIONS["4-3-3"];
 
-  // Helper : met à jour tacticalState + currentPhase + label en une seule fois
-  function applyPhase(state, label, poss) {
+  // Helper : met à jour tacticalState + currentPhase + label + momentum
+  function applyPhase(state, label, poss, momentumDelta = 0) {
     setTacticalState(state);
     setCurrentPhase(getPhase(state, poss ?? possession));
     setTacticalLabel(label);
     if (poss !== undefined) setPossession(poss);
+    if (momentumDelta !== 0) {
+      setMomentum(prev => Math.min(95, Math.max(5, prev + momentumDelta)));
+    }
   }
+
+  // Mise à jour selon la tactique choisie — influence le momentum de base
+  useEffect(() => {
+    const tacticMomentum = {
+      attack:   +8,  // Attaque totale → pousse le momentum vers Sénégal
+      press:    +5,  // Pressing haut → idem mais moins risqué
+      balanced: 0,   // Équilibré → neutre
+      defense:  -5,  // Défense solide → cède un peu de territoire
+    };
+    const delta = tacticMomentum[tacticId] ?? 0;
+    if (delta !== 0) setMomentum(prev => Math.min(85, Math.max(15, prev + delta)));
+  }, [tacticId]);
 
   // Réinitialiser quand on change de mi-temps
   useEffect(() => {
@@ -355,7 +372,7 @@ export default function MatchField({
     setLastMinute(last.minute);
 
     if (last.type === "goal" && (last.team === "me" || last.team === "sen")) {
-      applyPhase("celebration", "⚽ BUT DU SÉNÉGAL !", "me");
+      applyPhase("celebration", "⚽ BUT DU SÉNÉGAL !", "me", +18);
       setFlash("goal_sen");
       setBallX(W / 2); setBallY(H * 0.06);
       const scorer = SEN_PLAYERS.find(p =>
@@ -364,45 +381,48 @@ export default function MatchField({
       setHighlightedNum(scorer?.num ?? null);
       setTimeout(() => {
         setFlash(null); setHighlightedNum(null);
-        applyPhase("bloc_median", "Coup d'envoi adverse — bloc médian", "ai");
+        applyPhase("bloc_median", "Coup d'envoi adverse — bloc médian", "ai", -5);
         setBallX(W/2); setBallY(H/2);
       }, 2800);
 
     } else if (last.type === "goal" && last.team === "ai") {
       setFlash("goal_adv");
-      applyPhase("defence", "😰 But encaissé — on se regroupe", "ai");
+      applyPhase("defence", "😰 But encaissé — on se regroupe", "ai", -18);
       setBallX(W/2); setBallY(H*0.94);
       setTimeout(() => {
         setFlash(null);
-        applyPhase("bloc_median", "Coup d'envoi — reprise", "me");
+        applyPhase("bloc_median", "Coup d'envoi — reprise", "me", +3);
         setBallX(W/2); setBallY(H/2);
       }, 2800);
 
     } else if (last.type === "shot" || last.type === "miss") {
-      applyPhase("attaque_placee", "🎯 Occasion dangereuse !", "me");
+      applyPhase("attaque_placee", "🎯 Occasion dangereuse !", "me", +8);
       setBallX(W*(0.3+Math.random()*0.4)); setBallY(H*0.12);
-      setTimeout(() => { applyPhase("bloc_median", "Bloc médian", "ai"); }, 2000);
+      setTimeout(() => { applyPhase("bloc_median", "Bloc médian", "ai", -4); }, 2000);
 
     } else if (last.type === "save") {
-      applyPhase("possession_build", "🧤 Parade — on repart !", "me");
+      applyPhase("possession_build", "🧤 Parade — on repart !", "me", +6);
       setBallX(W*0.5); setBallY(H*0.10);
       setTimeout(() => { applyPhase("bloc_median", "Construction", "me"); }, 2000);
 
     } else if (last.type === "corner") {
-      applyPhase("attaque_placee", "🚩 Corner — Koulibaly monte !", "me");
+      applyPhase("attaque_placee", "🚩 Corner — Koulibaly monte !", "me", +5);
       setBallX(Math.random()<0.5 ? W*0.02 : W*0.98); setBallY(H*0.08);
+
+    } else if (last.type === "yellow") {
+      setMomentum(prev => Math.min(95, Math.max(5, prev + (last.team === "ai" ? +4 : -4))));
 
     } else if (last.type === "text" && last.desc) {
       const d = last.desc.toLowerCase();
-      if (d.includes("pressing"))          applyPhase("pressing_haut",   "⚡ Pressing haut — on monte !", "me");
-      else if (d.includes("contre"))       applyPhase("contre_attaque",  "⚡ Contre-attaque !", "me");
-      else if (d.includes("bloc bas"))     applyPhase("bloc_bas",        "🛡️ Bloc bas — on défend", "me");
-      else if (d.includes("construction")) applyPhase("possession_build","Construction depuis l'arrière", "me");
-      else if (d.includes("relance"))      applyPhase("possession_build","Construction — relance basse", "me");
+      if (d.includes("pressing"))          applyPhase("pressing_haut",   "⚡ Pressing haut — on monte !", "me", +6);
+      else if (d.includes("contre"))       applyPhase("contre_attaque",  "⚡ Contre-attaque !", "me", +5);
+      else if (d.includes("bloc bas"))     applyPhase("bloc_bas",        "🛡️ Bloc bas — on défend", "me", -3);
+      else if (d.includes("construction")) applyPhase("possession_build","Construction depuis l'arrière", "me", +2);
+      else if (d.includes("relance"))      applyPhase("possession_build","Construction — relance basse", "me", +2);
       else if (
         d.includes("belgique") || d.includes("lukaku") ||
         d.includes("de bruyne") || d.includes("norvège") || d.includes("adversaire")
-      ) applyPhase("defence", "🛡️ Défense — l'adversaire attaque", "ai");
+      ) applyPhase("defence", "🛡️ Défense — l'adversaire attaque", "ai", -5);
     }
   }, [currentMin, events]);
 
@@ -615,6 +635,60 @@ export default function MatchField({
         }}>
         {tacticalLabel}
       </motion.div>
+
+      {/* ── Jauge de Momentum ── */}
+      <div style={{ marginTop:"8px", padding:"0 4px" }}>
+        {/* Labels */}
+        <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"4px", fontSize:"9px", fontWeight:600 }}>
+          <span style={{ color:"#4ade80" }}>🇸🇳 Sénégal</span>
+          <span style={{
+            fontSize:"10px", fontWeight:700,
+            color: momentum > 60 ? "#4ade80" : momentum < 40 ? "#f87171" : "#94a3b8",
+          }}>
+            {momentum > 65 ? "Domination 🇸🇳" :
+             momentum > 55 ? "Légère maîtrise 🇸🇳" :
+             momentum === 50 ? "Match équilibré ⚖️" :
+             momentum < 35 ? "Domination 🇧🇪" :
+             "Pression belge 🇧🇪"}
+          </span>
+          <span style={{ color:"#f87171" }}>{awayFlag} {awayName.substring(0,3)}</span>
+        </div>
+
+        {/* Barre */}
+        <div style={{
+          width:"100%", height:"8px",
+          background:"rgba(248,113,113,0.35)",
+          borderRadius:"4px", overflow:"hidden",
+          position:"relative",
+        }}>
+          <motion.div
+            animate={{ width: `${momentum}%` }}
+            transition={{ duration: 1.2, ease: "easeInOut" }}
+            style={{
+              height:"100%",
+              background: momentum > 55
+                ? "linear-gradient(90deg, #16a34a, #4ade80)"
+                : momentum < 45
+                ? "linear-gradient(90deg, #16a34a, #86efac)"
+                : "linear-gradient(90deg, #16a34a, #4ade80)",
+              borderRadius:"4px",
+            }}
+          />
+          {/* Marqueur central */}
+          <div style={{
+            position:"absolute", top:0, left:"50%",
+            width:"2px", height:"100%",
+            background:"rgba(255,255,255,0.4)",
+            transform:"translateX(-50%)",
+          }}/>
+        </div>
+
+        {/* Valeurs numériques */}
+        <div style={{ display:"flex", justifyContent:"space-between", marginTop:"3px", fontSize:"8.5px", color:"#64748b" }}>
+          <span>{momentum}%</span>
+          <span>{100 - momentum}%</span>
+        </div>
+      </div>
 
       {/* Légende flèches */}
       <div style={{ display:"flex", gap:"12px", justifyContent:"center", marginTop:"5px", fontSize:"9.5px", color:"#64748b" }}>
