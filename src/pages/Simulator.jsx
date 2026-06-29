@@ -417,6 +417,8 @@ export default function Simulator() {
     // Reprendre le match
     resumeMatch(pendingTactic);
   }
+
+  function playHalf(half, currentTactic) {
     if (!matchModule) return;
     const f = formation || "4-3-3";
     const offset = half === 1 ? 0 : 45;
