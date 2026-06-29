@@ -327,8 +327,7 @@ export default function MatchField({
   const [lastMinute,      setLastMinute]      = useState(-1);
   const [highlightedNum,  setHighlightedNum]  = useState(null);
   const [tacticalLabel,   setTacticalLabel]   = useState("Bloc médian — construction");
-  // Momentum : 0 = domination totale adverse, 100 = domination totale Sénégal, 50 = équilibre
-  const [momentum,        setMomentum]        = useState(50);
+  const [momentum, setMomentum] = useState(50); // toujours partir à 50%
   const autoRef  = useRef(null);
 
   const senFormation = FORMATIONS[formation] ?? FORMATIONS["4-3-3"];
@@ -344,13 +343,15 @@ export default function MatchField({
     }
   }
 
-  // Mise à jour selon la tactique choisie — influence le momentum de base
+  // Influence du changement de tactique sur le momentum — seulement quand la tactique change
+  const isFirstRender = useRef(true);
   useEffect(() => {
+    if (isFirstRender.current) { isFirstRender.current = false; return; }
     const tacticMomentum = {
-      attack:   +8,  // Attaque totale → pousse le momentum vers Sénégal
-      press:    +5,  // Pressing haut → idem mais moins risqué
-      balanced: 0,   // Équilibré → neutre
-      defense:  -5,  // Défense solide → cède un peu de territoire
+      attack:   +6,
+      press:    +4,
+      balanced:  0,
+      defense:  -4,
     };
     const delta = tacticMomentum[tacticId] ?? 0;
     if (delta !== 0) setMomentum(prev => Math.min(85, Math.max(15, prev + delta)));
@@ -359,6 +360,7 @@ export default function MatchField({
   // Réinitialiser quand on change de mi-temps
   useEffect(() => {
     setLastMinute(-1);
+    setMomentum(50); // repart toujours à 50% en début de mi-temps
     applyPhase("bloc_median", "Bloc médian — construction", "me");
   }, [events]);
 
