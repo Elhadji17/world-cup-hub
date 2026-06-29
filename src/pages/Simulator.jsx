@@ -9,6 +9,7 @@ import { getRecentFormMultiplier }      from "../data/match-form";
 import { MATCH_REGISTRY }               from "../data/matchRegistry";
 import { registryToModule }             from "../data/matchGenerator";
 import MatchField                        from "../components/MatchField";
+import PaletteTactique                   from "../components/PaletteTactique";
 
 // Import statique des matchs avec données complètes
 import * as SenNor from "../data/matches/sen_nor_2026.js";
@@ -111,6 +112,7 @@ export default function Simulator() {
   const [allEvents,        setAllEvents]        = useState([]);
   const [half1Events,      setHalf1Events]      = useState([]);
   const [matchStats,       setMatchStats]       = useState(null);
+  const [showPalette,      setShowPalette]      = useState(false); // ← nouveau
   const intervalRef = useRef(null);
 
   function selectMatch(matchId) {
@@ -498,6 +500,18 @@ export default function Simulator() {
         {/* ── MATCH EN COURS ── */}
         {(phase === "playing" || phase === "playing2") && (
           <div>
+            {/* Palette modale si ouverte */}
+            {showPalette && (
+              <PaletteTactique
+                timelineEvents={matchModule?.MATCH_TIMELINE_EVENTS ?? []}
+                formation={formation}
+                onFormationChange={setFormation}
+                onClose={() => setShowPalette(false)}
+                awayFlag={awayTeamFlag}
+                awayName={awayTeamName}
+              />
+            )}
+
             <div className="bg-white/10 border border-white/20 rounded-2xl px-4 py-3 mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-green-400 font-bold animate-pulse">⏱️</span>
@@ -511,7 +525,12 @@ export default function Simulator() {
                 <span className="text-2xl font-black">{phase === "playing" ? 0 : awayScore}</span>
                 <span className="text-xl">{awayTeamFlag}</span>
               </div>
-              <span className="text-xs text-gray-400">{tactic.emoji}</span>
+              {/* Bouton Palette Tactique */}
+              <motion.button whileTap={{ scale: 0.95 }}
+                onClick={() => setShowPalette(true)}
+                className="flex items-center gap-1 bg-cyan-500/20 border border-cyan-400/30 text-cyan-400 text-xs font-bold px-2 py-1 rounded-lg">
+                📺 Régie
+              </motion.button>
             </div>
             <div className="w-full bg-white/10 rounded-full h-1.5 mb-3">
               <motion.div animate={{ width: `${Math.min((currentMin / 90) * 100, 100)}%` }}
@@ -525,6 +544,7 @@ export default function Simulator() {
                 tacticId={tactic.id}
                 awayFlag={awayTeamFlag}
                 awayName={awayTeamName}
+                awayPlayers={awayPlayers}
                 timelineEvents={matchModule?.MATCH_TIMELINE_EVENTS ?? []} />
             </div>
             <div className="space-y-2">
@@ -537,24 +557,29 @@ export default function Simulator() {
                   const isSen  = event.team === "me" || event.team === "sen";
                   return (
                     <motion.div key={`${event.minute}-${i}`}
-                      initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+                      initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }}
                       className={`px-4 py-2.5 rounded-xl border ${
                         isGoal ? (isSen ? "bg-green-500/20 border-green-400/30" : "bg-red-500/20 border-red-400/30")
-                        : isText ? "bg-transparent border-transparent"
+                        : isText ? "bg-white/3 border-white/5"
                         : "bg-white/5 border-white/10"
                       }`}>
                       <div className="flex items-center gap-3">
                         <span className="text-lg">{isGoal ? "⚽" : isSub ? "🔄" : isText ? "💬" : (action?.emoji ?? "▸")}</span>
                         <span className="text-xs text-gray-400 font-mono w-8 shrink-0">{event.minute}'</span>
-                        <span className={`text-sm font-bold flex-1 ${isSen ? "text-green-200" : "text-red-200"}`}>{event.player || ""}</span>
+                        <span className={`text-sm font-bold flex-1 ${isSen ? "text-green-200" : "text-red-200"}`}>
+                          {event.player || ""}
+                        </span>
                         {!isText && !isSub && (
                           <span className="text-xs text-gray-400">
                             {isGoal ? (isSen ? `✅ 🇸🇳` : `❌ ${awayTeamFlag}`) : action?.label}
                           </span>
                         )}
                       </div>
+                      {/* Description narrative — buts en blanc gras, autres en italique gris */}
                       {event.desc && (
-                        <p className={`text-[11px] mt-1 ml-11 ${isGoal ? "text-white font-medium" : "text-gray-400 italic"}`}>
+                        <p className={`text-[11px] mt-1 ml-11 leading-relaxed ${
+                          isGoal ? "text-white font-semibold" : "text-gray-400 italic"
+                        }`}>
                           {event.desc}
                         </p>
                       )}
