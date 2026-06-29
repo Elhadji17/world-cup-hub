@@ -13,10 +13,12 @@ import MatchField                        from "../components/MatchField";
 // Import statique des matchs avec données complètes
 import * as SenNor from "../data/matches/sen_nor_2026.js";
 import * as SenIra from "../data/matches/sen_ira_2026.js";
+import * as SenBel from "../data/matches/sen_bel_2026.js";
 
 const MATCH_MODULES_FULL = {
   sen_nor_2026: SenNor,
   sen_ira_2026: SenIra,
+  sen_bel_2026: SenBel,
 };
 
 const FORMATIONS = ["4-3-3", "4-2-3-1", "4-4-2", "5-3-2"];
@@ -522,7 +524,8 @@ export default function Simulator() {
                 formation={formation}
                 tacticId={tactic.id}
                 awayFlag={awayTeamFlag}
-                awayName={awayTeamName} />
+                awayName={awayTeamName}
+                timelineEvents={matchModule?.MATCH_TIMELINE_EVENTS ?? []} />
             </div>
             <div className="space-y-2">
               <AnimatePresence>
