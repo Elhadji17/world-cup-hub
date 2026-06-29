@@ -112,8 +112,13 @@ export default function Simulator() {
   const [allEvents,        setAllEvents]        = useState([]);
   const [half1Events,      setHalf1Events]      = useState([]);
   const [matchStats,       setMatchStats]       = useState(null);
-  const [showPalette,      setShowPalette]      = useState(false); // ← nouveau
+  const [showPalette,      setShowPalette]      = useState(false);
+  // ── Système de pause tactique ──
+  const [isPaused,         setIsPaused]         = useState(false);
+  const [showPauseTactic,  setShowPauseTactic]  = useState(false);
+  const [pendingTactic,    setPendingTactic]    = useState(null); // tactique choisie pendant la pause
   const intervalRef = useRef(null);
+  const pausedMinRef = useRef(0); // minute au moment de la pause
 
   function selectMatch(matchId) {
     const meta = MATCH_REGISTRY.find(m => m.id === matchId);
@@ -145,6 +150,70 @@ export default function Simulator() {
     setSubTarget(null);
   }
 
+  function pauseMatch() {
+    clearInterval(intervalRef.current);
+    pausedMinRef.current = currentMin;
+    setIsPaused(true);
+    setShowPauseTactic(true);
+  }
+
+  function resumeMatch(newTactic) {
+    // Si nouvelle tactique choisie, l'appliquer + injecter événement narratif
+    if (newTactic && newTactic.id !== tactic.id) {
+      setTactic(newTactic);
+      // Injecter un événement narratif de changement tactique
+      const tacticEvent = {
+        minute: currentMin,
+        type: "text",
+        team: "me",
+        player: "",
+        desc: `🔄 Changement tactique à la ${currentMin}' — Le Sénégal passe en ${newTactic.emoji} ${newTactic.name}. Les flèches s'adaptent immédiatement sur le terrain.`,
+        scripted: true,
+      };
+      setVisibleEvents(prev => [...prev, tacticEvent]);
+      setAllEvents(prev => [...prev, tacticEvent]);
+    }
+    setShowPauseTactic(false);
+    setIsPaused(false);
+    // Relancer le chrono depuis la minute où on s'est arrêté
+    const offset = phase === "playing" ? 0 : 45;
+    let min = pausedMinRef.current;
+    intervalRef.current = setInterval(() => {
+      min += 1;
+      setCurrentMin(Math.min(min, offset + 45));
+      // Recharger les events visibles depuis les allEvents actuels
+      setVisibleEvents(prev => {
+        const currentEvents = matchModule?.getScriptedEventsForHalf(
+          phase === "playing" ? 1 : 2,
+          (newTactic ?? tactic).id,
+          senegalPlayers,
+          formation
+        ) ?? [];
+        return currentEvents.filter(e => e.minute <= min);
+      });
+      if (min >= offset + 45) {
+        clearInterval(intervalRef.current);
+        setTimeout(() => {
+          const half = phase === "playing" ? 1 : 2;
+          const events = matchModule?.getScriptedEventsForHalf(half, (newTactic ?? tactic).id, senegalPlayers, formation) ?? [];
+          const halfSenGoals  = events.filter(e => e.type === "goal" && (e.team === "me" || e.team === "sen")).length;
+          const halfAwayGoals = events.filter(e => e.type === "goal" && e.team === "ai").length;
+          if (half === 1) {
+            setHomeScore(halfSenGoals);
+            setAwayScore(halfAwayGoals);
+            setAllEvents(events);
+            setHalf1Events(events);
+            setPhase("halftime");
+          } else {
+            setHomeScore(homeScore + halfSenGoals);
+            setAwayScore(awayScore + halfAwayGoals);
+            setPhase("result");
+          }
+        }, 800);
+      }
+    }, 1000);
+  }
+
   function playHalf(half, currentTactic) {
     if (!matchModule) return;
     const f = formation || "4-3-3";
@@ -173,10 +242,13 @@ export default function Simulator() {
 
     setVisibleEvents([]);
     setCurrentMin(offset);
+    setIsPaused(false);
     setPhase(half === 1 ? "playing" : "playing2");
 
     let min = offset;
     intervalRef.current = setInterval(() => {
+      // Ne pas avancer si en pause
+      if (isPaused) return;
       min += 1;
       setCurrentMin(Math.min(min, offset + 45));
       setVisibleEvents(sorted.filter(e => e.minute <= min));
@@ -500,7 +572,7 @@ export default function Simulator() {
         {/* ── MATCH EN COURS ── */}
         {(phase === "playing" || phase === "playing2") && (
           <div>
-            {/* Palette modale si ouverte */}
+            {/* Palette modale régie */}
             {showPalette && (
               <PaletteTactique
                 timelineEvents={matchModule?.MATCH_TIMELINE_EVENTS ?? []}
@@ -512,9 +584,90 @@ export default function Simulator() {
               />
             )}
 
+            {/* ── Panneau PAUSE TACTIQUE ── */}
+            {showPauseTactic && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+              >
+                <motion.div
+                  initial={{ scale: 0.9, y: 20 }}
+                  animate={{ scale: 1, y: 0 }}
+                  className="w-full max-w-sm bg-slate-900 border border-slate-700 rounded-2xl overflow-hidden"
+                >
+                  {/* Header */}
+                  <div className="bg-yellow-500/20 border-b border-yellow-400/20 px-4 py-3 flex items-center justify-between">
+                    <div>
+                      <div className="text-[10px] text-yellow-400 font-bold uppercase tracking-widest">⏸ Match en pause</div>
+                      <div className="text-white font-black text-lg">{currentMin}' — Choisis ta tactique</div>
+                    </div>
+                    <div className="text-2xl font-black text-white">
+                      {homeScore} - {awayScore}
+                    </div>
+                  </div>
+
+                  <div className="p-4 space-y-3">
+                    <p className="text-xs text-gray-400">
+                      Les flèches sur le terrain s'adapteront immédiatement à ta nouvelle tactique.
+                    </p>
+
+                    {/* Sélection tactique */}
+                    <div className="space-y-2">
+                      {TACTICS.map(t => {
+                        const isSelected = (pendingTactic ?? tactic).id === t.id;
+                        const isCurrent  = tactic.id === t.id;
+                        return (
+                          <motion.button key={t.id}
+                            whileTap={{ scale: 0.97 }}
+                            onClick={() => setPendingTactic(t)}
+                            className={`w-full text-left p-3 rounded-xl border transition relative overflow-hidden ${
+                              isSelected
+                                ? "border-yellow-400 bg-yellow-500/10"
+                                : "border-white/10 bg-white/5"
+                            }`}>
+                            <div className={`absolute inset-0 bg-gradient-to-r ${t.color} opacity-10`}/>
+                            <div className="relative flex items-center gap-3">
+                              <span className="text-xl">{t.emoji}</span>
+                              <div className="flex-1">
+                                <div className="text-sm font-bold text-white flex items-center gap-2">
+                                  {t.name}
+                                  {isCurrent && <span className="text-[9px] bg-white/20 text-gray-300 px-1.5 py-0.5 rounded">Actuelle</span>}
+                                  {isSelected && !isCurrent && <span className="text-[9px] bg-yellow-500/30 text-yellow-300 px-1.5 py-0.5 rounded">Nouveau</span>}
+                                </div>
+                                <div className="text-xs text-gray-400">{t.desc}</div>
+                              </div>
+                            </div>
+                          </motion.button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Boutons */}
+                    <div className="flex gap-3 pt-1">
+                      <motion.button whileTap={{ scale: 0.97 }}
+                        onClick={() => resumeMatch(null)}
+                        className="flex-1 bg-white/10 text-white font-bold py-3 rounded-xl text-sm">
+                        ▶ Reprendre sans changer
+                      </motion.button>
+                      {pendingTactic && pendingTactic.id !== tactic.id && (
+                        <motion.button whileTap={{ scale: 0.97 }}
+                          onClick={() => resumeMatch(pendingTactic)}
+                          className="flex-2 bg-yellow-500 text-black font-black py-3 px-5 rounded-xl text-sm">
+                          ✅ Appliquer
+                        </motion.button>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+
             <div className="bg-white/10 border border-white/20 rounded-2xl px-4 py-3 mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-green-400 font-bold animate-pulse">⏱️</span>
+                <span className={`font-bold ${isPaused ? "text-yellow-400" : "text-green-400 animate-pulse"}`}>
+                  {isPaused ? "⏸️" : "⏱️"}
+                </span>
                 <span className="text-white font-bold">{Math.min(currentMin, 90)}'</span>
                 <span className="text-xs text-gray-400">{phase === "playing" ? "1ère" : "2e"} mi-temps</span>
               </div>
@@ -525,12 +678,23 @@ export default function Simulator() {
                 <span className="text-2xl font-black">{phase === "playing" ? 0 : awayScore}</span>
                 <span className="text-xl">{awayTeamFlag}</span>
               </div>
-              {/* Bouton Palette Tactique */}
-              <motion.button whileTap={{ scale: 0.95 }}
-                onClick={() => setShowPalette(true)}
-                className="flex items-center gap-1 bg-cyan-500/20 border border-cyan-400/30 text-cyan-400 text-xs font-bold px-2 py-1 rounded-lg">
-                📺 Régie
-              </motion.button>
+              {/* Boutons Pause + Régie */}
+              <div className="flex items-center gap-1">
+                <motion.button whileTap={{ scale: 0.95 }}
+                  onClick={isPaused ? () => resumeMatch(null) : pauseMatch}
+                  className={`text-xs font-bold px-2 py-1 rounded-lg border ${
+                    isPaused
+                      ? "bg-green-500/20 border-green-400/30 text-green-400"
+                      : "bg-yellow-500/20 border-yellow-400/30 text-yellow-400"
+                  }`}>
+                  {isPaused ? "▶" : "⏸"}
+                </motion.button>
+                <motion.button whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowPalette(true)}
+                  className="flex items-center gap-1 bg-cyan-500/20 border border-cyan-400/30 text-cyan-400 text-xs font-bold px-2 py-1 rounded-lg">
+                  📺
+                </motion.button>
+              </div>
             </div>
             <div className="w-full bg-white/10 rounded-full h-1.5 mb-3">
               <motion.div animate={{ width: `${Math.min((currentMin / 90) * 100, 100)}%` }}
