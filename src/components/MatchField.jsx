@@ -522,55 +522,62 @@ export default function MatchField({
         })()}
 
         {/* ── Flèches Sénégal ── */}
-        {/* ── Flèches Sénégal — s adaptent au joueur actif (remplaçant ou titulaire) ── */}
-        {SEN_PLAYERS.map(p => {
-          const base = senFormation[p.key];
-          if (!base) return null;
-          const bx = base.x * W;
-          const by = base.y * H;
-          // Trouver le joueur actif sur cette position (remplaçant ou titulaire)
-          const activePlayer = activePlayers.length > 0
-            ? activePlayers.find(ap => ap.position === (p.role === "GK" ? "GK" : p.role) && ap.id?.includes(p.pid?.split("_")[0]))
-            : null;
-          const effectivePid = activePlayer?.id ?? p.pid;
-          const arrows = getPlayerArrows(effectivePid, base, currentPhase, formation);
-          return arrows.map((arrow, i) => (
-            <Arrow key={`arrow-${p.key}-${i}`} arrow={arrow} bx={bx} by={by}/>
-          ));
-        })}
-
-        {/* ── Joueurs Sénégal — nom/numéro du joueur actif ── */}
-        {SEN_PLAYERS.map(p => {
-          const base = senFormation[p.key];
-          if (!base) return null;
-
-          // Trouver le joueur actif sur cette position
-          const activePlayer = activePlayers.length > 0
-            ? activePlayers.find(ap => {
-                const posMatch = ap.position === (p.role === "GK" ? "GK" : p.role);
-                const idMatch  = ap.id?.includes(p.pid?.split("_")[0]);
-                return posMatch && idMatch;
-              })
-            : null;
-
-          const effectivePid  = activePlayer?.id ?? p.pid;
-          const displayNum    = activePlayer?.number ?? p.num;
-          const displayName   = activePlayer?.name?.split(" ").pop()?.substring(0,7) ?? p.name;
-          const isSub         = activePlayer && activePlayer.id !== p.pid; // remplaçant entré
-
-          const dynPos = effectivePid ? calcPlayerPosition(effectivePid, currentPhase, formation) : null;
-          const fx = dynPos ? dynPos.x * W : base.x * W;
-          const fy = dynPos ? dynPos.y * H : base.y * H;
+        {/* ── Construire la liste effective des joueurs (titulaires ou remplaçants) ── */}
+        {(() => {
+          // Si activePlayers fourni, construire une map position→joueur actuel
+          // en respectant l'ordre de SEN_PLAYERS (GK, DEF1..4, MIL1..3, ATT1..3)
+          const effectivePlayers = SEN_PLAYERS.map((p, idx) => {
+            if (!activePlayers.length) return { ...p, isSub: false };
+            // Associer par index dans la liste activePlayers (même ordre que SEN_PLAYERS)
+            const ap = activePlayers[idx];
+            if (!ap) return { ...p, isSub: false };
+            const isSub = ap.id !== p.pid;
+            return {
+              ...p,
+              effectivePid: ap.id,
+              displayNum:   ap.number ?? p.num,
+              displayName:  ap.name?.split(" ").pop()?.substring(0, 7) ?? p.name,
+              isSub,
+            };
+          });
 
           return (
-            <PlayerToken key={`sen-${p.key}`}
-              x={fx} y={fy}
-              num={displayNum} name={displayName} star={p.star}
-              highlighted={highlightedNum === p.num}
-              color={isSub ? "#1a4c78" : "#1a5c28"} // bleu si remplaçant entré
-              borderColor={isSub ? "#60a5fa" : p.star ? "#ffd700" : "rgba(255,255,255,0.85)"}/>
+            <>
+              {/* Flèches */}
+              {effectivePlayers.map(p => {
+                const base = senFormation[p.key];
+                if (!base) return null;
+                const bx = base.x * W;
+                const by = base.y * H;
+                const pid = p.effectivePid ?? p.pid;
+                const arrows = getPlayerArrows(pid, base, currentPhase, formation);
+                return arrows.map((arrow, i) => (
+                  <Arrow key={`arrow-${p.key}-${i}`} arrow={arrow} bx={bx} by={by}/>
+                ));
+              })}
+
+              {/* Pions joueurs */}
+              {effectivePlayers.map(p => {
+                const base = senFormation[p.key];
+                if (!base) return null;
+                const pid = p.effectivePid ?? p.pid;
+                const dynPos = pid ? calcPlayerPosition(pid, currentPhase, formation) : null;
+                const fx = dynPos ? dynPos.x * W : base.x * W;
+                const fy = dynPos ? dynPos.y * H : base.y * H;
+                return (
+                  <PlayerToken key={`sen-${p.key}`}
+                    x={fx} y={fy}
+                    num={p.displayNum ?? p.num}
+                    name={p.displayName ?? p.name}
+                    star={p.star}
+                    highlighted={highlightedNum === p.num}
+                    color={p.isSub ? "#1a4c78" : "#1a5c28"}
+                    borderColor={p.isSub ? "#60a5fa" : p.star ? "#ffd700" : "rgba(255,255,255,0.85)"}/>
+                );
+              })}
+            </>
           );
-        })}
+        })()}
 
         {/* ── Ballon ── */}
         <motion.g animate={{ x:ballX, y:ballY }} initial={{ x:W/2, y:H/2 }}
