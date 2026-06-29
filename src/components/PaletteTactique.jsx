@@ -11,8 +11,9 @@ export default function PaletteTactique({
   onClose,
   awayFlag = "🇧🇪",
   awayName = "Belgique",
+  initialMin = 0, // minute actuelle du match au moment d'ouvrir la palette
 }) {
-  const [min,       setMin]       = useState(0);
+  const [min,       setMin]       = useState(initialMin); // part de la minute du match
   const [playing,   setPlaying]   = useState(false);
   const [senScore,  setSenScore]  = useState(0);
   const [advScore,  setAdvScore]  = useState(0);

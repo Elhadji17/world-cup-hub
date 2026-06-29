@@ -785,6 +785,7 @@ export default function Simulator() {
                 onClose={() => setShowPalette(false)}
                 awayFlag={awayTeamFlag}
                 awayName={awayTeamName}
+                initialMin={currentMin}
               />
             )}
 
