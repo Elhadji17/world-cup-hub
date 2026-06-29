@@ -88,6 +88,186 @@ function MatchRecap({ events, title }) {
   );
 }
 
+// ── Panneau de pause tactique — composant séparé (règles des hooks) ──────
+function PauseTactiquePanel({
+  currentMin, homeScore, awayScore,
+  tactic, senegalPlayers, senegalBench,
+  pendingTactic, setPendingTactic,
+  onResume, onSubstitute,
+  getLiveRating, FormBadge, TACTICS,
+}) {
+  const [pauseTab, setPauseTab] = useState("tactic");
+  const [subOut,   setSubOut]   = useState(null);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+      style={{ overflowY: "auto" }}
+    >
+      <motion.div
+        initial={{ scale: 0.9, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        className="w-full max-w-sm bg-slate-900 border border-slate-700 rounded-2xl overflow-hidden my-4"
+      >
+        {/* Header */}
+        <div className="bg-yellow-500/20 border-b border-yellow-400/20 px-4 py-3 flex items-center justify-between">
+          <div>
+            <div className="text-[10px] text-yellow-400 font-bold uppercase tracking-widest">⏸ Match en pause</div>
+            <div className="text-white font-black text-lg">{currentMin}' — Ajustements</div>
+          </div>
+          <div className="text-2xl font-black text-white">{homeScore} - {awayScore}</div>
+        </div>
+
+        {/* Onglets */}
+        <div className="flex border-b border-white/10">
+          {[
+            { id: "tactic", label: "🎯 Tactique" },
+            { id: "sub",    label: "🔄 Remplacements" },
+          ].map(tab => (
+            <button key={tab.id}
+              onClick={() => setPauseTab(tab.id)}
+              className={`flex-1 py-2.5 text-xs font-bold transition ${
+                pauseTab === tab.id
+                  ? "border-b-2 border-yellow-400 text-yellow-400"
+                  : "text-gray-400"
+              }`}>
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="p-4 space-y-3">
+
+          {/* ── ONGLET TACTIQUE ── */}
+          {pauseTab === "tactic" && (
+            <>
+              <p className="text-xs text-gray-400">
+                Les flèches sur le terrain s'adapteront immédiatement.
+              </p>
+              <div className="space-y-2">
+                {TACTICS.map(t => {
+                  const isSelected = (pendingTactic ?? tactic).id === t.id;
+                  const isCurrent  = tactic.id === t.id;
+                  return (
+                    <motion.button key={t.id} whileTap={{ scale: 0.97 }}
+                      onClick={() => setPendingTactic(t)}
+                      className={`w-full text-left p-3 rounded-xl border transition relative overflow-hidden ${
+                        isSelected ? "border-yellow-400 bg-yellow-500/10" : "border-white/10 bg-white/5"
+                      }`}>
+                      <div className={`absolute inset-0 bg-gradient-to-r ${t.color} opacity-10`}/>
+                      <div className="relative flex items-center gap-3">
+                        <span className="text-xl">{t.emoji}</span>
+                        <div className="flex-1">
+                          <div className="text-sm font-bold text-white flex items-center gap-2">
+                            {t.name}
+                            {isCurrent && <span className="text-[9px] bg-white/20 text-gray-300 px-1.5 py-0.5 rounded">Actuelle</span>}
+                            {isSelected && !isCurrent && <span className="text-[9px] bg-yellow-500/30 text-yellow-300 px-1.5 py-0.5 rounded">Nouveau</span>}
+                          </div>
+                          <div className="text-xs text-gray-400">{t.desc}</div>
+                        </div>
+                      </div>
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {/* ── ONGLET REMPLACEMENTS ── */}
+          {pauseTab === "sub" && (
+            <>
+              <p className="text-xs text-gray-400">
+                {subOut
+                  ? `Choisir le remplaçant de ${subOut.name} :`
+                  : "Sélectionne le joueur à remplacer :"}
+              </p>
+
+              {/* Titulaires — choisir qui sort */}
+              {!subOut && (
+                <div className="space-y-1">
+                  {["GK","DEF","MIL","ATT"].map(pos => (
+                    <div key={pos} className="flex flex-wrap gap-1.5 items-center">
+                      <span className="text-[9px] text-gray-500 font-bold w-6">{pos}</span>
+                      {senegalPlayers.filter(p => p.position === pos).map(player => (
+                        <button key={player.id}
+                          onClick={() => setSubOut(player)}
+                          className="flex items-center gap-1 px-2 py-1 bg-white/5 hover:bg-red-500/20 border border-white/10 hover:border-red-400/30 rounded-lg text-xs text-gray-200 transition">
+                          <span className="text-[9px] text-gray-500">#{player.number}</span>
+                          <span>{player.name}</span>
+                          <FormBadge player={player} />
+                        </button>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Banc — choisir qui entre */}
+              {subOut && (
+                <>
+                  <div className="bg-red-500/10 border border-red-400/20 rounded-xl px-3 py-2 flex items-center justify-between">
+                    <div className="text-xs text-red-300">
+                      ← Sort : <span className="font-bold text-white">{subOut.name}</span>
+                    </div>
+                    <button onClick={() => setSubOut(null)} className="text-[10px] text-gray-400 underline">Annuler</button>
+                  </div>
+                  <div className="space-y-1.5">
+                    {senegalBench.map(sub => {
+                      const compatible = sub.position === subOut.position;
+                      return (
+                        <button key={sub.id}
+                          onClick={() => {
+                            onSubstitute(subOut, sub);
+                            setSubOut(null);
+                          }}
+                          className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl border transition ${
+                            compatible
+                              ? "border-green-400/30 bg-green-500/10 hover:bg-green-500/20"
+                              : "border-white/10 bg-white/5 hover:bg-white/10"
+                          }`}>
+                          <div className="text-left flex-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[9px] text-gray-500">#{sub.number}</span>
+                              <span className="text-sm font-bold text-white">{sub.name}</span>
+                              <FormBadge player={sub} />
+                              {compatible && <span className="text-[9px] text-green-400">✓ Même poste</span>}
+                            </div>
+                            <div className="text-[10px] text-gray-400">{sub.position}</div>
+                          </div>
+                          <span className="text-xs text-gray-400 font-mono">{getLiveRating(sub)}</span>
+                          <span className="text-green-400 text-sm">→</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </>
+          )}
+
+          {/* Boutons */}
+          <div className="flex gap-3 pt-1">
+            <motion.button whileTap={{ scale: 0.97 }}
+              onClick={() => onResume(null)}
+              className="flex-1 bg-white/10 text-white font-bold py-3 rounded-xl text-sm">
+              ▶ Reprendre
+            </motion.button>
+            {pendingTactic && pendingTactic.id !== tactic.id && (
+              <motion.button whileTap={{ scale: 0.97 }}
+                onClick={() => onResume(pendingTactic)}
+                className="flex-2 bg-yellow-500 text-black font-black py-3 px-5 rounded-xl text-sm">
+                ✅ Appliquer
+              </motion.button>
+            )}
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 export default function Simulator() {
   const { coins } = useGameStats();
 
@@ -214,7 +394,29 @@ export default function Simulator() {
     }, 1000);
   }
 
-  function playHalf(half, currentTactic) {
+  function handleInMatchSubstitute(outPlayer, inPlayer) {
+    // Effectuer le remplacement
+    setSenegalPlayers(prev => prev.map(p => p.id === outPlayer.id ? inPlayer : p));
+    setSenegalBench(prev => prev.map(p => p.id === inPlayer.id ? outPlayer : p));
+    // Injecter événement narratif
+    const subEvent = {
+      minute: currentMin,
+      type: "sub",
+      team: "me",
+      player: inPlayer.name,
+      desc: `🔄 ${inPlayer.name} entre à la place de ${outPlayer.name} à la ${currentMin}'. ${
+        inPlayer.id === "ndiaye_13" ? "L'impact du super-sub attendu !" :
+        inPlayer.id === "gueye_26"  ? "Pape Gueye cherchera le but depuis le milieu !" :
+        inPlayer.id === "diarra_21" ? "Habib Diarra apporte de l'énergie et du pressing !" :
+        "Changement tactique opéré par le coach."
+      }`,
+      scripted: true,
+    };
+    setVisibleEvents(prev => [...prev, subEvent].sort((a,b) => a.minute - b.minute));
+    setAllEvents(prev => [...prev, subEvent]);
+    // Reprendre le match
+    resumeMatch(pendingTactic);
+  }
     if (!matchModule) return;
     const f = formation || "4-3-3";
     const offset = half === 1 ? 0 : 45;
@@ -586,204 +788,21 @@ export default function Simulator() {
 
             {/* ── Panneau PAUSE TACTIQUE ── */}
             {showPauseTactic && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-                style={{ overflowY: "auto" }}
-              >
-                <motion.div
-                  initial={{ scale: 0.9, y: 20 }}
-                  animate={{ scale: 1, y: 0 }}
-                  className="w-full max-w-sm bg-slate-900 border border-slate-700 rounded-2xl overflow-hidden my-4"
-                >
-                  {/* Header */}
-                  <div className="bg-yellow-500/20 border-b border-yellow-400/20 px-4 py-3 flex items-center justify-between">
-                    <div>
-                      <div className="text-[10px] text-yellow-400 font-bold uppercase tracking-widest">⏸ Match en pause</div>
-                      <div className="text-white font-black text-lg">{currentMin}' — Adjustments</div>
-                    </div>
-                    <div className="text-2xl font-black text-white">{homeScore} - {awayScore}</div>
-                  </div>
-
-                  {/* Onglets */}
-                  {(() => {
-                    const [pauseTab, setPauseTab] = React.useState("tactic");
-                    const [subOut,   setSubOut]   = React.useState(null);
-                    return (
-                      <div>
-                        <div className="flex border-b border-white/10">
-                          {[
-                            { id: "tactic", label: "🎯 Tactique" },
-                            { id: "sub",    label: "🔄 Remplacements" },
-                          ].map(tab => (
-                            <button key={tab.id}
-                              onClick={() => setPauseTab(tab.id)}
-                              className={`flex-1 py-2.5 text-xs font-bold transition ${
-                                pauseTab === tab.id
-                                  ? "border-b-2 border-yellow-400 text-yellow-400"
-                                  : "text-gray-400"
-                              }`}>
-                              {tab.label}
-                            </button>
-                          ))}
-                        </div>
-
-                        <div className="p-4 space-y-3">
-
-                          {/* ── ONGLET TACTIQUE ── */}
-                          {pauseTab === "tactic" && (
-                            <>
-                              <p className="text-xs text-gray-400">
-                                Les flèches sur le terrain s'adapteront immédiatement.
-                              </p>
-                              <div className="space-y-2">
-                                {TACTICS.map(t => {
-                                  const isSelected = (pendingTactic ?? tactic).id === t.id;
-                                  const isCurrent  = tactic.id === t.id;
-                                  return (
-                                    <motion.button key={t.id} whileTap={{ scale: 0.97 }}
-                                      onClick={() => setPendingTactic(t)}
-                                      className={`w-full text-left p-3 rounded-xl border transition relative overflow-hidden ${
-                                        isSelected ? "border-yellow-400 bg-yellow-500/10" : "border-white/10 bg-white/5"
-                                      }`}>
-                                      <div className={`absolute inset-0 bg-gradient-to-r ${t.color} opacity-10`}/>
-                                      <div className="relative flex items-center gap-3">
-                                        <span className="text-xl">{t.emoji}</span>
-                                        <div className="flex-1">
-                                          <div className="text-sm font-bold text-white flex items-center gap-2">
-                                            {t.name}
-                                            {isCurrent && <span className="text-[9px] bg-white/20 text-gray-300 px-1.5 py-0.5 rounded">Actuelle</span>}
-                                            {isSelected && !isCurrent && <span className="text-[9px] bg-yellow-500/30 text-yellow-300 px-1.5 py-0.5 rounded">Nouveau</span>}
-                                          </div>
-                                          <div className="text-xs text-gray-400">{t.desc}</div>
-                                        </div>
-                                      </div>
-                                    </motion.button>
-                                  );
-                                })}
-                              </div>
-                            </>
-                          )}
-
-                          {/* ── ONGLET REMPLACEMENTS ── */}
-                          {pauseTab === "sub" && (
-                            <>
-                              <p className="text-xs text-gray-400">
-                                {subOut
-                                  ? `Choisir le remplaçant de ${subOut.name} :`
-                                  : "Sélectionne le joueur à remplacer :"}
-                              </p>
-
-                              {/* Titulaires — choisir qui sort */}
-                              {!subOut && (
-                                <div className="space-y-1">
-                                  {["GK","DEF","MIL","ATT"].map(pos => (
-                                    <div key={pos} className="flex flex-wrap gap-1.5 items-center">
-                                      <span className="text-[9px] text-gray-500 font-bold w-6">{pos}</span>
-                                      {senegalPlayers.filter(p => p.position === pos).map(player => (
-                                        <button key={player.id}
-                                          onClick={() => setSubOut(player)}
-                                          className="flex items-center gap-1 px-2 py-1 bg-white/5 hover:bg-red-500/20 border border-white/10 hover:border-red-400/30 rounded-lg text-xs text-gray-200 transition">
-                                          <span className="text-[9px] text-gray-500">#{player.number}</span>
-                                          <span>{player.name}</span>
-                                          <FormBadge player={player} />
-                                        </button>
-                                      ))}
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-
-                              {/* Banc — choisir qui entre */}
-                              {subOut && (
-                                <>
-                                  <div className="bg-red-500/10 border border-red-400/20 rounded-xl px-3 py-2 flex items-center justify-between">
-                                    <div className="text-xs text-red-300">
-                                      ← Sort : <span className="font-bold text-white">{subOut.name}</span>
-                                    </div>
-                                    <button onClick={() => setSubOut(null)} className="text-[10px] text-gray-400 underline">Annuler</button>
-                                  </div>
-                                  <div className="space-y-1.5">
-                                    {senegalBench.map(sub => {
-                                      // Compatibilité de poste — suggestion visuelle
-                                      const compatible = sub.position === subOut.position;
-                                      return (
-                                        <button key={sub.id}
-                                          onClick={() => {
-                                            // Effectuer le remplacement
-                                            const outPlayer = subOut;
-                                            setSenegalPlayers(prev => prev.map(p =>
-                                              p.id === outPlayer.id ? sub : p
-                                            ));
-                                            setSenegalBench(prev => prev.map(p =>
-                                              p.id === sub.id ? outPlayer : p
-                                            ));
-                                            // Injecter événement narratif
-                                            const subEvent = {
-                                              minute: currentMin,
-                                              type: "sub",
-                                              team: "me",
-                                              player: sub.name,
-                                              desc: `🔄 ${sub.name} entre à la place de ${outPlayer.name} à la ${currentMin}'. ${
-                                                sub.id === "ndiaye_13" ? "L'impact du super-sub attendu !" :
-                                                sub.id === "gueye_26"  ? "Pape Gueye cherchera le but depuis le milieu !" :
-                                                "Changement tactique opéré par le coach."
-                                              }`,
-                                              scripted: true,
-                                            };
-                                            setVisibleEvents(prev => [...prev, subEvent]);
-                                            setAllEvents(prev => [...prev, subEvent]);
-                                            setSubOut(null);
-                                            // Fermer et reprendre
-                                            resumeMatch(pendingTactic);
-                                          }}
-                                          className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl border transition ${
-                                            compatible
-                                              ? "border-green-400/30 bg-green-500/10 hover:bg-green-500/20"
-                                              : "border-white/10 bg-white/5 hover:bg-white/10"
-                                          }`}>
-                                          <div className="text-left flex-1">
-                                            <div className="flex items-center gap-1.5">
-                                              <span className="text-[9px] text-gray-500">#{sub.number}</span>
-                                              <span className="text-sm font-bold text-white">{sub.name}</span>
-                                              <FormBadge player={sub} />
-                                              {compatible && <span className="text-[9px] text-green-400">✓ Même poste</span>}
-                                            </div>
-                                            <div className="text-[10px] text-gray-400">{sub.position}</div>
-                                          </div>
-                                          <span className="text-xs text-gray-400 font-mono">{getLiveRating(sub)}</span>
-                                          <span className="text-green-400 text-sm">→</span>
-                                        </button>
-                                      );
-                                    })}
-                                  </div>
-                                </>
-                              )}
-                            </>
-                          )}
-
-                          {/* Boutons */}
-                          <div className="flex gap-3 pt-1">
-                            <motion.button whileTap={{ scale: 0.97 }}
-                              onClick={() => resumeMatch(null)}
-                              className="flex-1 bg-white/10 text-white font-bold py-3 rounded-xl text-sm">
-                              ▶ Reprendre
-                            </motion.button>
-                            {pendingTactic && pendingTactic.id !== tactic.id && (
-                              <motion.button whileTap={{ scale: 0.97 }}
-                                onClick={() => resumeMatch(pendingTactic)}
-                                className="flex-2 bg-yellow-500 text-black font-black py-3 px-5 rounded-xl text-sm">
-                                ✅ Appliquer
-                              </motion.button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </motion.div>
-              </motion.div>
+              <PauseTactiquePanel
+                currentMin={currentMin}
+                homeScore={homeScore}
+                awayScore={awayScore}
+                tactic={tactic}
+                TACTICS={TACTICS}
+                pendingTactic={pendingTactic}
+                setPendingTactic={setPendingTactic}
+                senegalPlayers={senegalPlayers}
+                senegalBench={senegalBench}
+                onResume={resumeMatch}
+                onSubstitute={handleInMatchSubstitute}
+                getLiveRating={getLiveRating}
+                FormBadge={FormBadge}
+              />
             )}
 
             <div className="bg-white/10 border border-white/20 rounded-2xl px-4 py-3 mb-3 flex items-center justify-between">
