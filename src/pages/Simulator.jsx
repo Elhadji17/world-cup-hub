@@ -455,7 +455,31 @@ export default function Simulator() {
       if (isPaused) return;
       min += 1;
       setCurrentMin(Math.min(min, offset + 45));
-      setVisibleEvents(sorted.filter(e => e.minute <= min));
+      const nowVisible = sorted.filter(e => e.minute <= min);
+      setVisibleEvents(nowVisible);
+
+      // Synchroniser les remplacements scénarisés avec senegalPlayers
+      const subEvents = nowVisible.filter(e =>
+        e.type === "sub" && e.team === "me" && e.scripted && e.minute === min
+      );
+      subEvents.forEach(subEvent => {
+        if (!subEvent.playerId || !subEvent.outId) return;
+        setSenegalBench(prevBench => {
+          const inPlayer = prevBench.find(b => b.id === subEvent.playerId);
+          if (!inPlayer) return prevBench; // déjà entré ou pas dans le banc
+          setSenegalPlayers(prevPlayers => {
+            const outIdx = prevPlayers.findIndex(p => p.id === subEvent.outId);
+            if (outIdx === -1) return prevPlayers;
+            const outPlayer = prevPlayers[outIdx];
+            const newPlayers = [...prevPlayers];
+            newPlayers[outIdx] = inPlayer;
+            // Remettre le titulaire sur le banc
+            setSenegalBench(b => b.map(bp => bp.id === inPlayer.id ? outPlayer : bp));
+            return newPlayers;
+          });
+          return prevBench;
+        });
+      });
 
       if (min >= offset + 45) {
         clearInterval(intervalRef.current);

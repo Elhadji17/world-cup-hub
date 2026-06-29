@@ -93,7 +93,7 @@ export const MATCH_TIMELINE_EVENTS = [
   { minute:56, type:"text",   team:"ai",  player:"Lukaku",    desc:"La Belgique pousse fort. Lukaku physique face à Koulibaly — duel aérien crucial à la 56e." },
   { minute:63, type:"corner", team:"me",  player:"I. Sarr",   desc:"🚩 Corner obtenu par Sarr. Koulibaly monte ! Sa tête puissante frôle le poteau !" },
   { minute:71, type:"goal",   team:"ai",  player:"De Bruyne", desc:"⚽ ÉGALISATION BELGIQUE. De Bruyne frappe de loin dans l'angle — Diaw ne peut rien. (1-1)" },
-  { minute:78, type:"sub",    team:"me",  player:"I. Ndiaye",  desc:"🔄 ENTRÉE D'ILIMAN NDIAYE ! Le super-sub entre pour changer le match entre les lignes." },
+  { minute:78, type:"sub",    team:"me",  player:"I. Ndiaye",  playerId:"ndiaye_13", outId:"jackson_11", desc:"🔄 ENTRÉE D'ILIMAN NDIAYE ! Le super-sub entre pour changer le match entre les lignes." },
   { minute:86, type:"text",   team:"me",  player:"",          desc:"⚡ PRESSING TOTAL des Lions ! Tout le monde monte — il reste 4 minutes pour arracher la qualification !" },
   { minute:90, type:"goal",   team:"me",  player:"I. Ndiaye", desc:"🔥 BUT DE NDIAYE À LA 90E !!! INCROYABLE ! Ndiaye reçoit de Camara, dribble Casteels et pousse au fond ! (2-1) QUALIFICATION !!!" },
 ];
@@ -132,7 +132,7 @@ const EVENTS_2ND = [
   { minute:56, type:"text",   team:"ai",  player:"Lukaku",    desc:"La Belgique pousse fort. Lukaku physique face à Koulibaly — duel aérien crucial. Koulibaly gagne !" },
   { minute:63, type:"corner", team:"me",  player:"I. Sarr",   desc:"🚩 Corner obtenu par Sarr. Koulibaly monte ! Sa tête puissante frôle le poteau — si près !" },
   { minute:71, type:"goal",   team:"ai",  player:"De Bruyne", desc:"⚽ ÉGALISATION BELGIQUE ! De Bruyne frappe dans l'angle depuis 22 mètres — Diaw ne peut rien. (1-1)" },
-  { minute:78, type:"sub",    team:"me",  player:"I. Ndiaye", desc:"🔄 ENTRÉE D'ILIMAN NDIAYE ! Le super-sub entre pour changer le match entre les lignes." },
+  { minute:78, type:"sub",    team:"me",  player:"I. Ndiaye",  playerId:"ndiaye_13", outId:"jackson_11", desc:"🔄 ENTRÉE D'ILIMAN NDIAYE ! Le super-sub entre pour changer le match entre les lignes." },
   { minute:83, type:"shot",   team:"me",  player:"I. Ndiaye", desc:"Ndiaye tente immédiatement ! Frappe enroulée — Casteels détourne de justesse en corner !" },
   { minute:86, type:"text",   team:"me",  player:"",          desc:"⚡ PRESSING TOTAL des Lions ! Tout le monde monte — il faut arracher la qualification !" },
   { minute:90, type:"goal",   team:"me",  player:"I. Ndiaye", desc:"🔥 BUT DE NDIAYE À LA 90e !!! QUALIFICATION !!! Ndiaye reçoit de Camara, élimine Casteels et pousse au fond ! INCROYABLE ! (2-1)" },
