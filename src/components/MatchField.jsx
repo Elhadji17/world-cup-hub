@@ -327,8 +327,7 @@ export default function MatchField({
   const [lastMinute,      setLastMinute]      = useState(-1);
   const [highlightedNum,  setHighlightedNum]  = useState(null);
   const [tacticalLabel,   setTacticalLabel]   = useState("Bloc médian — construction");
-  // Momentum : 0 = domination totale adverse, 100 = domination totale Sénégal, 50 = équilibre
-  const [momentum,        setMomentum]        = useState(50);
+  const [momentum, setMomentum] = useState(50); // toujours partir à 50%
   const autoRef  = useRef(null);
 
   const senFormation = FORMATIONS[formation] ?? FORMATIONS["4-3-3"];
@@ -344,21 +343,24 @@ export default function MatchField({
     }
   }
 
-  // Mise à jour selon la tactique choisie — influence le momentum de base
+  // Influence du changement de tactique sur le momentum — seulement quand la tactique change
+  const isFirstRender = useRef(true);
   useEffect(() => {
+    if (isFirstRender.current) { isFirstRender.current = false; return; }
     const tacticMomentum = {
-      attack:   +8,  // Attaque totale → pousse le momentum vers Sénégal
-      press:    +5,  // Pressing haut → idem mais moins risqué
-      balanced: 0,   // Équilibré → neutre
-      defense:  -5,  // Défense solide → cède un peu de territoire
+      attack:   +6,
+      press:    +4,
+      balanced:  0,
+      defense:  -4,
     };
     const delta = tacticMomentum[tacticId] ?? 0;
     if (delta !== 0) setMomentum(prev => Math.min(85, Math.max(15, prev + delta)));
   }, [tacticId]);
 
-  // Réinitialiser quand on change de mi-temps
+  // Réinitialiser quand on change de mi-temps — momentum préservé
   useEffect(() => {
     setLastMinute(-1);
+    // Le momentum continue entre les deux mi-temps, pas de reset
     applyPhase("bloc_median", "Bloc médian — construction", "me");
   }, [events]);
 
@@ -582,8 +584,11 @@ export default function MatchField({
                 if (!base) return null;
                 const pid = p.effectivePid ?? p.pid;
                 const dynPos = pid ? calcPlayerPosition(pid, currentPhase, formation) : null;
-                const fx = dynPos ? dynPos.x * W : base.x * W;
-                const fy = dynPos ? dynPos.y * H : base.y * H;
+                // Clamper dans les limites du terrain SVG (évite les pions fantômes hors terrain)
+                const rawX = dynPos ? dynPos.x * W : base.x * W;
+                const rawY = dynPos ? dynPos.y * H : base.y * H;
+                const fx = Math.min(W - 14, Math.max(14, rawX));
+                const fy = Math.min(H - 14, Math.max(14, rawY));
                 return (
                   <PlayerToken key={`sen-${p.key}`}
                     x={fx} y={fy}
@@ -636,20 +641,20 @@ export default function MatchField({
         {tacticalLabel}
       </motion.div>
 
-      {/* ── Jauge de Momentum ── */}
+      {/* ── Jauge de Momentum — toujours visible ── */}
       <div style={{ marginTop:"8px", padding:"0 4px" }}>
         {/* Labels */}
         <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"4px", fontSize:"9px", fontWeight:600 }}>
           <span style={{ color:"#4ade80" }}>🇸🇳 Sénégal</span>
           <span style={{
             fontSize:"10px", fontWeight:700,
-            color: momentum > 60 ? "#4ade80" : momentum < 40 ? "#f87171" : "#94a3b8",
+            color: momentum >= 60 ? "#4ade80" : momentum <= 40 ? "#f87171" : "#94a3b8",
           }}>
-            {momentum > 65 ? "Domination 🇸🇳" :
-             momentum > 55 ? "Légère maîtrise 🇸🇳" :
-             momentum === 50 ? "Match équilibré ⚖️" :
-             momentum < 35 ? "Domination 🇧🇪" :
-             "Pression belge 🇧🇪"}
+            {momentum >= 70 ? "Domination 🇸🇳" :
+             momentum >= 58 ? "Légère maîtrise 🇸🇳" :
+             momentum >= 45 ? "Match équilibré ⚖️" :
+             momentum >= 32 ? "Pression belge 🇧🇪" :
+             "Domination 🇧🇪"}
           </span>
           <span style={{ color:"#f87171" }}>{awayFlag} {awayName.substring(0,3)}</span>
         </div>
@@ -663,14 +668,14 @@ export default function MatchField({
         }}>
           <motion.div
             animate={{ width: `${momentum}%` }}
-            transition={{ duration: 1.2, ease: "easeInOut" }}
+            transition={{ duration: 1.4, ease: "easeInOut" }}
             style={{
               height:"100%",
-              background: momentum > 55
+              background: momentum >= 55
                 ? "linear-gradient(90deg, #16a34a, #4ade80)"
-                : momentum < 45
-                ? "linear-gradient(90deg, #16a34a, #86efac)"
-                : "linear-gradient(90deg, #16a34a, #4ade80)",
+                : momentum <= 45
+                ? "linear-gradient(90deg, #166534, #4ade80)"
+                : "linear-gradient(90deg, #16a34a, #86efac)",
               borderRadius:"4px",
             }}
           />
