@@ -1,374 +1,432 @@
 // src/components/MatchField.jsx
-// Terrain de football tactique — positions réalistes par formation
-// Déplacements selon état du jeu (pressing, bloc bas, attaque, défense)
-// Synchronisation avec les événements scénarisés
+// Terrain tactique avec flèches de mouvement individuelles par joueur
+// Style panel TV Canal+/beIN Sports
+// Option A (80%) : terrain + flèches | Option B (20%) : narration compacte
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence }      from "framer-motion";
-import { PLAYER_PROFILES, calcPlayerPosition, tacticToPhase, getPlayerBehaviourDesc, getLiveRating } from "../data/playerProfiles";
+import { PLAYER_PROFILES, calcPlayerPosition, tacticToPhase, getLiveRating } from "../data/playerProfiles";
 
-const FIELD_W = 320;
-const FIELD_H = 500;
+const W = 340;
+const H = 490;
 
-// ── Positions par formation (x%, y%) ─────────────────────────────────────
-// Sénégal joue vers le bas (GK en haut y~0.06)
-// y=0 = but sénégalais, y=1 = but adverse
+// ── Formations Sénégal — positions de base (x%, y%) ─────────────────────
 const FORMATIONS = {
   "4-3-3": {
-    GK:   [0.50, 0.06],
-    DEF1: [0.15, 0.20], DEF2: [0.37, 0.18], DEF3: [0.63, 0.18], DEF4: [0.85, 0.20],
-    MIL1: [0.20, 0.38], MIL2: [0.50, 0.35], MIL3: [0.80, 0.38],
-    ATT1: [0.15, 0.54], ATT2: [0.50, 0.52], ATT3: [0.85, 0.54],
+    GK:   { x:0.50, y:0.92 }, // Sénégal joue vers le haut (GK en bas)
+    DEF1: { x:0.85, y:0.79 }, DEF2: { x:0.62, y:0.76 },
+    DEF3: { x:0.38, y:0.76 }, DEF4: { x:0.15, y:0.79 },
+    MIL1: { x:0.76, y:0.62 }, MIL2: { x:0.50, y:0.60 }, MIL3: { x:0.24, y:0.62 },
+    ATT1: { x:0.85, y:0.44 }, ATT2: { x:0.50, y:0.42 }, ATT3: { x:0.15, y:0.44 },
   },
   "4-2-3-1": {
-    GK:   [0.50, 0.06],
-    DEF1: [0.15, 0.20], DEF2: [0.37, 0.18], DEF3: [0.63, 0.18], DEF4: [0.85, 0.20],
-    MIL1: [0.30, 0.34], MIL2: [0.70, 0.34],
-    MIL3: [0.15, 0.46], MIL4: [0.50, 0.44], MIL5: [0.85, 0.46],
-    ATT1: [0.50, 0.58],
+    GK:   { x:0.50, y:0.92 },
+    DEF1: { x:0.85, y:0.79 }, DEF2: { x:0.62, y:0.76 },
+    DEF3: { x:0.38, y:0.76 }, DEF4: { x:0.15, y:0.79 },
+    MIL1: { x:0.68, y:0.65 }, MIL2: { x:0.32, y:0.65 },
+    MIL3: { x:0.85, y:0.52 }, MIL4: { x:0.50, y:0.50 }, MIL5: { x:0.15, y:0.52 },
+    ATT1: { x:0.50, y:0.38 },
   },
   "4-4-2": {
-    GK:   [0.50, 0.06],
-    DEF1: [0.15, 0.20], DEF2: [0.37, 0.18], DEF3: [0.63, 0.18], DEF4: [0.85, 0.20],
-    MIL1: [0.15, 0.38], MIL2: [0.38, 0.36], MIL3: [0.62, 0.36], MIL4: [0.85, 0.38],
-    ATT1: [0.32, 0.54], ATT2: [0.68, 0.54],
+    GK:   { x:0.50, y:0.92 },
+    DEF1: { x:0.85, y:0.79 }, DEF2: { x:0.62, y:0.76 },
+    DEF3: { x:0.38, y:0.76 }, DEF4: { x:0.15, y:0.79 },
+    MIL1: { x:0.85, y:0.60 }, MIL2: { x:0.62, y:0.58 },
+    MIL3: { x:0.38, y:0.58 }, MIL4: { x:0.15, y:0.60 },
+    ATT1: { x:0.65, y:0.42 }, ATT2: { x:0.35, y:0.42 },
   },
   "5-3-2": {
-    GK:   [0.50, 0.06],
-    DEF1: [0.10, 0.20], DEF2: [0.30, 0.17], DEF3: [0.50, 0.16], DEF4: [0.70, 0.17], DEF5: [0.90, 0.20],
-    MIL1: [0.22, 0.36], MIL2: [0.50, 0.34], MIL3: [0.78, 0.36],
-    ATT1: [0.35, 0.52], ATT2: [0.65, 0.52],
+    GK:   { x:0.50, y:0.92 },
+    DEF1: { x:0.92, y:0.79 }, DEF2: { x:0.72, y:0.76 }, DEF3: { x:0.50, y:0.74 },
+    DEF4: { x:0.28, y:0.76 }, DEF5: { x:0.08, y:0.79 },
+    MIL1: { x:0.76, y:0.60 }, MIL2: { x:0.50, y:0.58 }, MIL3: { x:0.24, y:0.60 },
+    ATT1: { x:0.65, y:0.42 }, ATT2: { x:0.35, y:0.42 },
   },
 };
 
-// ── Décalages tactiques selon l état du jeu ───────────────────────────────
-// dy = décalage vertical (positif = vers le bas = vers le but adverse)
-// dx = décalage horizontal (élargissement/resserrement)
-const TACTICAL_STATES = {
-  // Sénégal en possession, construction depuis l arrière
-  possession_build: {
-    label: "Construction depuis l'arrière",
-    GK:   { dy: 0.03,  spread: 1.0 },
-    DEF:  { dy: 0.06,  spread: 1.1 }, // défenseurs montent légèrement
-    MIL:  { dy: 0.04,  spread: 1.15 }, // milieux s écartent
-    ATT:  { dy: 0.0,   spread: 1.2 }, // attaquants très larges
-  },
-  // Pressing haut — tout le monde monte
-  pressing_haut: {
-    label: "Pressing haut — on va les chercher !",
-    GK:   { dy: 0.05,  spread: 1.0 },
-    DEF:  { dy: 0.14,  spread: 1.05 },
-    MIL:  { dy: 0.16,  spread: 1.1 },
-    ATT:  { dy: 0.12,  spread: 1.0 },
-  },
-  // Attaque placée — on avance organisés
-  attaque_placee: {
-    label: "Attaque placée — progression organisée",
-    GK:   { dy: 0.02,  spread: 1.0 },
-    DEF:  { dy: 0.10,  spread: 1.05 },
-    MIL:  { dy: 0.14,  spread: 1.1 },
-    ATT:  { dy: 0.18,  spread: 1.15 },
-  },
-  // Bloc médian — équilibre attaque/défense
-  bloc_median: {
-    label: "Bloc médian — équilibre tactique",
-    GK:   { dy: 0.0,   spread: 1.0 },
-    DEF:  { dy: 0.04,  spread: 1.0 },
-    MIL:  { dy: 0.06,  spread: 1.05 },
-    ATT:  { dy: 0.08,  spread: 1.1 },
-  },
-  // Bloc bas — défense compacte
-  bloc_bas: {
-    label: "Bloc bas — on défend en bloc",
-    GK:   { dy: -0.02, spread: 1.0 },
-    DEF:  { dy: -0.04, spread: 0.9 }, // défenseurs reculent et se resserrent
-    MIL:  { dy: -0.06, spread: 0.85 },
-    ATT:  { dy: 0.0,   spread: 0.7 }, // attaquants restent hauts pour le contre
-  },
-  // Contre-attaque — explosion en profondeur
-  contre_attaque: {
-    label: "Contre-attaque — explosion en profondeur !",
-    GK:   { dy: -0.02, spread: 1.0 },
-    DEF:  { dy: -0.02, spread: 0.9 },
-    MIL:  { dy: 0.08,  spread: 1.2 },
-    ATT:  { dy: 0.22,  spread: 1.1 }, // attaquants explosent vers le but
-  },
-  // Phase défensive — l adversaire attaque
-  defence: {
-    label: "Phase défensive — on résiste !",
-    GK:   { dy: -0.01, spread: 1.0 },
-    DEF:  { dy: -0.03, spread: 0.85 },
-    MIL:  { dy: -0.02, spread: 0.9 },
-    ATT:  { dy: 0.04,  spread: 0.8 },
-  },
-  // But — célébration, joueurs qui convergent
-  celebration: {
-    label: "⚽ BUT DU SÉNÉGAL !!! 🇸🇳",
-    GK:   { dy: 0.0,   spread: 1.0 },
-    DEF:  { dy: 0.12,  spread: 1.3 },
-    MIL:  { dy: 0.18,  spread: 1.4 },
-    ATT:  { dy: 0.25,  spread: 1.5 }, // tous convergent vers le buteur
-  },
-};
-
-// Mapping tactique → état initial selon la tactique choisie
-const TACTIC_TO_STATE = {
-  balanced: "bloc_median",
-  attack:   "attaque_placee",
-  press:    "pressing_haut",
-  defense:  "bloc_bas",
-};
-
-// Joueurs Sénégal avec leurs profils individuels
-const SEN_PLAYERS_433 = [
-  { key: "GK",   num: 16, name: "Mendy",    role: "GK",  star: false, profileId: "mendy_16"    },
-  { key: "DEF1", num: 15, name: "Diatta",   role: "DEF", star: false, profileId: "diatta_15"   },
-  { key: "DEF2", num:  3, name: "Kouli.",   role: "DEF", star: false, profileId: "koulibaly_3" },
-  { key: "DEF3", num: 19, name: "Niakh.",   role: "DEF", star: false, profileId: "niakhate_19" },
-  { key: "DEF4", num: 25, name: "Diouf",    role: "DEF", star: false, profileId: "diouf_25"    },
-  { key: "MIL1", num:  5, name: "I.Gueye",  role: "MIL", star: false, profileId: "gueye_5"     },
-  { key: "MIL2", num:  8, name: "Camara",   role: "MIL", star: true,  profileId: "camara_8"    },
-  { key: "MIL3", num: 26, name: "P.Gueye",  role: "MIL", star: false, profileId: "gueye_26"    },
-  { key: "ATT1", num: 18, name: "I.Sarr",   role: "ATT", star: false, profileId: "sarr_18"     },
-  { key: "ATT2", num: 11, name: "Jackson",  role: "ATT", star: false, profileId: "jackson_11"  },
-  { key: "ATT3", num: 10, name: "Mané",     role: "ATT", star: true,  profileId: "mane_10"     },
+// ── Joueurs Sénégal avec leurs profils ───────────────────────────────────
+const SEN_PLAYERS = [
+  { key:"GK",   num:16, name:"Mendy",   role:"GK",  star:false, pid:"mendy_16"    },
+  { key:"DEF1", num:15, name:"Diatta",  role:"DEF", star:false, pid:"diatta_15"   },
+  { key:"DEF2", num:3,  name:"Kouli.",  role:"DEF", star:false, pid:"koulibaly_3" },
+  { key:"DEF3", num:19, name:"Niakh.",  role:"DEF", star:false, pid:"niakhate_19" },
+  { key:"DEF4", num:25, name:"Diouf",   role:"DEF", star:false, pid:"diouf_25"    },
+  { key:"MIL1", num:5,  name:"I.Gueye", role:"MIL", star:false, pid:"gueye_5"     },
+  { key:"MIL2", num:8,  name:"Camara",  role:"MIL", star:true,  pid:"camara_8"    },
+  { key:"MIL3", num:26, name:"P.Gueye", role:"MIL", star:false, pid:"gueye_26"    },
+  { key:"ATT1", num:18, name:"I.Sarr",  role:"ATT", star:false, pid:"sarr_18"     },
+  { key:"ATT2", num:11, name:"Jackson", role:"ATT", star:false, pid:"jackson_11"  },
+  { key:"ATT3", num:10, name:"Mané",    role:"ATT", star:true,  pid:"mane_10"     },
 ];
 
-// Norvège — positions miroir (joue vers le haut, GK en bas)
-const NOR_BASE = {
-  GK:   [0.50, 0.94],
-  DEF1: [0.15, 0.80], DEF2: [0.37, 0.82], DEF3: [0.63, 0.82], DEF4: [0.85, 0.80],
-  MIL1: [0.20, 0.65], MIL2: [0.50, 0.66], MIL3: [0.80, 0.65],
-  ATT1: [0.15, 0.50], ATT2: [0.50, 0.48], ATT3: [0.85, 0.50],
+// Adversaire — positions miroir (joue vers le bas)
+const ADV_BASE = {
+  GK:   { x:0.50, y:0.08 },
+  DEF1: { x:0.85, y:0.21 }, DEF2: { x:0.62, y:0.24 },
+  DEF3: { x:0.38, y:0.24 }, DEF4: { x:0.15, y:0.21 },
+  MIL1: { x:0.76, y:0.38 }, MIL2: { x:0.50, y:0.40 }, MIL3: { x:0.24, y:0.38 },
+  ATT1: { x:0.85, y:0.56 }, ATT2: { x:0.50, y:0.58 }, ATT3: { x:0.15, y:0.56 },
 };
 
-const NOR_PLAYERS = [
-  { key: "GK",   num:  1, name: "Nyland",   role: "GK",  star: false },
-  { key: "DEF1", num: 14, name: "Ryerson",  role: "DEF", star: false },
-  { key: "DEF2", num:  4, name: "Østig.",   role: "DEF", star: false },
-  { key: "DEF3", num:  6, name: "Ajer",     role: "DEF", star: false },
-  { key: "DEF4", num:  2, name: "Wolfe",    role: "DEF", star: false },
-  { key: "MIL1", num:  8, name: "Berge",    role: "MIL", star: false },
-  { key: "MIL2", num: 10, name: "Ødeg.",    role: "MIL", star: true  },
-  { key: "MIL3", num: 16, name: "Thorst.",  role: "MIL", star: false },
-  { key: "ATT1", num:  7, name: "Nusa",     role: "ATT", star: false },
-  { key: "ATT2", num:  9, name: "Haaland",  role: "ATT", star: true  },
-  { key: "ATT3", num: 11, name: "Sørloth",  role: "ATT", star: false },
-];
+// ── Système de flèches par joueur selon phase + formation ─────────────────
+// Chaque joueur a ses propres flèches qui reflètent son vrai comportement
+function getPlayerArrows(pid, basePos, phase, formation) {
+  const bx = basePos.x * W;
+  const by = basePos.y * H;
 
-// ── Calcul de la position d un joueur selon la formation + état tactique ──
-function calcPosition(base, role, tacticalState, isHome = true) {
-  const state = TACTICAL_STATES[tacticalState] ?? TACTICAL_STATES.bloc_median;
-  const roleState = state[role] ?? { dy: 0, spread: 1 };
+  const arrows = {
+    // Mendy — sort légèrement sur les centres
+    "mendy_16": {
+      construction:   [],
+      attaque_placee: [],
+      contre_attaque: [],
+      defence_placee: [],
+      transition_def: [],
+    },
 
-  let [bx, by] = base;
+    // Diatta — montée couloir droit longue et directe
+    "diatta_15": {
+      construction:   [{ type:"droit", dx:0, dy:-0.08, color:"#4ade80", label:"" }],
+      progression:    [{ type:"droit", dx:0, dy:-0.15, color:"#4ade80", label:"" }],
+      attaque_placee: [{ type:"chemin", path:`M ${bx} ${by} L ${bx+15} ${by-60} L ${bx+25} ${by-100}`, color:"#4ade80", label:"Overlap" }],
+      contre_attaque: [{ type:"chemin", path:`M ${bx} ${by} L ${bx+20} ${by-80} L ${bx+30} ${by-130}`, color:"#f97316", label:"Sprint!" }],
+      transition_def: [{ type:"droit", dx:0, dy:0.06, color:"#94a3b8", label:"" }],
+      defence_placee: [],
+    },
 
-  // Décalage vertical (vers le bas pour attaque si home)
-  const dy = isHome ? roleState.dy : -roleState.dy;
-  by = Math.min(0.95, Math.max(0.05, by + dy));
+    // Koulibaly — flèche très courte pointillée (tient sa ligne)
+    "koulibaly_3": {
+      construction:   [{ type:"court_pointille", dx:0, dy:-0.04, color:"#fbbf24", label:"Ligne" }],
+      progression:    [{ type:"court_pointille", dx:0, dy:-0.05, color:"#fbbf24", label:"" }],
+      attaque_placee: [{ type:"court_pointille", dx:0, dy:-0.03, color:"#fbbf24", label:"" }],
+      contre_attaque: [{ type:"court_pointille", dx:0, dy:0.02,  color:"#f87171", label:"Couverture" }],
+      transition_def: [{ type:"court_pointille", dx:0, dy:0.04,  color:"#f87171", label:"" }],
+      defence_placee: [{ type:"court_pointille", dx:0, dy:0.02,  color:"#f87171", label:"" }],
+    },
 
-  // Élargissement horizontal autour du centre (0.5)
-  bx = 0.5 + (bx - 0.5) * roleState.spread;
-  bx = Math.min(0.95, Math.max(0.05, bx));
+    // Niakhaté — similaire à Koulibaly mais légèrement plus mobile
+    "niakhate_19": {
+      construction:   [{ type:"court_pointille", dx:0, dy:-0.04, color:"#94a3b8", label:"" }],
+      progression:    [{ type:"court_pointille", dx:0, dy:-0.06, color:"#94a3b8", label:"" }],
+      attaque_placee: [{ type:"court_pointille", dx:0, dy:-0.04, color:"#94a3b8", label:"" }],
+      contre_attaque: [{ type:"court_pointille", dx:0, dy:0.03,  color:"#f87171", label:"" }],
+      transition_def: [{ type:"court_pointille", dx:0, dy:0.05,  color:"#f87171", label:"" }],
+      defence_placee: [{ type:"court_pointille", dx:0, dy:0.03,  color:"#f87171", label:"" }],
+    },
 
-  return { x: bx * FIELD_W, y: by * FIELD_H };
+    // Diouf — montée couloir gauche (miroir de Diatta)
+    "diouf_25": {
+      construction:   [{ type:"droit", dx:0, dy:-0.08, color:"#4ade80", label:"" }],
+      progression:    [{ type:"droit", dx:0, dy:-0.15, color:"#4ade80", label:"" }],
+      attaque_placee: [{ type:"chemin", path:`M ${bx} ${by} L ${bx-15} ${by-60} L ${bx-25} ${by-100}`, color:"#4ade80", label:"Overlap" }],
+      contre_attaque: [{ type:"chemin", path:`M ${bx} ${by} L ${bx-20} ${by-80} L ${bx-30} ${by-130}`, color:"#f97316", label:"Sprint!" }],
+      transition_def: [{ type:"droit", dx:0, dy:0.06, color:"#94a3b8", label:"" }],
+      defence_placee: [],
+    },
+
+    // I.Gueye — sentinelle : flèches latérales, reste bas
+    "gueye_5": {
+      construction:   [
+        { type:"lateral", dx:-0.15, dy:0, color:"#60a5fa", label:"" },
+        { type:"lateral", dx:0.15,  dy:0, color:"#60a5fa", label:"" },
+      ],
+      progression:    [
+        { type:"lateral", dx:-0.14, dy:0, color:"#60a5fa", label:"Couvre" },
+        { type:"lateral", dx:0.14,  dy:0, color:"#60a5fa", label:"" },
+      ],
+      attaque_placee: [
+        { type:"lateral", dx:-0.16, dy:0, color:"#60a5fa", label:"Sentinelle" },
+        { type:"lateral", dx:0.16,  dy:0, color:"#60a5fa", label:"" },
+      ],
+      contre_attaque: [{ type:"droit", dx:0, dy:0.05, color:"#f87171", label:"Couverture" }],
+      transition_def: [{ type:"droit", dx:0, dy:0.04, color:"#f87171", label:"" }],
+      defence_placee: [
+        { type:"lateral", dx:-0.18, dy:0, color:"#60a5fa", label:"" },
+        { type:"lateral", dx:0.18,  dy:0, color:"#60a5fa", label:"" },
+      ],
+    },
+
+    // Camara — box-to-box : grande flèche vers l'avant
+    "camara_8": {
+      construction:   [{ type:"droit", dx:0, dy:-0.08, color:"#4ade80", label:"" }],
+      progression:    [{ type:"droit", dx:0, dy:-0.18, color:"#4ade80", label:"Box-to-box" }],
+      attaque_placee: [{ type:"chemin", path:`M ${bx} ${by} Q ${bx+15} ${by-50} ${bx+10} ${by-100}`, color:"#4ade80", label:"Surface !" }],
+      contre_attaque: [{ type:"chemin", path:`M ${bx} ${by} L ${bx+5} ${by-120}`, color:"#f97316", label:"Sprint !" }],
+      transition_def: [{ type:"droit", dx:0, dy:-0.10, color:"#fbbf24", label:"Presse" }],
+      defence_placee: [
+        { type:"lateral", dx:-0.12, dy:0, color:"#60a5fa", label:"Couvre large" },
+        { type:"lateral", dx:0.12,  dy:0, color:"#60a5fa", label:"" },
+      ],
+    },
+
+    // P.Gueye — projection offensive milieu gauche
+    "gueye_26": {
+      construction:   [{ type:"droit", dx:0, dy:-0.06, color:"#4ade80", label:"" }],
+      progression:    [{ type:"droit", dx:0, dy:-0.14, color:"#4ade80", label:"" }],
+      attaque_placee: [{ type:"chemin", path:`M ${bx} ${by} Q ${bx-8} ${by-50} ${bx-5} ${by-90}`, color:"#4ade80", label:"Projection" }],
+      contre_attaque: [{ type:"droit", dx:-0.04, dy:-0.16, color:"#f97316", label:"" }],
+      transition_def: [{ type:"droit", dx:0, dy:0.06, color:"#94a3b8", label:"" }],
+      defence_placee: [],
+    },
+
+    // I.Sarr — couloir droit très offensif, reste large
+    "sarr_18": {
+      construction:   [],
+      progression:    [{ type:"droit", dx:0, dy:-0.10, color:"#f97316", label:"" }],
+      attaque_placee: [{ type:"droit", dx:0.04, dy:-0.14, color:"#f97316", label:"1v1" }],
+      contre_attaque: [{ type:"droit", dx:0.02, dy:-0.22, color:"#ef4444", label:"SPRINT" }],
+      transition_def: [{ type:"droit", dx:0, dy:0.05, color:"#94a3b8", label:"" }],
+      defence_placee: [{ type:"droit", dx:0, dy:-0.04, color:"#94a3b8", label:"" }],
+    },
+
+    // Jackson — axe central profondeur
+    "jackson_11": {
+      construction:   [{ type:"droit", dx:0, dy:-0.12, color:"#f97316", label:"Pressing" }],
+      progression:    [{ type:"droit", dx:0, dy:-0.14, color:"#f97316", label:"" }],
+      attaque_placee: [{ type:"droit", dx:0, dy:-0.18, color:"#f97316", label:"Profondeur" }],
+      contre_attaque: [{ type:"droit", dx:0, dy:-0.26, color:"#ef4444", label:"Course !" }],
+      transition_def: [{ type:"droit", dx:0, dy:-0.10, color:"#fbbf24", label:"Pressing" }],
+      defence_placee: [{ type:"droit", dx:0, dy:-0.06, color:"#94a3b8", label:"" }],
+    },
+
+    // Mané — SIGNATURE : courbe depuis gauche vers le centre
+    "mane_10": {
+      construction:   [{ type:"chemin", path:`M ${bx} ${by} Q ${bx+25} ${by+5} ${bx+35} ${by-15}`, color:"#f97316", label:"Décroche" }],
+      progression:    [{ type:"chemin", path:`M ${bx} ${by} Q ${bx+30} ${by-20} ${bx+45} ${by-40}`, color:"#f97316", label:"" }],
+      // ← SA VRAIE SIGNATURE : rentre vers l'axe pour frapper du pied droit
+      attaque_placee: [{ type:"chemin", path:`M ${bx} ${by} Q ${bx+40} ${by-30} ${bx+80} ${by-55}`, color:"#ef4444", label:"Repique → axe" }],
+      contre_attaque: [{ type:"chemin", path:`M ${bx} ${by} Q ${bx+30} ${by-40} ${bx+65} ${by-80}`, color:"#ef4444", label:"Diagonale !" }],
+      transition_def: [{ type:"court_pointille", dx:0.06, dy:-0.08, color:"#fbbf24", label:"Pressing" }],
+      defence_placee: [{ type:"droit", dx:0, dy:-0.03, color:"#94a3b8", label:"" }],
+    },
+  };
+
+  const phaseArrows = arrows[pid]?.[phase] ?? [];
+  return phaseArrows;
 }
 
 // ── Composant Joueur ──────────────────────────────────────────────────────
-function Player({ pos, color, borderColor, num, name, star, highlighted, yellowCard }) {
-  const r = star ? 12 : 10;
+function PlayerToken({ x, y, num, name, star, highlighted, color, borderColor }) {
+  const r = star ? 13 : 11;
   return (
-    <motion.g
-      animate={{ x: pos.x, y: pos.y }}
-      initial={{ x: pos.x, y: pos.y }}
-      transition={{ duration: 1.4, ease: "easeInOut" }}
-    >
-      {/* Halo si joueur impliqué dans l action */}
+    <motion.g animate={{ x, y }} initial={{ x, y }}
+      transition={{ duration: 1.6, ease: "easeInOut" }}>
       {highlighted && (
-        <motion.circle r={r + 6} fill="rgba(255,215,0,0.3)"
-          animate={{ r: [r+4, r+10, r+4] }}
-          transition={{ duration: 0.8, repeat: 2 }}/>
+        <motion.circle r={r+7} fill="rgba(255,215,0,0.25)"
+          animate={{ r: [r+5, r+11, r+5] }}
+          transition={{ duration: 0.9, repeat: 3 }}/>
       )}
-      <circle r={r} fill={color} stroke={yellowCard ? "#ffd700" : borderColor}
-        strokeWidth={star || highlighted ? 2.5 : 1.5}/>
-      <text textAnchor="middle" y="3.5" fill="white" fontSize="7" fontWeight="600">{num}</text>
-      <text textAnchor="middle" y="18" fill={star ? "#ffd700" : (color === "#1a6b2f" ? "#a8f0c0" : "#ffc0bb")} fontSize="5.5">{name}</text>
+      <circle r={r} fill={color} stroke={borderColor} strokeWidth={star || highlighted ? 2.5 : 1.5}/>
+      <text textAnchor="middle" y="3.5" fill="white" fontSize="7.5" fontWeight="600">{num}</text>
+      <text textAnchor="middle" y="17" fill={star ? "#ffd700" : "rgba(255,255,255,0.75)"} fontSize="5.5">{name}</text>
     </motion.g>
   );
 }
 
+// ── Composant Flèche ──────────────────────────────────────────────────────
+function Arrow({ arrow, bx, by }) {
+  if (arrow.type === "droit") {
+    const ex = bx + (arrow.dx ?? 0) * W;
+    const ey = by + (arrow.dy ?? 0) * H;
+    return (
+      <g>
+        <line x1={bx} y1={by} x2={ex} y2={ey}
+          stroke={arrow.color} strokeWidth="1.8" markerEnd="url(#arrowhead)" opacity="0.85"/>
+        {arrow.label && (
+          <text x={(bx+ex)/2+6} y={(by+ey)/2}
+            fill={arrow.color} fontSize="7.5" fontFamily="sans-serif" fontWeight="500">{arrow.label}</text>
+        )}
+      </g>
+    );
+  }
+  if (arrow.type === "lateral") {
+    const ex = bx + arrow.dx * W;
+    const ey = by;
+    return (
+      <g>
+        <line x1={bx} y1={ey} x2={ex} y2={ey}
+          stroke={arrow.color} strokeWidth="1.8" markerEnd="url(#arrowhead)" opacity="0.75"/>
+        {arrow.label && (
+          <text x={(bx+ex)/2} y={ey-6}
+            fill={arrow.color} fontSize="7" fontFamily="sans-serif" textAnchor="middle">{arrow.label}</text>
+        )}
+      </g>
+    );
+  }
+  if (arrow.type === "court_pointille") {
+    const ex = bx + (arrow.dx ?? 0) * W;
+    const ey = by + (arrow.dy ?? 0) * H;
+    return (
+      <g>
+        <line x1={bx} y1={by} x2={ex} y2={ey}
+          stroke={arrow.color} strokeWidth="1.5" strokeDasharray="3,2"
+          markerEnd="url(#arrowhead)" opacity="0.65"/>
+        {arrow.label && (
+          <text x={(bx+ex)/2+8} y={(by+ey)/2}
+            fill={arrow.color} fontSize="7" fontFamily="sans-serif">{arrow.label}</text>
+        )}
+      </g>
+    );
+  }
+  if (arrow.type === "chemin") {
+    return (
+      <g>
+        <path d={arrow.path} fill="none"
+          stroke={arrow.color} strokeWidth="2" markerEnd="url(#arrowhead)" opacity="0.90"/>
+        {arrow.label && (() => {
+          // Trouver point milieu du chemin approximatif
+          const nums = arrow.path.match(/-?[\d.]+/g)?.map(Number) ?? [];
+          const mx = nums[0] ? (nums[0] + (nums[nums.length-2] ?? nums[0])) / 2 + 8 : 0;
+          const my = nums[1] ? (nums[1] + (nums[nums.length-1] ?? nums[1])) / 2 - 6 : 0;
+          return (
+            <text x={mx} y={my} fill={arrow.color} fontSize="7.5"
+              fontFamily="sans-serif" fontWeight="600">{arrow.label}</text>
+          );
+        })()}
+      </g>
+    );
+  }
+  return null;
+}
+
+// ── Mapping état tactique → phase ────────────────────────────────────────
+function getPhase(tacticalState, possession) {
+  if (possession !== "me") {
+    if (["pressing_haut"].includes(tacticalState)) return "transition_def";
+    return "defence_placee";
+  }
+  const map = {
+    pressing_haut:   "attaque_placee",
+    attaque_placee:  "attaque_placee",
+    contre_attaque:  "contre_attaque",
+    bloc_bas:        "defence_placee",
+    bloc_median:     "progression",
+    celebration:     "attaque_placee",
+    defence:         "transition_def",
+    possession_build:"construction",
+  };
+  return map[tacticalState] ?? "progression";
+}
+
 // ── Composant principal ───────────────────────────────────────────────────
 export default function MatchField({
-  events        = [],
-  currentMin    = 0,
-  phase         = "idle",
-  senScore      = 0,
-  norScore      = 0,
-  formation     = "4-3-3",
-  tacticId      = "balanced",
-  awayFlag      = "🇳🇴",
-  awayName      = "Norvège",
+  events = [], currentMin = 0, phase = "idle",
+  senScore = 0, norScore = 0,
+  formation = "4-3-3", tacticId = "balanced",
+  awayFlag = "🇧🇪", awayName = "Belgique",
 }) {
-  const [tacticalState,  setTacticalState]  = useState(TACTIC_TO_STATE[tacticId] ?? "bloc_median");
-  const [ballX,          setBallX]          = useState(FIELD_W / 2);
-  const [ballY,          setBallY]          = useState(FIELD_H / 2);
-  const [flash,          setFlash]          = useState(null);
-  const [lastMinute,     setLastMinute]     = useState(-1);
-  const [highlightedNum, setHighlightedNum] = useState(null);
-  const [tacticalLabel,  setTacticalLabel]  = useState("");
-  const [possession,     setPossession]     = useState("me");
-  const [behaviourDesc,  setBehaviourDesc]  = useState(""); // description comportement individuel
+  const [tacticalState,   setTacticalState]   = useState("bloc_median");
+  const [possession,      setPossession]      = useState("me");
+  const [ballX,           setBallX]           = useState(W / 2);
+  const [ballY,           setBallY]           = useState(H / 2);
+  const [flash,           setFlash]           = useState(null);
+  const [lastMinute,      setLastMinute]      = useState(-1);
+  const [highlightedNum,  setHighlightedNum]  = useState(null);
+  const [tacticalLabel,   setTacticalLabel]   = useState("Bloc médian — construction");
+  const [lastEvent,       setLastEvent]       = useState(null);
   const autoRef = useRef(null);
 
-  // Formations disponibles pour Sénégal
   const senFormation = FORMATIONS[formation] ?? FORMATIONS["4-3-3"];
+  const currentPhase = getPhase(tacticalState, possession);
 
-  // Mise à jour de l état tactique selon la tactique choisie
+  // Synchronisation avec les événements
   useEffect(() => {
-    const baseState = TACTIC_TO_STATE[tacticId] ?? "bloc_median";
-    setTacticalState(baseState);
-    setTacticalLabel(TACTICAL_STATES[baseState]?.label ?? "");
-  }, [tacticId]);
-
-  // Synchronisation avec les événements du match
-  useEffect(() => {
-    if (events.length === 0) return;
+    if (!events.length) return;
     const visible = events.filter(e => e.minute <= currentMin);
-    if (visible.length === 0) return;
+    if (!visible.length) return;
     const last = visible[visible.length - 1];
     if (last.minute === lastMinute) return;
     setLastMinute(last.minute);
+    setLastEvent(last);
 
     if (last.type === "goal" && (last.team === "me" || last.team === "sen")) {
       setTacticalState("celebration");
-      setTacticalLabel("⚽ BUT DU SÉNÉGAL ! 🇸🇳");
-      setBallX(FIELD_W / 2);
-      setBallY(FIELD_H * 0.92);
+      setTacticalLabel("⚽ BUT DU SÉNÉGAL !");
       setFlash("goal_sen");
-      const scorerPlayer = SEN_PLAYERS_433.find(p =>
-        last.player && (p.name.toLowerCase().includes(last.player.toLowerCase().split(".")[0]) ||
-        last.player.toLowerCase().includes(p.name.toLowerCase()))
+      setBallX(W / 2); setBallY(H * 0.06);
+      const scorer = SEN_PLAYERS.find(p =>
+        last.player && p.name.toLowerCase().split(".")[0].includes(last.player.toLowerCase().split(".")[0].substring(0,4))
       );
-      setHighlightedNum(scorerPlayer?.num ?? null);
-      if (scorerPlayer?.profileId) {
-        const desc = getPlayerBehaviourDesc(scorerPlayer.profileId, "attaque_placee", formation);
-        setBehaviourDesc(desc ? `✨ ${desc}` : "");
-      }
+      setHighlightedNum(scorer?.num ?? null);
       setTimeout(() => {
-        setFlash(null);
-        setHighlightedNum(null);
-        setBehaviourDesc("");
-        const baseState = TACTIC_TO_STATE[tacticId] ?? "bloc_median";
-        setTacticalState(baseState);
-        setTacticalLabel(TACTICAL_STATES[baseState]?.label ?? "");
-        setPossession("ai");
-        setBallX(FIELD_W / 2);
-        setBallY(FIELD_H / 2);
-      }, 2500);
+        setFlash(null); setHighlightedNum(null);
+        setPossession("ai"); setTacticalState("bloc_median");
+        setTacticalLabel("Coup d'envoi adverse — bloc médian");
+        setBallX(W/2); setBallY(H/2);
+      }, 2800);
 
     } else if (last.type === "goal" && last.team === "ai") {
-      // But adverse
-      setFlash("goal_nor");
-      setTacticalState("defence");
-      setTacticalLabel("😰 But encaissé — on repart !");
-      setBallX(FIELD_W / 2);
-      setBallY(FIELD_H * 0.08); // ballon dans le but sénégalais (haut)
-      setPossession("ai");
+      setFlash("goal_adv"); setTacticalState("defence");
+      setTacticalLabel("😰 But encaissé — on se regroupe");
+      setBallX(W/2); setBallY(H*0.94); setPossession("ai");
       setTimeout(() => {
-        setFlash(null);
-        setPossession("me");
-        setBallX(FIELD_W / 2);
-        setBallY(FIELD_H / 2);
-        setTacticalState(TACTIC_TO_STATE[tacticId] ?? "bloc_median");
-        setTacticalLabel(TACTICAL_STATES[TACTIC_TO_STATE[tacticId]]?.label ?? "");
-      }, 2500);
+        setFlash(null); setPossession("me");
+        setTacticalState("bloc_median");
+        setTacticalLabel("Coup d'envoi — reprise");
+        setBallX(W/2); setBallY(H/2);
+      }, 2800);
 
     } else if (last.type === "shot" || last.type === "miss") {
       setTacticalState("attaque_placee");
       setTacticalLabel("🎯 Occasion dangereuse !");
-      setBallX(FIELD_W * (0.3 + Math.random() * 0.4));
-      setBallY(FIELD_H * 0.82);
-      setPossession("me");
-      setTimeout(() => {
-        setPossession("ai");
-        setTacticalState("defence");
-        setTacticalLabel(TACTICAL_STATES["defence"].label);
-      }, 2000);
+      setBallX(W*(0.3+Math.random()*0.4)); setBallY(H*0.12);
+      setTimeout(() => { setPossession("ai"); setTacticalState("bloc_median"); setTacticalLabel("Bloc médian"); }, 2000);
 
     } else if (last.type === "save") {
-      setTacticalState("defence");
-      setTacticalLabel("🧤 Parade décisive !");
-      setBallX(FIELD_W * 0.5);
-      setBallY(FIELD_H * 0.10);
-      setPossession("me");
-      setTimeout(() => {
-        setTacticalState(TACTIC_TO_STATE[tacticId] ?? "bloc_median");
-        setTacticalLabel(TACTICAL_STATES[TACTIC_TO_STATE[tacticId]]?.label ?? "");
-      }, 2000);
+      setTacticalState("transition_def");
+      setTacticalLabel("🧤 Parade — on repart !");
+      setBallX(W*0.5); setBallY(H*0.10); setPossession("me");
+      setTimeout(() => { setTacticalState("bloc_median"); setTacticalLabel("Construction"); }, 2000);
 
     } else if (last.type === "corner") {
       setTacticalState("attaque_placee");
-      setTacticalLabel("🚩 Corner — tous en surface !");
-      setBallX(Math.random() < 0.5 ? FIELD_W * 0.02 : FIELD_W * 0.98);
-      setBallY(FIELD_H * 0.88);
-      setPossession("me");
+      setTacticalLabel("🚩 Corner — Koulibaly monte !");
+      setBallX(Math.random()<0.5 ? W*0.02 : W*0.98); setBallY(H*0.08);
 
-    } else if (last.type === "yellow") {
-      setTacticalLabel("🟨 Carton jaune !");
-      setTimeout(() => {
-        setTacticalLabel(TACTICAL_STATES[tacticalState]?.label ?? "");
-      }, 2000);
-
-    } else if (last.type === "text") {
-      // Commentaire narratif — ajuster état selon le contexte
-      if (last.desc?.toLowerCase().includes("pressing")) {
-        setTacticalState("pressing_haut");
-        setTacticalLabel(TACTICAL_STATES["pressing_haut"].label);
-      } else if (last.desc?.toLowerCase().includes("contre")) {
-        setTacticalState("contre_attaque");
-        setTacticalLabel(TACTICAL_STATES["contre_attaque"].label);
-      } else if (last.desc?.toLowerCase().includes("bloc")) {
-        setTacticalState("bloc_bas");
-        setTacticalLabel(TACTICAL_STATES["bloc_bas"].label);
+    } else if (last.type === "text" && last.desc) {
+      const d = last.desc.toLowerCase();
+      if (d.includes("pressing"))       { setTacticalState("pressing_haut"); setTacticalLabel("⚡ Pressing haut — on monte !"); setPossession("me"); }
+      else if (d.includes("contre"))    { setTacticalState("contre_attaque"); setTacticalLabel("⚡ Contre-attaque !"); setPossession("me"); }
+      else if (d.includes("bloc bas"))  { setTacticalState("bloc_bas"); setTacticalLabel("🛡️ Bloc bas — on défend"); }
+      else if (d.includes("norvège") || d.includes("irak") || d.includes("belgique")) {
+        setPossession("ai"); setTacticalState("defence"); setTacticalLabel("🛡️ Défense — l'adversaire attaque");
       }
     }
   }, [currentMin, events]);
 
-  // Animation automatique du ballon entre les événements
+  // Animation ballon entre les événements
   useEffect(() => {
     if (phase !== "playing" && phase !== "playing2") return;
     autoRef.current = setInterval(() => {
       if (possession === "me") {
-        // Sénégal a le ballon — simulation de progression
-        setBallX(FIELD_W * (0.2 + Math.random() * 0.6));
-        setBallY(FIELD_H * (0.35 + Math.random() * 0.45));
+        setBallX(W*(0.15+Math.random()*0.70));
+        setBallY(H*(0.20+Math.random()*0.55));
       } else {
-        // Adversaire a le ballon
-        setBallX(FIELD_W * (0.2 + Math.random() * 0.6));
-        setBallY(FIELD_H * (0.15 + Math.random() * 0.35));
+        setBallX(W*(0.15+Math.random()*0.70));
+        setBallY(H*(0.10+Math.random()*0.38));
       }
-    }, 2800);
+    }, 3200);
     return () => clearInterval(autoRef.current);
   }, [phase, possession]);
 
   return (
-    <div style={{ position: "relative", width: "100%", maxWidth: "340px", margin: "0 auto" }}>
+    <div style={{ width:"100%", maxWidth:"360px", margin:"0 auto" }}>
 
       {/* Flash de but */}
       <AnimatePresence>
         {flash && (
-          <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
+          <motion.div initial={{ opacity:0, scale:0.85 }} animate={{ opacity:1, scale:1 }} exit={{ opacity:0 }}
             style={{
-              position: "absolute", inset: 0, zIndex: 10, borderRadius: "10px", pointerEvents: "none",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              background: flash === "goal_sen" ? "rgba(22,120,50,0.90)" : "rgba(180,40,30,0.90)",
+              position:"absolute", inset:0, zIndex:20, borderRadius:"10px", pointerEvents:"none",
+              display:"flex", alignItems:"center", justifyContent:"center",
+              background: flash==="goal_sen" ? "rgba(20,110,50,0.92)" : "rgba(160,30,30,0.92)",
             }}>
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: "52px" }}>⚽</div>
-              <div style={{ color: "white", fontWeight: 800, fontSize: "24px", letterSpacing: "1px" }}>
-                {flash === "goal_sen" ? "BUT ! 🇸🇳" : `BUT ! ${awayFlag}`}
+            <div style={{ textAlign:"center" }}>
+              <div style={{ fontSize:"52px" }}>⚽</div>
+              <div style={{ color:"white", fontWeight:800, fontSize:"26px" }}>
+                {flash==="goal_sen" ? "BUT ! 🇸🇳" : `BUT ! ${awayFlag}`}
               </div>
-              <div style={{ color: "rgba(255,255,255,0.9)", fontSize: "36px", fontWeight: 800 }}>
+              <div style={{ color:"rgba(255,255,255,0.9)", fontSize:"38px", fontWeight:800 }}>
                 {senScore} - {norScore}
               </div>
             </div>
@@ -376,147 +434,155 @@ export default function MatchField({
         )}
       </AnimatePresence>
 
-      <svg viewBox={`0 0 ${FIELD_W} ${FIELD_H}`} style={{ width: "100%", display: "block", borderRadius: "10px" }}>
+      <svg viewBox={`0 0 ${W} ${H+5}`} style={{ width:"100%", display:"block", borderRadius:"10px" }}>
+        <defs>
+          <marker id="arrowhead" viewBox="0 0 10 10" refX="8" refY="5"
+            markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+            <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke"
+              strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </marker>
+        </defs>
 
         {/* ── Terrain ── */}
-        <rect width={FIELD_W} height={FIELD_H} fill="#1e6b2f" rx="10"/>
-        {/* Rayures */}
-        {[0,1,2,3,4,5,6,7,8].map(i => (
-          <rect key={i} x="0" y={i * (FIELD_H/9)} width={FIELD_W} height={FIELD_H/9}
-            fill={i%2===0 ? "rgba(0,0,0,0.06)" : "transparent"}/>
+        <rect width={W} height={H} fill="#1e6b2f" rx="10"/>
+        {[0,1,2,3,4,5,6,7].map(i => (
+          <rect key={i} x="0" y={i*(H/8)} width={W} height={H/8}
+            fill={i%2===0?"rgba(0,0,0,0.05)":"transparent"}/>
         ))}
-        {/* Bordure */}
-        <rect x="8" y="8" width={FIELD_W-16} height={FIELD_H-16} fill="none" stroke="#2d8a42" strokeWidth="1.5" rx="6"/>
-
-        {/* Ligne médiane */}
-        <line x1="8" y1={FIELD_H/2} x2={FIELD_W-8} y2={FIELD_H/2} stroke="#2d8a42" strokeWidth="1.2"/>
-        <circle cx={FIELD_W/2} cy={FIELD_H/2} r="38" fill="none" stroke="#2d8a42" strokeWidth="1.2"/>
-        <circle cx={FIELD_W/2} cy={FIELD_H/2} r="3" fill="#2d8a42"/>
-
-        {/* Surface Sénégal (haut) */}
-        <rect x="78" y="8" width="164" height="78" fill="none" stroke="#2d8a42" strokeWidth="1"/>
-        <rect x="108" y="8" width="104" height="38" fill="none" stroke="#2d8a42" strokeWidth="1"/>
-        <circle cx={FIELD_W/2} cy="78" r="22" fill="none" stroke="#2d8a42" strokeWidth="1"
-          clipPath="url(#clipTop)"/>
-        <clipPath id="clipTop"><rect x="0" y="78" width={FIELD_W} height={FIELD_H}/></clipPath>
-
-        {/* Surface adverse (bas) */}
-        <rect x="78" y={FIELD_H-86} width="164" height="78" fill="none" stroke="#2d8a42" strokeWidth="1"/>
-        <rect x="108" y={FIELD_H-46} width="104" height="38" fill="none" stroke="#2d8a42" strokeWidth="1"/>
-        <circle cx={FIELD_W/2} cy={FIELD_H-78} r="22" fill="none" stroke="#2d8a42" strokeWidth="1"
-          clipPath="url(#clipBot)"/>
-        <clipPath id="clipBot"><rect x="0" y="0" width={FIELD_W} height={FIELD_H-78}/></clipPath>
-
+        <rect x="8" y="8" width={W-16} height={H-16} fill="none" stroke="#2d8a42" strokeWidth="1.2" rx="6"/>
+        <line x1="8" y1={H/2} x2={W-8} y2={H/2} stroke="#2d8a42" strokeWidth="1.2"/>
+        <circle cx={W/2} cy={H/2} r="42" fill="none" stroke="#2d8a42" strokeWidth="1.2"/>
+        <circle cx={W/2} cy={H/2} r="3" fill="#2d8a42"/>
+        {/* Surfaces */}
+        <rect x="88"  y="8"      width="164" height="82" fill="none" stroke="#2d8a42" strokeWidth="1"/>
+        <rect x="118" y="8"      width="104" height="38" fill="none" stroke="#2d8a42" strokeWidth="1"/>
+        <rect x="88"  y={H-90}   width="164" height="82" fill="none" stroke="#2d8a42" strokeWidth="1"/>
+        <rect x="118" y={H-46}   width="104" height="38" fill="none" stroke="#2d8a42" strokeWidth="1"/>
         {/* Buts */}
-        <rect x="118" y="4" width="84" height="10" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="1.5"/>
-        <rect x="118" y={FIELD_H-14} width="84" height="10" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="1.5"/>
+        <rect x="122" y="4"    width="96" height="8" fill="none" stroke="rgba(255,255,255,0.65)" strokeWidth="1.5"/>
+        <rect x="122" y={H-12} width="96" height="8" fill="none" stroke="rgba(255,255,255,0.65)" strokeWidth="1.5"/>
 
-        {/* ── Joueurs Norvège (positions fixes miroir) ── */}
-        {NOR_PLAYERS.map(p => {
-          const base = NOR_BASE[p.key];
-          if (!base) return null;
-          // Décalage adverse selon possession
-          const norDy = possession === "me" ? 0.06 : -0.08;
-          const pos = { x: base[0] * FIELD_W, y: Math.min(0.95, Math.max(0.05, base[1] + norDy)) * FIELD_H };
-          return (
-            <Player key={`nor-${p.key}`} pos={pos}
-              color="#a83228" borderColor={p.star ? "#ffd700" : "rgba(255,255,255,0.8)"}
-              num={p.num} name={p.name} star={p.star} highlighted={false} yellowCard={false}/>
-          );
-        })}
+        {/* ── Lignes de formation (visuelles) ── */}
+        {/* Ligne défensive */}
+        <line x1="30" y1={H*0.77} x2={W-30} y2={H*0.77}
+          stroke="rgba(255,255,255,0.12)" strokeWidth="1" strokeDasharray="5,4"/>
+        {/* Ligne de milieu */}
+        <line x1="30" y1={H*0.61} x2={W-30} y2={H*0.61}
+          stroke="rgba(255,255,255,0.10)" strokeWidth="1" strokeDasharray="5,4"/>
+        {/* Ligne attaque */}
+        <line x1="30" y1={H*0.43} x2={W-30} y2={H*0.43}
+          stroke="rgba(255,255,255,0.10)" strokeWidth="1" strokeDasharray="5,4"/>
 
-        {/* ── Joueurs Sénégal — positions individuelles par phase de jeu ── */}
-        {SEN_PLAYERS_433.map(p => {
+        {/* ── Adversaire — pions simples ── */}
+        {Object.entries(ADV_BASE).slice(0,11).map(([key, pos], i) => (
+          <g key={`adv-${key}`}>
+            <circle cx={pos.x*W} cy={pos.y*H} r="10"
+              fill="#8b1c1c" stroke="rgba(255,255,255,0.55)" strokeWidth="1.5"/>
+            <text x={pos.x*W} y={pos.y*H+3.5} textAnchor="middle"
+              fill="white" fontSize="7" fontFamily="sans-serif">
+              {i===0?"GK":i<=4?"DEF":i<=7?"MIL":"ATT"}
+            </text>
+          </g>
+        ))}
+
+        {/* ── Flèches Sénégal ── */}
+        {SEN_PLAYERS.map(p => {
           const base = senFormation[p.key];
           if (!base) return null;
+          const bx = base.x * W;
+          const by = base.y * H;
+          const arrows = getPlayerArrows(p.pid, base, currentPhase, formation);
+          return arrows.map((arrow, i) => (
+            <Arrow key={`arrow-${p.key}-${i}`} arrow={arrow} bx={bx} by={by}/>
+          ));
+        })}
 
-          // Calculer la phase de jeu selon l'état tactique et la possession
-          const phase = tacticToPhase(tacticalState, possession);
-
-          // Obtenir la position depuis le profil individuel du joueur
-          const dynPos = p.profileId ? calcPlayerPosition(p.profileId, phase, formation) : null;
-
-          // Utiliser la position du profil si disponible, sinon fallback sur la formation
-          let finalX, finalY;
-          if (dynPos) {
-            finalX = dynPos.x * FIELD_W;
-            finalY = dynPos.y * FIELD_H;
-          } else {
-            // Fallback : calcPosition de base (comme avant)
-            const pos = calcPosition(base, p.role, tacticalState, true);
-            finalX = pos.x;
-            finalY = pos.y;
-          }
-
-          const isHighlighted = highlightedNum === p.num;
-
+        {/* ── Joueurs Sénégal ── */}
+        {SEN_PLAYERS.map(p => {
+          const base = senFormation[p.key];
+          if (!base) return null;
+          // Utiliser calcPlayerPosition si le profil existe
+          const dynPos = p.pid ? calcPlayerPosition(p.pid, currentPhase, formation) : null;
+          const fx = dynPos ? dynPos.x * W : base.x * W;
+          const fy = dynPos ? dynPos.y * H : base.y * H;
           return (
-            <Player key={`sen-${p.key}`}
-              pos={{ x: finalX, y: finalY }}
-              color="#1a6b2f"
-              borderColor={p.star ? "#ffd700" : "rgba(255,255,255,0.85)"}
+            <PlayerToken key={`sen-${p.key}`}
+              x={fx} y={fy}
               num={p.num} name={p.name} star={p.star}
-              highlighted={isHighlighted} yellowCard={false}/>
+              highlighted={highlightedNum === p.num}
+              color="#1a5c28"
+              borderColor={p.star ? "#ffd700" : "rgba(255,255,255,0.85)"}/>
           );
         })}
 
         {/* ── Ballon ── */}
-        <motion.g animate={{ x: ballX, y: ballY }} initial={{ x: FIELD_W/2, y: FIELD_H/2 }}
-          transition={{ duration: 0.9, ease: "easeOut" }}>
-          <circle r="6" fill="white" stroke="#ccc" strokeWidth="0.8"/>
-          <circle r="3" fill="#bbb"/>
+        <motion.g animate={{ x:ballX, y:ballY }} initial={{ x:W/2, y:H/2 }}
+          transition={{ duration:0.85, ease:"easeOut" }}>
+          <circle r="6.5" fill="white" stroke="#bbb" strokeWidth="0.8"/>
+          <circle r="3" fill="#ccc"/>
         </motion.g>
 
         {/* ── Indicateurs ── */}
-        {/* Possession */}
-        <rect x="8" y="8" width="80" height="17" fill={possession==="me" ? "#1a6b2f" : "#a83228"} rx="4" opacity="0.92"/>
-        <text x="48" y="20" textAnchor="middle" fill="white" fontSize="8.5" fontWeight="600">
+        <rect x="8" y="8" width="82" height="17" fill={possession==="me"?"#14532d":"#7f1d1d"} rx="4" opacity="0.92"/>
+        <text x="49" y="19.5" textAnchor="middle" fill="white" fontSize="8.5"
+          fontFamily="sans-serif" fontWeight="600">
           {possession==="me" ? "🇸🇳 Balle" : `${awayFlag} Balle`}
         </text>
 
-        {/* Score */}
-        <rect x={FIELD_W/2-32} y={FIELD_H/2-14} width="64" height="19" fill="rgba(0,0,0,0.70)" rx="5"/>
-        <text x={FIELD_W/2} y={FIELD_H/2-1} textAnchor="middle" fill="white" fontSize="11" fontWeight="700">
-          {senScore} - {norScore}
-        </text>
+        <rect x={W/2-30} y={H/2-14} width="60" height="19" fill="rgba(0,0,0,0.70)" rx="5"/>
+        <text x={W/2} y={H/2-1} textAnchor="middle" fill="white" fontSize="12"
+          fontFamily="sans-serif" fontWeight="700">{senScore} - {norScore}</text>
 
         {/* Étiquettes équipes */}
-        <text x={FIELD_W/2} y="24" textAnchor="middle" fill="rgba(255,255,255,0.5)" fontSize="7">🇸🇳 SÉN</text>
-        <text x={FIELD_W/2} y={FIELD_H-6} textAnchor="middle" fill="rgba(255,255,255,0.5)" fontSize="7">{awayFlag} {awayName.substring(0,3).toUpperCase()}</text>
+        <text x={W/2} y={H-4} textAnchor="middle" fill="rgba(255,255,255,0.45)" fontSize="7" fontFamily="sans-serif">
+          🇸🇳 SÉN ↑ · {awayFlag} {awayName.substring(0,3).toUpperCase()} ↓
+        </text>
       </svg>
 
       {/* ── Légende tactique ── */}
       <motion.div key={tacticalLabel}
-        initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
+        initial={{ opacity:0, y:3 }} animate={{ opacity:1, y:0 }}
         style={{
-          marginTop: "6px", textAlign: "center", fontSize: "11px",
+          marginTop:"5px", textAlign:"center", fontSize:"11px", minHeight:"17px",
           color: tacticalLabel.includes("BUT") ? "#4ade80" :
-                 tacticalLabel.includes("😰") ? "#f87171" : "#94a3b8",
-          fontWeight: tacticalLabel.includes("BUT") ? 700 : 400,
-          minHeight: "18px",
+                 tacticalLabel.includes("😰") ? "#f87171" :
+                 tacticalLabel.includes("⚡") ? "#fbbf24" : "#94a3b8",
+          fontWeight: tacticalLabel.includes("BUT") || tacticalLabel.includes("⚡") ? 700 : 400,
         }}>
         {tacticalLabel}
       </motion.div>
 
-      {/* ── Info joueur en action ── */}
-      {behaviourDesc && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          style={{ textAlign: "center", fontSize: "10px", color: "#fbbf24", marginTop: "2px", fontStyle: "italic" }}>
-          {behaviourDesc}
+      {/* ── Option B (20%) : Narration compacte ── */}
+      {lastEvent?.desc && (
+        <motion.div
+          key={lastEvent.minute}
+          initial={{ opacity:0, y:5 }} animate={{ opacity:1, y:0 }}
+          style={{
+            marginTop:"6px",
+            background:"rgba(0,0,0,0.55)",
+            borderRadius:"8px",
+            padding:"6px 10px",
+            fontSize:"10px",
+            color:"#cbd5e1",
+            lineHeight:"1.5",
+          }}>
+          <span style={{ color:"#94a3b8", fontFamily:"monospace", marginRight:"6px" }}>
+            {lastEvent.minute}'
+          </span>
+          <span style={{
+            color: lastEvent.type==="goal" ? (lastEvent.team==="me"||lastEvent.team==="sen" ? "#4ade80" : "#f87171") : "#cbd5e1",
+            fontStyle:"italic",
+          }}>
+            {lastEvent.desc?.substring(0, 90)}{lastEvent.desc?.length > 90 ? "…" : ""}
+          </span>
         </motion.div>
       )}
 
-      {/* Légende */}
-      <div style={{ display:"flex", gap:"16px", justifyContent:"center", marginTop:"6px", fontSize:"10px", color:"#64748b" }}>
-        <span style={{ display:"flex", alignItems:"center", gap:"4px" }}>
-          <svg width="10" height="10"><circle cx="5" cy="5" r="4" fill="#1a6b2f" stroke="#ffd700" strokeWidth="1.5"/></svg>
-          Joueur clé 🇸🇳
-        </span>
-        <span style={{ display:"flex", alignItems:"center", gap:"4px" }}>
-          <svg width="10" height="10"><circle cx="5" cy="5" r="4" fill="#a83228" stroke="#ffd700" strokeWidth="1.5"/></svg>
-          Joueur clé {awayFlag}
-        </span>
+      {/* Légende flèches */}
+      <div style={{ display:"flex", gap:"12px", justifyContent:"center", marginTop:"5px", fontSize:"9.5px", color:"#64748b" }}>
+        <span>— Mouvement</span>
+        <span style={{ borderBottom:"1px dashed #64748b" }}>- - Tient position</span>
+        <span style={{ color:"#f97316" }}>— Contre</span>
       </div>
     </div>
   );
