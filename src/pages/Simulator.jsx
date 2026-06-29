@@ -525,7 +525,6 @@ export default function Simulator() {
                 tacticId={tactic.id}
                 awayFlag={awayTeamFlag}
                 awayName={awayTeamName}
-                awayPlayers={awayPlayers}
                 timelineEvents={matchModule?.MATCH_TIMELINE_EVENTS ?? []} />
             </div>
             <div className="space-y-2">
