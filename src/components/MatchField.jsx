@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence }      from "framer-motion";
-import { PLAYER_PROFILES, getDynamicPosition, getBehaviourDescription } from "../data/playerProfiles";
+import { PLAYER_PROFILES, calcPlayerPosition, tacticToPhase, getPlayerBehaviourDesc, getLiveRating } from "../data/playerProfiles";
 
 const FIELD_W = 320;
 const FIELD_H = 500;
@@ -251,7 +251,7 @@ export default function MatchField({
       );
       setHighlightedNum(scorerPlayer?.num ?? null);
       if (scorerPlayer?.profileId) {
-        const desc = getBehaviourDescription(scorerPlayer.profileId, "attaque");
+        const desc = getPlayerBehaviourDesc(scorerPlayer.profileId, "attaque_placee", formation);
         setBehaviourDesc(desc ? `✨ ${desc}` : "");
       }
       setTimeout(() => {
@@ -425,34 +425,36 @@ export default function MatchField({
           );
         })}
 
-        {/* ── Joueurs Sénégal (positions individuelles selon profil + état tactique) ── */}
+        {/* ── Joueurs Sénégal — positions individuelles par phase de jeu ── */}
         {SEN_PLAYERS_433.map(p => {
           const base = senFormation[p.key];
           if (!base) return null;
 
-          // Position individuelle selon le profil du joueur
-          const dynBase = getDynamicPosition(p.profileId, base, tacticalState);
+          // Calculer la phase de jeu selon l'état tactique et la possession
+          const phase = tacticToPhase(tacticalState, possession);
 
-          // Appliquer le décalage tactique global EN PLUS du comportement individuel
-          const state = TACTICAL_STATES[tacticalState] ?? TACTICAL_STATES.bloc_median;
-          const roleState = state[p.role] ?? { dy: 0, spread: 1 };
-          const extraDy = roleState.dy;
-          const finalBase = [
-            dynBase[0],
-            Math.min(0.95, Math.max(0.05, dynBase[1] + extraDy * 0.5)), // combiner les deux décalages
-          ];
+          // Obtenir la position depuis le profil individuel du joueur
+          const dynPos = p.profileId ? calcPlayerPosition(p.profileId, phase, formation) : null;
 
-          const pos = {
-            x: Math.min(0.95, Math.max(0.05, finalBase[0] * (roleState.spread ?? 1) + 0.5 * (1 - (roleState.spread ?? 1)))) * FIELD_W,
-            y: finalBase[1] * FIELD_H,
-          };
+          // Utiliser la position du profil si disponible, sinon fallback sur la formation
+          let finalX, finalY;
+          if (dynPos) {
+            finalX = dynPos.x * FIELD_W;
+            finalY = dynPos.y * FIELD_H;
+          } else {
+            // Fallback : calcPosition de base (comme avant)
+            const pos = calcPosition(base, p.role, tacticalState, true);
+            finalX = pos.x;
+            finalY = pos.y;
+          }
 
           const isHighlighted = highlightedNum === p.num;
-          const profile = PLAYER_PROFILES[p.profileId];
 
           return (
-            <Player key={`sen-${p.key}`} pos={pos}
-              color="#1a6b2f" borderColor={p.star ? "#ffd700" : "rgba(255,255,255,0.85)"}
+            <Player key={`sen-${p.key}`}
+              pos={{ x: finalX, y: finalY }}
+              color="#1a6b2f"
+              borderColor={p.star ? "#ffd700" : "rgba(255,255,255,0.85)"}
               num={p.num} name={p.name} star={p.star}
               highlighted={isHighlighted} yellowCard={false}/>
           );
